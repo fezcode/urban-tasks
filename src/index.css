@@ -1,0 +1,118 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root,
+  [data-theme='light'] {
+    --color-bg: 250 249 246;
+    --color-bg-secondary: 243 240 234;
+    --color-bg-tertiary: 235 231 223;
+
+    --color-surface: 255 255 255;
+    --color-surface-hover: 247 245 240;
+    --color-surface-raised: 255 255 255;
+
+    --color-border: 229 224 216;
+    --color-border-light: 237 233 227;
+    --color-border-focus: 201 100 66;
+
+    --color-text-primary: 26 26 26;
+    --color-text-secondary: 111 105 98;
+    --color-text-tertiary: 156 149 141;
+    --color-text-inverse: 255 255 255;
+
+    --color-accent: 201 100 66;
+    --color-accent-hover: 181 88 56;
+    --color-accent-light: 245 230 224;
+    --color-accent-muted: 232 213 204;
+
+    --color-status-active: 91 138 114;
+    --color-status-active-bg: 232 242 237;
+    --color-status-warning: 201 160 66;
+    --color-status-warning-bg: 245 240 224;
+
+    --color-danger: 220 70 70;
+    --color-danger-bg: 254 242 242;
+
+    --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -2px rgba(0,0,0,0.04);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.06), 0 4px 6px -4px rgba(0,0,0,0.04);
+  }
+
+  [data-theme='dark'] {
+    --color-bg: 23 23 23;
+    --color-bg-secondary: 30 30 30;
+    --color-bg-tertiary: 40 40 40;
+
+    --color-surface: 38 38 38;
+    --color-surface-hover: 45 45 45;
+    --color-surface-raised: 48 48 48;
+
+    --color-border: 55 55 55;
+    --color-border-light: 48 48 48;
+    --color-border-focus: 210 120 86;
+
+    --color-text-primary: 237 234 230;
+    --color-text-secondary: 160 155 148;
+    --color-text-tertiary: 115 110 104;
+    --color-text-inverse: 23 23 23;
+
+    --color-accent: 210 120 86;
+    --color-accent-hover: 225 140 105;
+    --color-accent-light: 50 35 28;
+    --color-accent-muted: 60 42 35;
+
+    --color-status-active: 110 168 140;
+    --color-status-active-bg: 30 48 40;
+    --color-status-warning: 210 175 90;
+    --color-status-warning-bg: 48 42 28;
+
+    --color-danger: 240 100 100;
+    --color-danger-bg: 50 30 30;
+
+    --shadow-sm: 0 1px 3px 0 rgba(0,0,0,0.3);
+    --shadow-md: 0 4px 8px -1px rgba(0,0,0,0.4), 0 2px 4px -2px rgba(0,0,0,0.3);
+    --shadow-lg: 0 10px 20px -3px rgba(0,0,0,0.4), 0 4px 8px -4px rgba(0,0,0,0.3);
+  }
+
+  body {
+    @apply bg-bg text-text-primary font-sans antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background-color: rgb(var(--color-accent) / 0.2);
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--color-border));
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--color-text-tertiary));
+  }
+
+  *:focus-visible {
+    @apply outline-none ring-2 ring-accent/30 ring-offset-1;
+    ring-offset-color: rgb(var(--color-bg));
+    border-radius: inherit;
+  }
+
+  input[type='text']::placeholder {
+    color: rgb(var(--color-text-tertiary));
+  }
+}
+
+@layer utilities {
+  .transition-base {
+    @apply transition-all duration-150 ease-out;
+  }
+}
