@@ -68,18 +68,14 @@ const TaskItem: React.FC<Props> = ({ task, showProject }) => {
         title={`Status: ${task.status}`}
       >
         {task.status === 'done' && <Check size={12} className="text-white" strokeWidth={3} />}
-        {task.status === 'in-progress' && (
-          <div className="w-2 h-2 rounded-full bg-accent" />
-        )}
+        {task.status === 'in-progress' && <div className="w-2 h-2 rounded-full bg-accent" />}
       </button>
 
       {/* Content */}
       <div className="flex-1 min-w-0">
         <p
           className={`text-[14px] leading-snug ${
-            task.status === 'done'
-              ? 'line-through text-text-tertiary'
-              : 'text-text-primary'
+            task.status === 'done' ? 'line-through text-text-tertiary' : 'text-text-primary'
           }`}
         >
           {task.title}

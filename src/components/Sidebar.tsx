@@ -93,8 +93,16 @@ const Sidebar: React.FC<Props> = ({ currentView, onViewChange }) => {
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M2 4.5A2.5 2.5 0 0 1 4.5 2h3a2.5 2.5 0 0 1 0 5h-3A2.5 2.5 0 0 1 2 4.5Z" fill="white" fillOpacity="0.9" />
-              <path d="M6 11.5A2.5 2.5 0 0 1 8.5 9h3a2.5 2.5 0 0 1 0 5h-3A2.5 2.5 0 0 1 6 11.5Z" fill="white" fillOpacity="0.5" />
+              <path
+                d="M2 4.5A2.5 2.5 0 0 1 4.5 2h3a2.5 2.5 0 0 1 0 5h-3A2.5 2.5 0 0 1 2 4.5Z"
+                fill="white"
+                fillOpacity="0.9"
+              />
+              <path
+                d="M6 11.5A2.5 2.5 0 0 1 8.5 9h3a2.5 2.5 0 0 1 0 5h-3A2.5 2.5 0 0 1 6 11.5Z"
+                fill="white"
+                fillOpacity="0.5"
+              />
             </svg>
           </div>
           <span className="font-semibold text-[15px] text-text-primary tracking-tight">
@@ -127,10 +135,7 @@ const Sidebar: React.FC<Props> = ({ currentView, onViewChange }) => {
               : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
           }`}
         >
-          <LayoutDashboard
-            size={18}
-            className={currentView === 'dashboard' ? 'text-accent' : ''}
-          />
+          <LayoutDashboard size={18} className={currentView === 'dashboard' ? 'text-accent' : ''} />
           <span>Dashboard</span>
         </button>
       </div>

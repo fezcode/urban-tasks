@@ -14,20 +14,21 @@ import {
   BarChart,
   Bar,
 } from 'recharts';
-import type { TooltipProps } from 'recharts';
 import { format, subDays, isSameDay, isAfter, startOfDay } from 'date-fns';
-import { TrendingDown, CheckCircle2, Clock, Zap, BarChart3, Target } from 'lucide-react';
+import { TrendingDown, CheckCircle2, Zap, BarChart3, Target } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import ProjectIcon from './ProjectIcon';
 
-const ChartTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ChartTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-surface-raised border border-border rounded-lg px-3 py-2 shadow-md text-[12px]">
-      <p className="text-text-tertiary mb-0.5">{label}</p>
-      {payload.map((p, i) => (
+      <p className="text-text-tertiary mb-0.5">{String(label)}</p>
+      {payload.map((p: { value?: number; name?: string }, i: number) => (
         <p key={i} className="text-text-primary font-medium">
-          {p.value} {p.name === 'remaining' ? 'remaining' : p.name === 'completed' ? 'completed' : 'tasks'}
+          {p.value}{' '}
+          {p.name === 'remaining' ? 'remaining' : p.name === 'completed' ? 'completed' : 'tasks'}
         </p>
       ))}
     </div>
@@ -43,10 +44,6 @@ const Dashboard: React.FC = () => {
   const tickColor = isDark ? '#6E6A64' : '#9C958D';
   const accentColor = isDark ? '#D2785A' : '#C96442';
   const activeColor = isDark ? '#6EA88C' : '#5B8A72';
-
-  const activeProject = state.activeProjectId
-    ? state.projects.find((p) => p.id === state.activeProjectId)
-    : null;
 
   const tasks = state.activeProjectId
     ? state.tasks.filter((t) => t.projectId === state.activeProjectId)
@@ -65,9 +62,7 @@ const Dashboard: React.FC = () => {
     const dayStart = startOfDay(date);
 
     // Tasks that existed by this day
-    const existedByDay = tasks.filter(
-      (t) => !isAfter(startOfDay(new Date(t.createdAt)), dayStart)
-    );
+    const existedByDay = tasks.filter((t) => !isAfter(startOfDay(new Date(t.createdAt)), dayStart));
 
     // Of those, how many were completed by this day
     const completedByDay = existedByDay.filter(
@@ -88,10 +83,7 @@ const Dashboard: React.FC = () => {
   const dailyCompletions = Array.from({ length: 7 }, (_, i) => {
     const date = subDays(new Date(), 6 - i);
     const count = tasks.filter(
-      (t) =>
-        t.status === 'done' &&
-        t.completedAt &&
-        isSameDay(new Date(t.completedAt), date)
+      (t) => t.status === 'done' && t.completedAt && isSameDay(new Date(t.completedAt), date)
     ).length;
     return {
       name: format(date, 'EEE'),
@@ -136,10 +128,7 @@ const Dashboard: React.FC = () => {
               <span className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
                 {stat.label}
               </span>
-              <stat.icon
-                size={16}
-                className={stat.accent ? 'text-accent' : 'text-text-tertiary'}
-              />
+              <stat.icon size={16} className={stat.accent ? 'text-accent' : 'text-text-tertiary'} />
             </div>
             <div className="text-2xl font-semibold text-text-primary tracking-tight">
               {stat.value}
@@ -187,7 +176,7 @@ const Dashboard: React.FC = () => {
                     tick={{ fill: tickColor, fontSize: 11 }}
                     allowDecimals={false}
                   />
-                  <Tooltip content={<ChartTooltip />} />
+                  <Tooltip content={ChartTooltip} />
                   <Area
                     type="monotone"
                     dataKey="remaining"
@@ -280,8 +269,14 @@ const Dashboard: React.FC = () => {
                 tick={{ fill: tickColor, fontSize: 11 }}
                 allowDecimals={false}
               />
-              <Tooltip content={<ChartTooltip />} />
-              <Bar dataKey="count" name="completed" fill={activeColor} radius={[4, 4, 0, 0]} barSize={28} />
+              <Tooltip content={ChartTooltip} />
+              <Bar
+                dataKey="count"
+                name="completed"
+                fill={activeColor}
+                radius={[4, 4, 0, 0]}
+                barSize={28}
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>

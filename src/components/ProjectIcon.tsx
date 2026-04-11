@@ -53,9 +53,14 @@ const ProjectIcon: React.FC<Props> = ({ projectId, color, size = 28 }) => {
           <>
             <circle cx="14" cy="14" r="11" fill={bg} />
             <rect
-              x="9" y="9" width="10" height="10" rx="1.5"
+              x="9"
+              y="9"
+              width="10"
+              height="10"
+              rx="1.5"
               transform={`rotate(45 14 14)`}
-              fill="white" fillOpacity="0.25"
+              fill="white"
+              fillOpacity="0.25"
             />
           </>
         );
@@ -77,7 +82,8 @@ const ProjectIcon: React.FC<Props> = ({ projectId, color, size = 28 }) => {
             <circle cx="14" cy="14" r="11" fill={bg} />
             <polygon
               points="14,7 20,19 8,19"
-              fill="white" fillOpacity="0.25"
+              fill="white"
+              fillOpacity="0.25"
               strokeLinejoin="round"
             />
           </>
@@ -102,7 +108,8 @@ const ProjectIcon: React.FC<Props> = ({ projectId, color, size = 28 }) => {
             <circle cx="14" cy="14" r="11" fill={bg} />
             <polygon
               points="14,6 20.5,10 20.5,18 14,22 7.5,18 7.5,10"
-              fill="white" fillOpacity="0.2"
+              fill="white"
+              fillOpacity="0.2"
             />
             <circle cx="14" cy="14" r="3" fill="white" fillOpacity="0.2" />
           </>
