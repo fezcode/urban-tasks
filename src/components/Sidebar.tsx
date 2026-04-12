@@ -13,6 +13,7 @@ import {
   Moon,
   LayoutDashboard,
   ListTodo,
+  X,
 } from 'lucide-react';
 import ProjectIcon from './ProjectIcon';
 
@@ -21,9 +22,10 @@ export type View = 'tasks' | 'dashboard';
 interface Props {
   currentView: View;
   onViewChange: (view: View) => void;
+  onNavigate?: () => void;
 }
 
-const Sidebar: React.FC<Props> = ({ currentView, onViewChange }) => {
+const Sidebar: React.FC<Props> = ({ currentView, onViewChange, onNavigate }) => {
   const { state, dispatch } = useAppState();
   const { theme, toggle: toggleTheme } = useTheme();
   const [isCreating, setIsCreating] = useState(false);
@@ -68,6 +70,7 @@ const Sidebar: React.FC<Props> = ({ currentView, onViewChange }) => {
     dispatch({ type: 'SET_ACTIVE_PROJECT', id: project.id });
     setNewName('');
     setIsCreating(false);
+    onNavigate?.();
   };
 
   const handleRename = (id: string) => {
@@ -87,7 +90,7 @@ const Sidebar: React.FC<Props> = ({ currentView, onViewChange }) => {
   const totalTasks = state.tasks.filter((t) => t.status !== 'done').length;
 
   return (
-    <aside className="w-64 flex-shrink-0 bg-bg-secondary border-r border-border-light flex flex-col h-full select-none">
+    <aside className="w-full flex-shrink-0 bg-bg-secondary border-r border-border-light flex flex-col h-full select-none">
       {/* Logo */}
       <div className="px-5 pt-6 pb-2">
         <div className="flex items-center gap-2.5">
@@ -108,13 +111,22 @@ const Sidebar: React.FC<Props> = ({ currentView, onViewChange }) => {
           <span className="font-semibold text-[15px] text-text-primary tracking-tight">
             Urban Tasks
           </span>
+          <button
+            onClick={onNavigate}
+            className="ml-auto p-1.5 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-surface-hover lg:hidden transition-base"
+          >
+            <X size={18} />
+          </button>
         </div>
       </div>
 
       {/* View toggle */}
       <div className="px-3 mt-4 space-y-0.5">
         <button
-          onClick={() => onViewChange('tasks')}
+          onClick={() => {
+            onViewChange('tasks');
+            onNavigate?.();
+          }}
           className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] transition-base ${
             currentView === 'tasks'
               ? 'bg-surface text-text-primary shadow-sm font-medium'
@@ -128,7 +140,10 @@ const Sidebar: React.FC<Props> = ({ currentView, onViewChange }) => {
           )}
         </button>
         <button
-          onClick={() => onViewChange('dashboard')}
+          onClick={() => {
+            onViewChange('dashboard');
+            onNavigate?.();
+          }}
           className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] transition-base ${
             currentView === 'dashboard'
               ? 'bg-surface text-text-primary shadow-sm font-medium'
@@ -146,7 +161,10 @@ const Sidebar: React.FC<Props> = ({ currentView, onViewChange }) => {
       {/* All Tasks filter */}
       <div className="px-3">
         <button
-          onClick={() => dispatch({ type: 'SET_ACTIVE_PROJECT', id: null })}
+          onClick={() => {
+            dispatch({ type: 'SET_ACTIVE_PROJECT', id: null });
+            onNavigate?.();
+          }}
           className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] transition-base ${
             state.activeProjectId === null
               ? 'bg-surface text-text-primary shadow-sm font-medium'
@@ -202,7 +220,10 @@ const Sidebar: React.FC<Props> = ({ currentView, onViewChange }) => {
             return (
               <div key={project.id} className="relative group">
                 <button
-                  onClick={() => dispatch({ type: 'SET_ACTIVE_PROJECT', id: project.id })}
+                  onClick={() => {
+                    dispatch({ type: 'SET_ACTIVE_PROJECT', id: project.id });
+                    onNavigate?.();
+                  }}
                   className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] transition-base ${
                     state.activeProjectId === project.id
                       ? 'bg-surface text-text-primary shadow-sm font-medium'

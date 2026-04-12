@@ -2,26 +2,63 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAppState } from '../context/AppState';
 import TaskItem from './TaskItem';
 import Dashboard from './Dashboard';
-import { Plus, CheckCircle2, ListFilter } from 'lucide-react';
+import { Plus, CheckCircle2, ListFilter, Menu, ChevronRight, Search, X } from 'lucide-react';
 import type { Task, TaskStatus } from '../context/types';
 import type { View } from './Sidebar';
+import ProjectIcon from './ProjectIcon';
 
 type Filter = 'all' | 'todo' | 'in-progress' | 'done';
 
 interface Props {
   currentView: View;
+  onMenuClick: () => void;
+  selectedTaskId: string | null;
+  onSelectTask: (id: string | null) => void;
+  activeTag: string | null;
+  onTagClick: (tag: string) => void;
+  onClearTag: () => void;
+  onOpenCommandPalette: () => void;
 }
 
-const MainContent: React.FC<Props> = ({ currentView }) => {
+const MainContent: React.FC<Props> = ({
+  currentView,
+  onMenuClick,
+  selectedTaskId,
+  onSelectTask,
+  activeTag,
+  onTagClick,
+  onClearTag,
+  onOpenCommandPalette,
+}) => {
   const { state, dispatch } = useAppState();
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [filter, setFilter] = useState<Filter>('all');
+  const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isAdding) inputRef.current?.focus();
   }, [isAdding]);
+
+  // Listen for add-task events from command palette
+  useEffect(() => {
+    const handler = () => setIsAdding(true);
+    window.addEventListener('urban-tasks:add', handler);
+    return () => window.removeEventListener('urban-tasks:add', handler);
+  }, []);
+
+  // Clear selection if task is no longer in visible list
+  useEffect(() => {
+    if (selectedTaskId) {
+      const visible = state.activeProjectId
+        ? state.tasks.filter((t) => t.projectId === state.activeProjectId)
+        : state.tasks;
+      if (!visible.find((t) => t.id === selectedTaskId)) {
+        onSelectTask(null);
+      }
+    }
+  }, [state.activeProjectId, state.tasks, selectedTaskId, onSelectTask]);
 
   const activeProject = state.activeProjectId
     ? state.projects.find((p) => p.id === state.activeProjectId)
@@ -31,8 +68,13 @@ const MainContent: React.FC<Props> = ({ currentView }) => {
     ? state.tasks.filter((t) => t.projectId === state.activeProjectId)
     : state.tasks;
 
+  // Apply tag filter
+  const tagFilteredTasks = activeTag
+    ? projectTasks.filter((t) => t.tags?.includes(activeTag))
+    : projectTasks;
+
   const filteredTasks =
-    filter === 'all' ? projectTasks : projectTasks.filter((t) => t.status === filter);
+    filter === 'all' ? tagFilteredTasks : tagFilteredTasks.filter((t) => t.status === filter);
 
   const sortedTasks = [...filteredTasks].sort((a, b) => {
     const order: Record<TaskStatus, number> = { 'in-progress': 0, todo: 1, done: 2 };
@@ -40,9 +82,9 @@ const MainContent: React.FC<Props> = ({ currentView }) => {
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
-  const todoCount = projectTasks.filter((t) => t.status === 'todo').length;
-  const activeCount = projectTasks.filter((t) => t.status === 'in-progress').length;
-  const doneCount = projectTasks.filter((t) => t.status === 'done').length;
+  const todoCount = tagFilteredTasks.filter((t) => t.status === 'todo').length;
+  const activeCount = tagFilteredTasks.filter((t) => t.status === 'in-progress').length;
+  const doneCount = tagFilteredTasks.filter((t) => t.status === 'done').length;
 
   const handleAddTask = () => {
     const title = newTaskTitle.trim();
@@ -63,26 +105,52 @@ const MainContent: React.FC<Props> = ({ currentView }) => {
     inputRef.current?.focus();
   };
 
+  const toggleCollapse = (id: string) => {
+    setCollapsedProjects((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // Group tasks by project (for "All Projects" view)
+  const groupedTasks = state.projects
+    .map((project) => ({
+      project,
+      tasks: sortedTasks.filter((t) => t.projectId === project.id),
+    }))
+    .filter((g) => g.tasks.length > 0);
+
   const filters: { key: Filter; label: string; count: number }[] = [
-    { key: 'all', label: 'All', count: projectTasks.length },
+    { key: 'all', label: 'All', count: tagFilteredTasks.length },
     { key: 'todo', label: 'To do', count: todoCount },
     { key: 'in-progress', label: 'Active', count: activeCount },
     { key: 'done', label: 'Done', count: doneCount },
   ];
 
+  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+
   return (
     <main className="flex-1 flex flex-col min-w-0 bg-bg overflow-hidden">
       {/* Header */}
-      <header className="flex-shrink-0 px-10 pt-10 pb-6">
-        <div className="max-w-4xl">
+      <header className="flex-shrink-0 px-4 sm:px-6 lg:px-10 pt-6 lg:pt-10 pb-4 lg:pb-6">
+        <div>
           <div className="flex items-center gap-3 mb-1">
+            <button
+              onClick={onMenuClick}
+              className="p-2 -ml-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-base"
+              title="Toggle sidebar"
+            >
+              <Menu size={20} />
+            </button>
             {activeProject && (
               <div
-                className="w-3 h-3 rounded-full"
+                className="w-3 h-3 rounded-full flex-shrink-0"
                 style={{ backgroundColor: activeProject.color }}
               />
             )}
-            <h1 className="text-2xl font-semibold text-text-primary tracking-tight">
+            <h1 className="text-xl lg:text-2xl font-semibold text-text-primary tracking-tight truncate">
               {currentView === 'dashboard'
                 ? activeProject
                   ? `${activeProject.name} — Dashboard`
@@ -91,11 +159,26 @@ const MainContent: React.FC<Props> = ({ currentView }) => {
                   ? activeProject.name
                   : 'All Tasks'}
             </h1>
+            <div className="ml-auto flex-shrink-0">
+              <button
+                onClick={onOpenCommandPalette}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-bg-secondary hover:bg-bg-tertiary text-text-tertiary hover:text-text-secondary text-[13px] transition-base"
+                title={`Search (${isMac ? '⌘' : 'Ctrl+'}K)`}
+              >
+                <Search size={14} />
+                <span className="hidden sm:inline">Search</span>
+                <kbd className="hidden sm:inline text-2xs bg-surface px-1.5 py-0.5 rounded font-mono ml-1">
+                  {isMac ? '⌘K' : 'Ctrl+K'}
+                </kbd>
+              </button>
+            </div>
           </div>
           {currentView === 'tasks' && (
-            <p className="text-[13px] text-text-tertiary mt-1">
-              {projectTasks.length === 0
-                ? 'No tasks yet. Create one to get started.'
+            <p className="text-[13px] text-text-tertiary mt-1 ml-11">
+              {tagFilteredTasks.length === 0
+                ? activeTag
+                  ? `No tasks tagged @${activeTag}`
+                  : 'No tasks yet. Create one to get started.'
                 : `${todoCount + activeCount} remaining · ${doneCount} completed`}
             </p>
           )}
@@ -103,22 +186,37 @@ const MainContent: React.FC<Props> = ({ currentView }) => {
       </header>
 
       {currentView === 'dashboard' ? (
-        <div className="flex-1 overflow-y-auto px-10 pb-10">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-10 pb-10">
           <div className="max-w-4xl">
             <Dashboard />
           </div>
         </div>
       ) : (
         <>
+          {/* Tag filter banner */}
+          {activeTag && (
+            <div className="flex-shrink-0 px-4 sm:px-6 lg:px-10 pb-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent-light text-accent text-[13px] font-medium">
+                <span>Filtered by @{activeTag}</span>
+                <button
+                  onClick={onClearTag}
+                  className="p-0.5 rounded-full hover:bg-accent/20 transition-base"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Filters + Add button */}
-          <div className="flex-shrink-0 px-10 pb-4">
-            <div className="max-w-4xl flex items-center justify-between">
-              <div className="flex items-center gap-1 bg-bg-secondary rounded-lg p-1">
+          <div className="flex-shrink-0 px-4 sm:px-6 lg:px-10 pb-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-1 bg-bg-secondary rounded-lg p-1 overflow-x-auto no-scrollbar">
                 {filters.map((f) => (
                   <button
                     key={f.key}
                     onClick={() => setFilter(f.key)}
-                    className={`px-3 py-1.5 rounded-md text-[13px] transition-base ${
+                    className={`px-3 py-1.5 rounded-md text-[13px] whitespace-nowrap transition-base ${
                       filter === f.key
                         ? 'bg-surface text-text-primary shadow-sm font-medium'
                         : 'text-text-secondary hover:text-text-primary'
@@ -134,17 +232,17 @@ const MainContent: React.FC<Props> = ({ currentView }) => {
 
               <button
                 onClick={() => setIsAdding(true)}
-                className="flex items-center gap-2 px-3.5 py-2 bg-accent text-text-inverse rounded-lg text-[13px] font-medium hover:bg-accent-hover transition-base active:scale-[0.97]"
+                className="flex items-center gap-2 px-3.5 py-2 bg-accent text-text-inverse rounded-lg text-[13px] font-medium hover:bg-accent-hover transition-base active:scale-[0.97] flex-shrink-0"
               >
                 <Plus size={16} />
-                Add task
+                <span className="hidden sm:inline">Add task</span>
               </button>
             </div>
           </div>
 
           {/* Task list */}
-          <div className="flex-1 overflow-y-auto px-10 pb-10">
-            <div className="max-w-4xl">
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-10 pb-10">
+            <div>
               {isAdding && (
                 <div className="mb-3 animate-slide-down">
                   <div className="flex items-center gap-3 bg-surface border border-border-focus rounded-xl px-4 py-3 shadow-sm">
@@ -186,11 +284,61 @@ const MainContent: React.FC<Props> = ({ currentView }) => {
               )}
 
               {sortedTasks.length > 0 ? (
-                <div className="space-y-1">
-                  {sortedTasks.map((task) => (
-                    <TaskItem key={task.id} task={task} showProject={!state.activeProjectId} />
-                  ))}
-                </div>
+                !state.activeProjectId ? (
+                  // Grouped by project
+                  <div className="space-y-2">
+                    {groupedTasks.map(({ project, tasks: groupTasks }) => (
+                      <div key={project.id}>
+                        <button
+                          onClick={() => toggleCollapse(project.id)}
+                          className="flex items-center gap-2.5 px-3 py-2 w-full text-left rounded-lg hover:bg-surface-hover transition-base"
+                        >
+                          <ChevronRight
+                            size={14}
+                            className={`text-text-tertiary transition-transform duration-150 ${
+                              !collapsedProjects.has(project.id) ? 'rotate-90' : ''
+                            }`}
+                          />
+                          <ProjectIcon projectId={project.id} color={project.color} size={18} />
+                          <span className="text-[13px] font-medium text-text-primary">
+                            {project.name}
+                          </span>
+                          <span className="text-2xs text-text-tertiary ml-auto tabular-nums">
+                            {groupTasks.length}
+                          </span>
+                        </button>
+                        {!collapsedProjects.has(project.id) && (
+                          <div className="space-y-0.5 mt-0.5 ml-2">
+                            {groupTasks.map((task) => (
+                              <TaskItem
+                                key={task.id}
+                                task={task}
+                                isSelected={task.id === selectedTaskId}
+                                onClick={() =>
+                                  onSelectTask(task.id === selectedTaskId ? null : task.id)
+                                }
+                                onTagClick={onTagClick}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  // Flat list for single project
+                  <div className="space-y-0.5">
+                    {sortedTasks.map((task) => (
+                      <TaskItem
+                        key={task.id}
+                        task={task}
+                        isSelected={task.id === selectedTaskId}
+                        onClick={() => onSelectTask(task.id === selectedTaskId ? null : task.id)}
+                        onTagClick={onTagClick}
+                      />
+                    ))}
+                  </div>
+                )
               ) : (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
                   {filter !== 'all' ? (
@@ -213,7 +361,7 @@ const MainContent: React.FC<Props> = ({ currentView }) => {
                         No tasks here yet
                       </p>
                       <p className="text-[13px] text-text-tertiary">
-                        Click "Add task" to create your first task
+                        Click &quot;Add task&quot; to create your first task
                       </p>
                     </>
                   )}

@@ -1,15 +1,30 @@
 import React, { useState } from 'react';
 import { useAppState } from '../context/AppState';
 import type { Task, TaskStatus } from '../context/types';
-import { Trash2, Play, RotateCcw, Check } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { Trash2, Play, RotateCcw, Check, CalendarClock } from 'lucide-react';
+import { formatDistanceToNow, differenceInDays, startOfDay, format } from 'date-fns';
 
 interface Props {
   task: Task;
   showProject?: boolean;
+  isSelected?: boolean;
+  onClick?: () => void;
+  onTagClick?: (tag: string) => void;
 }
 
-const TaskItem: React.FC<Props> = ({ task, showProject }) => {
+function getDueDateInfo(dueDate: string): { label: string; className: string } {
+  const today = startOfDay(new Date());
+  const due = startOfDay(new Date(dueDate));
+  const diff = differenceInDays(due, today);
+
+  if (diff < 0) return { label: `${Math.abs(diff)}d overdue`, className: 'text-danger' };
+  if (diff === 0) return { label: 'Due today', className: 'text-status-warning' };
+  if (diff === 1) return { label: 'Tomorrow', className: 'text-text-secondary' };
+  if (diff <= 7) return { label: `${diff}d left`, className: 'text-text-tertiary' };
+  return { label: format(due, 'MMM d'), className: 'text-text-tertiary' };
+}
+
+const TaskItem: React.FC<Props> = ({ task, showProject, isSelected, onClick, onTagClick }) => {
   const { state, dispatch } = useAppState();
   const [isHovered, setIsHovered] = useState(false);
 
@@ -53,17 +68,23 @@ const TaskItem: React.FC<Props> = ({ task, showProject }) => {
     done: 'border-status-active bg-status-active',
   };
 
+  const dueDateInfo = task.dueDate ? getDueDateInfo(task.dueDate) : null;
+
   return (
     <div
-      className={`group flex items-start gap-3.5 px-4 py-3.5 rounded-xl transition-base ${
-        task.status === 'done' ? 'opacity-60' : ''
-      } hover:bg-surface-hover`}
+      className={`group flex items-start gap-3 sm:gap-3.5 px-3 sm:px-4 py-3 sm:py-3.5 rounded-xl transition-base cursor-pointer ${
+        isSelected ? 'bg-surface shadow-sm ring-1 ring-border' : 'hover:bg-surface-hover'
+      } ${task.status === 'done' ? 'opacity-60' : ''}`}
+      onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Status circle */}
       <button
-        onClick={cycleStatus}
+        onClick={(e) => {
+          e.stopPropagation();
+          cycleStatus();
+        }}
         className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-base ${statusColors[task.status]}`}
         title={`Status: ${task.status}`}
       >
@@ -81,7 +102,38 @@ const TaskItem: React.FC<Props> = ({ task, showProject }) => {
           {task.title}
         </p>
 
-        <div className="flex items-center gap-2 mt-1.5">
+        {/* Body preview */}
+        {task.body && (
+          <p className="text-2xs text-text-tertiary mt-1 line-clamp-1">
+            {task.body.split('\n')[0].slice(0, 100)}
+          </p>
+        )}
+
+        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+          {/* Tags */}
+          {task.tags &&
+            task.tags.length > 0 &&
+            task.tags.map((tag) => (
+              <button
+                key={tag}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTagClick?.(tag);
+                }}
+                className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-accent-light text-accent text-2xs font-medium hover:bg-accent-muted transition-base"
+              >
+                @{tag}
+              </button>
+            ))}
+
+          {/* Due date */}
+          {dueDateInfo && task.status !== 'done' && (
+            <span className={`inline-flex items-center gap-1 text-2xs ${dueDateInfo.className}`}>
+              <CalendarClock size={11} />
+              {dueDateInfo.label}
+            </span>
+          )}
+
           {showProject && project && (
             <span className="inline-flex items-center gap-1.5 text-2xs text-text-tertiary">
               <span
@@ -99,13 +151,16 @@ const TaskItem: React.FC<Props> = ({ task, showProject }) => {
 
       {/* Actions */}
       <div
-        className={`flex items-center gap-0.5 transition-base ${
+        className={`hidden sm:flex items-center gap-0.5 transition-base ${
           isHovered ? 'opacity-100' : 'opacity-0'
         }`}
       >
         {task.status === 'todo' && (
           <button
-            onClick={() => setStatus('in-progress')}
+            onClick={(e) => {
+              e.stopPropagation();
+              setStatus('in-progress');
+            }}
             className="p-1.5 rounded-md text-text-tertiary hover:text-accent hover:bg-accent-light transition-base"
             title="Start"
           >
@@ -114,7 +169,10 @@ const TaskItem: React.FC<Props> = ({ task, showProject }) => {
         )}
         {task.status === 'in-progress' && (
           <button
-            onClick={() => setStatus('done')}
+            onClick={(e) => {
+              e.stopPropagation();
+              setStatus('done');
+            }}
             className="p-1.5 rounded-md text-text-tertiary hover:text-status-active hover:bg-status-active-bg transition-base"
             title="Complete"
           >
@@ -123,7 +181,10 @@ const TaskItem: React.FC<Props> = ({ task, showProject }) => {
         )}
         {task.status === 'done' && (
           <button
-            onClick={() => setStatus('todo')}
+            onClick={(e) => {
+              e.stopPropagation();
+              setStatus('todo');
+            }}
             className="p-1.5 rounded-md text-text-tertiary hover:text-text-primary hover:bg-bg-secondary transition-base"
             title="Reopen"
           >
@@ -131,7 +192,10 @@ const TaskItem: React.FC<Props> = ({ task, showProject }) => {
           </button>
         )}
         <button
-          onClick={handleDelete}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDelete();
+          }}
           className="p-1.5 rounded-md text-text-tertiary hover:text-red-500 hover:bg-red-50 transition-base"
           title="Delete"
         >
