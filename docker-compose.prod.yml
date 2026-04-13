@@ -1,0 +1,89 @@
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - frontend_build:/srv/frontend:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    depends_on:
+      backend:
+        condition: service_started
+      frontend-build:
+        condition: service_completed_successfully
+
+  frontend-build:
+    image: node:22-alpine
+    working_dir: /app
+    volumes:
+      - ./frontend:/app:ro
+      - frontend_build:/output
+    command: sh -c "npm ci && npm run build && cp -r dist/* /output/"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: 8080
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET}
+      ALLOWED_ORIGINS: https://${DOMAIN:-localhost}
+      MIGRATIONS_PATH: file://migrations
+      ENVIRONMENT: production
+      RATE_LIMIT_RPS: ${RATE_LIMIT_RPS:-60}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # No ports exposed — only accessible from backend via Docker network
+
+  # Automated daily backups
+  db-backup:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
+    volumes:
+      - db_backups:/backups
+    entrypoint: >
+      sh -c "while true; do
+        pg_dump -Fc > /backups/$$(date +%Y%m%d_%H%M%S).dump
+        find /backups -name '*.dump' -mtime +7 -delete
+        sleep 86400
+      done"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
+  frontend_build:
+  db_backups:

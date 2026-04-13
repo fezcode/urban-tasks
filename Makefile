@@ -1,4 +1,4 @@
-.PHONY: dev dev-be dev-fe build build-be build-fe docker-up docker-down migrate lint test
+.PHONY: dev dev-be dev-fe build build-be build-fe docker-up docker-down prod-up prod-down prod-logs deploy lint test
 
 # --- Development ---
 
@@ -8,7 +8,7 @@ dev-be:
 dev-fe:
 	cd frontend && npm run dev
 
-dev: ## Run both backend and frontend (requires two terminals or use docker)
+dev:
 	@echo "Run 'make dev-be' and 'make dev-fe' in separate terminals"
 	@echo "Or use 'make docker-up' to start everything with Docker"
 
@@ -22,7 +22,7 @@ build-fe:
 
 build: build-be build-fe
 
-# --- Docker ---
+# --- Docker (dev) ---
 
 docker-up:
 	docker compose up --build -d
@@ -33,10 +33,22 @@ docker-down:
 docker-logs:
 	docker compose logs -f
 
-# --- Database ---
+# --- Production ---
 
-migrate:
-	cd backend && go run ./cmd/server migrate
+prod-up:
+	docker compose -f docker-compose.prod.yml up -d --build
+
+prod-down:
+	docker compose -f docker-compose.prod.yml down
+
+prod-logs:
+	docker compose -f docker-compose.prod.yml logs -f
+
+prod-backup:
+	docker compose -f docker-compose.prod.yml exec postgres pg_dump -Fc -U $${POSTGRES_USER} $${POSTGRES_DB} > backup_$$(date +%Y%m%d).dump
+
+deploy:
+	./deploy/deploy.sh
 
 # --- Quality ---
 
