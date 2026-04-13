@@ -4,6 +4,7 @@ interface Props {
   projectId: string;
   color: string;
   size?: number;
+  iconSeed?: number;
 }
 
 // Simple hash from string to deterministic number
@@ -16,8 +17,8 @@ function hash(str: string): number {
 }
 
 // Generate a deterministic abstract shape SVG based on project ID
-const ProjectIcon: React.FC<Props> = ({ projectId, color, size = 28 }) => {
-  const h = hash(projectId);
+const ProjectIcon: React.FC<Props> = ({ projectId, color, size = 28, iconSeed }) => {
+  const h = hash(projectId + (iconSeed != null ? String(iconSeed) : ''));
   const shapeType = h % 7;
   const rotation = (h % 6) * 30;
 

@@ -111,12 +111,6 @@
     color: rgb(var(--color-text-tertiary));
   }
 
-  input[type='date'] {
-    color-scheme: inherit;
-  }
-  [data-theme='dark'] input[type='date'] {
-    color-scheme: dark;
-  }
 }
 
 @layer components {

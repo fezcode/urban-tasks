@@ -16,6 +16,7 @@ export interface Project {
   id: string;
   name: string;
   color: string;
+  iconSeed?: number;
 }
 
 export interface AppState {
@@ -32,4 +33,5 @@ export type Action =
   | { type: 'RENAME_PROJECT'; id: string; name: string }
   | { type: 'DELETE_PROJECT'; id: string }
   | { type: 'SET_ACTIVE_PROJECT'; id: string | null }
+  | { type: 'RANDOMIZE_PROJECT_STYLE'; id: string }
   | { type: 'SET_STATE'; state: AppState };

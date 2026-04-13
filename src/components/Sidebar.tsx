@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useAppState } from '../context/AppState';
 import { getNextColor } from '../context/AppState';
 import { useTheme } from '../context/ThemeContext';
@@ -14,7 +14,11 @@ import {
   LayoutDashboard,
   ListTodo,
   X,
+  CalendarDays,
+  Tag,
+  Sparkles,
 } from 'lucide-react';
+import { format } from 'date-fns';
 import ProjectIcon from './ProjectIcon';
 
 export type View = 'tasks' | 'dashboard';
@@ -23,9 +27,21 @@ interface Props {
   currentView: View;
   onViewChange: (view: View) => void;
   onNavigate?: () => void;
+  showDueToday?: boolean;
+  onDueTodayClick?: () => void;
+  activeTag?: string | null;
+  onTagClick?: (tag: string) => void;
 }
 
-const Sidebar: React.FC<Props> = ({ currentView, onViewChange, onNavigate }) => {
+const Sidebar: React.FC<Props> = ({
+  currentView,
+  onViewChange,
+  onNavigate,
+  showDueToday,
+  onDueTodayClick,
+  activeTag,
+  onTagClick,
+}) => {
   const { state, dispatch } = useAppState();
   const { theme, toggle: toggleTheme } = useTheme();
   const [isCreating, setIsCreating] = useState(false);
@@ -87,7 +103,26 @@ const Sidebar: React.FC<Props> = ({ currentView, onViewChange, onNavigate }) => 
     setMenuOpenId(null);
   };
 
+  const handleRandomize = (id: string) => {
+    dispatch({ type: 'RANDOMIZE_PROJECT_STYLE', id });
+    setMenuOpenId(null);
+  };
+
   const totalTasks = state.tasks.filter((t) => t.status !== 'done').length;
+
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const dueTodayCount = state.tasks.filter(
+    (t) => t.dueDate === todayStr && t.status !== 'done'
+  ).length;
+
+  // Build tag map: tag → count (non-done tasks)
+  const tagMap = useMemo(() => {
+    const map = new Map<string, number>();
+    state.tasks.forEach((t) => t.tags?.forEach((tag) => map.set(tag, (map.get(tag) || 0) + 1)));
+    return map;
+  }, [state.tasks]);
+
+  const isTasksActive = currentView === 'tasks' && !showDueToday;
 
   return (
     <aside className="w-full flex-shrink-0 bg-bg-secondary border-r border-border-light flex flex-col h-full select-none">
@@ -128,12 +163,12 @@ const Sidebar: React.FC<Props> = ({ currentView, onViewChange, onNavigate }) => 
             onNavigate?.();
           }}
           className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] transition-base ${
-            currentView === 'tasks'
+            isTasksActive
               ? 'bg-surface text-text-primary shadow-sm font-medium'
               : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
           }`}
         >
-          <ListTodo size={18} className={currentView === 'tasks' ? 'text-accent' : ''} />
+          <ListTodo size={18} className={isTasksActive ? 'text-accent' : ''} />
           <span>Tasks</span>
           {totalTasks > 0 && (
             <span className="ml-auto text-2xs text-text-tertiary tabular-nums">{totalTasks}</span>
@@ -152,6 +187,27 @@ const Sidebar: React.FC<Props> = ({ currentView, onViewChange, onNavigate }) => 
         >
           <LayoutDashboard size={18} className={currentView === 'dashboard' ? 'text-accent' : ''} />
           <span>Dashboard</span>
+        </button>
+        <button
+          onClick={() => {
+            onDueTodayClick?.();
+            onNavigate?.();
+          }}
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] transition-base ${
+            showDueToday
+              ? 'bg-surface text-text-primary shadow-sm font-medium'
+              : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
+          }`}
+        >
+          <CalendarDays size={18} className={showDueToday ? 'text-accent' : ''} />
+          <span>Today</span>
+          {dueTodayCount > 0 && (
+            <span
+              className={`ml-auto text-2xs tabular-nums ${showDueToday ? 'text-accent font-medium' : 'text-text-tertiary'}`}
+            >
+              {dueTodayCount}
+            </span>
+          )}
         </button>
       </div>
 
@@ -176,8 +232,9 @@ const Sidebar: React.FC<Props> = ({ currentView, onViewChange, onNavigate }) => 
         </button>
       </div>
 
-      {/* Projects */}
+      {/* Scrollable: Projects + Tags */}
       <div className="flex-1 overflow-y-auto px-3 mt-3">
+        {/* Projects */}
         <div className="flex items-center justify-between px-3 mb-2">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
             Projects
@@ -200,7 +257,12 @@ const Sidebar: React.FC<Props> = ({ currentView, onViewChange, onNavigate }) => 
             if (editingId === project.id) {
               return (
                 <div key={project.id} className="flex items-center gap-2 px-2 py-1">
-                  <ProjectIcon projectId={project.id} color={project.color} size={20} />
+                  <ProjectIcon
+                    projectId={project.id}
+                    color={project.color}
+                    iconSeed={project.iconSeed}
+                    size={20}
+                  />
                   <input
                     ref={editInputRef}
                     type="text"
@@ -230,7 +292,12 @@ const Sidebar: React.FC<Props> = ({ currentView, onViewChange, onNavigate }) => 
                       : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
                   }`}
                 >
-                  <ProjectIcon projectId={project.id} color={project.color} size={22} />
+                  <ProjectIcon
+                    projectId={project.id}
+                    color={project.color}
+                    iconSeed={project.iconSeed}
+                    size={22}
+                  />
                   <span className="truncate">{project.name}</span>
                   {count > 0 && (
                     <span className="ml-auto text-2xs text-text-tertiary tabular-nums">
@@ -252,7 +319,7 @@ const Sidebar: React.FC<Props> = ({ currentView, onViewChange, onNavigate }) => 
                 {menuOpenId === project.id && (
                   <div
                     ref={menuRef}
-                    className="absolute right-0 top-full mt-1 z-50 w-40 bg-surface border border-border rounded-lg shadow-lg py-1 animate-fade-in"
+                    className="absolute right-0 top-full mt-1 z-50 w-44 bg-surface border border-border rounded-lg shadow-lg py-1 animate-fade-in"
                   >
                     <button
                       onClick={() => {
@@ -264,6 +331,13 @@ const Sidebar: React.FC<Props> = ({ currentView, onViewChange, onNavigate }) => 
                     >
                       <Pencil size={13} />
                       Rename
+                    </button>
+                    <button
+                      onClick={() => handleRandomize(project.id)}
+                      className="w-full flex items-center gap-2 px-3 py-1.5 text-[13px] text-text-secondary hover:bg-bg-secondary transition-base"
+                    >
+                      <Sparkles size={13} />
+                      Shuffle Style
                     </button>
                     <button
                       onClick={() => handleDelete(project.id)}
@@ -304,6 +378,41 @@ const Sidebar: React.FC<Props> = ({ currentView, onViewChange, onNavigate }) => 
             <p className="px-3 py-4 text-[13px] text-text-tertiary text-center">No projects yet</p>
           )}
         </div>
+
+        {/* Tags section */}
+        {tagMap.size > 0 && (
+          <>
+            <div className="mx-2 my-3 border-t border-border-light" />
+            <div className="px-3 mb-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
+                Tags
+              </span>
+            </div>
+            <div className="space-y-0.5">
+              {Array.from(tagMap.entries()).map(([tag, count]) => (
+                <button
+                  key={tag}
+                  onClick={() => {
+                    onTagClick?.(tag);
+                    onNavigate?.();
+                  }}
+                  className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-[13px] transition-base ${
+                    activeTag === tag
+                      ? 'bg-accent-light text-accent font-medium'
+                      : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
+                  }`}
+                >
+                  <Tag
+                    size={14}
+                    className={activeTag === tag ? 'text-accent' : 'text-text-tertiary'}
+                  />
+                  <span className="truncate">@{tag}</span>
+                  <span className="ml-auto text-2xs text-text-tertiary tabular-nums">{count}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Footer */}

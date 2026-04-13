@@ -54,6 +54,19 @@ const appReducer = (state: AppState, action: Action): AppState => {
       };
     case 'SET_ACTIVE_PROJECT':
       return { ...state, activeProjectId: action.id };
+    case 'RANDOMIZE_PROJECT_STYLE': {
+      const current = state.projects.find((p) => p.id === action.id);
+      const available = PROJECT_COLORS.filter((c) => c !== current?.color);
+      const newColor = available[Math.floor(Math.random() * available.length)];
+      return {
+        ...state,
+        projects: state.projects.map((p) =>
+          p.id === action.id
+            ? { ...p, color: newColor, iconSeed: Math.floor(Math.random() * 10000) }
+            : p
+        ),
+      };
+    }
     case 'SET_STATE':
       return action.state;
     default:

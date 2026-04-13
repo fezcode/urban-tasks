@@ -2,7 +2,17 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAppState } from '../context/AppState';
 import TaskItem from './TaskItem';
 import Dashboard from './Dashboard';
-import { Plus, CheckCircle2, ListFilter, Menu, ChevronRight, Search, X } from 'lucide-react';
+import {
+  Plus,
+  CheckCircle2,
+  ListFilter,
+  Menu,
+  ChevronRight,
+  Search,
+  X,
+  CalendarDays,
+} from 'lucide-react';
+import { format } from 'date-fns';
 import type { Task, TaskStatus } from '../context/types';
 import type { View } from './Sidebar';
 import ProjectIcon from './ProjectIcon';
@@ -17,6 +27,8 @@ interface Props {
   activeTag: string | null;
   onTagClick: (tag: string) => void;
   onClearTag: () => void;
+  showDueToday?: boolean;
+  onClearDueToday?: () => void;
   onOpenCommandPalette: () => void;
 }
 
@@ -28,6 +40,8 @@ const MainContent: React.FC<Props> = ({
   activeTag,
   onTagClick,
   onClearTag,
+  showDueToday,
+  onClearDueToday,
   onOpenCommandPalette,
 }) => {
   const { state, dispatch } = useAppState();
@@ -68,10 +82,16 @@ const MainContent: React.FC<Props> = ({
     ? state.tasks.filter((t) => t.projectId === state.activeProjectId)
     : state.tasks;
 
+  // Apply due-today filter
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const dueTodayFilteredTasks = showDueToday
+    ? projectTasks.filter((t) => t.dueDate === todayStr)
+    : projectTasks;
+
   // Apply tag filter
   const tagFilteredTasks = activeTag
-    ? projectTasks.filter((t) => t.tags?.includes(activeTag))
-    : projectTasks;
+    ? dueTodayFilteredTasks.filter((t) => t.tags?.includes(activeTag))
+    : dueTodayFilteredTasks;
 
   const filteredTasks =
     filter === 'all' ? tagFilteredTasks : tagFilteredTasks.filter((t) => t.status === filter);
@@ -155,9 +175,11 @@ const MainContent: React.FC<Props> = ({
                 ? activeProject
                   ? `${activeProject.name} — Dashboard`
                   : 'Dashboard'
-                : activeProject
-                  ? activeProject.name
-                  : 'All Tasks'}
+                : showDueToday
+                  ? 'Today'
+                  : activeProject
+                    ? activeProject.name
+                    : 'All Tasks'}
             </h1>
             <div className="ml-auto flex-shrink-0">
               <button
@@ -193,18 +215,32 @@ const MainContent: React.FC<Props> = ({
         </div>
       ) : (
         <>
-          {/* Tag filter banner */}
-          {activeTag && (
-            <div className="flex-shrink-0 px-4 sm:px-6 lg:px-10 pb-3">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent-light text-accent text-[13px] font-medium">
-                <span>Filtered by @{activeTag}</span>
-                <button
-                  onClick={onClearTag}
-                  className="p-0.5 rounded-full hover:bg-accent/20 transition-base"
-                >
-                  <X size={14} />
-                </button>
-              </div>
+          {/* Filter banners */}
+          {(activeTag || showDueToday) && (
+            <div className="flex-shrink-0 px-4 sm:px-6 lg:px-10 pb-3 flex flex-wrap gap-2">
+              {showDueToday && (
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-status-warning-bg text-status-warning text-[13px] font-medium">
+                  <CalendarDays size={13} />
+                  <span>Due today</span>
+                  <button
+                    onClick={onClearDueToday}
+                    className="p-0.5 rounded-full hover:bg-status-warning/20 transition-base"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
+              {activeTag && (
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent-light text-accent text-[13px] font-medium">
+                  <span>Filtered by @{activeTag}</span>
+                  <button
+                    onClick={onClearTag}
+                    className="p-0.5 rounded-full hover:bg-accent/20 transition-base"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -299,7 +335,12 @@ const MainContent: React.FC<Props> = ({
                               !collapsedProjects.has(project.id) ? 'rotate-90' : ''
                             }`}
                           />
-                          <ProjectIcon projectId={project.id} color={project.color} size={18} />
+                          <ProjectIcon
+                            projectId={project.id}
+                            color={project.color}
+                            iconSeed={project.iconSeed}
+                            size={18}
+                          />
                           <span className="text-[13px] font-medium text-text-primary">
                             {project.name}
                           </span>

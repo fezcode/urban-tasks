@@ -13,6 +13,7 @@ const App: React.FC = () => {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [showDueToday, setShowDueToday] = useState(false);
 
   // Ctrl+K / Cmd+K to open command palette
   useEffect(() => {
@@ -26,8 +27,21 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
+  const handleViewChange = useCallback((view: View) => {
+    setCurrentView(view);
+    setActiveTag(null);
+    setShowDueToday(false);
+  }, []);
+
   const handleTagClick = useCallback((tag: string) => {
     setActiveTag(tag);
+    setShowDueToday(false);
+    setCurrentView('tasks');
+  }, []);
+
+  const handleDueTodayClick = useCallback(() => {
+    setShowDueToday(true);
+    setActiveTag(null);
     setCurrentView('tasks');
   }, []);
 
@@ -56,10 +70,14 @@ const App: React.FC = () => {
           >
             <Sidebar
               currentView={currentView}
-              onViewChange={setCurrentView}
+              onViewChange={handleViewChange}
               onNavigate={() => {
                 if (window.innerWidth < 1024) setSidebarOpen(false);
               }}
+              showDueToday={showDueToday}
+              onDueTodayClick={handleDueTodayClick}
+              activeTag={activeTag}
+              onTagClick={handleTagClick}
             />
           </div>
 
@@ -72,6 +90,8 @@ const App: React.FC = () => {
             activeTag={activeTag}
             onTagClick={handleTagClick}
             onClearTag={() => setActiveTag(null)}
+            showDueToday={showDueToday}
+            onClearDueToday={() => setShowDueToday(false)}
             onOpenCommandPalette={() => setCommandPaletteOpen(true)}
           />
 
@@ -95,7 +115,7 @@ const App: React.FC = () => {
               }}
               onCreateTask={handleCreateTask}
               onTagClick={handleTagClick}
-              onViewChange={setCurrentView}
+              onViewChange={handleViewChange}
             />
           )}
         </div>

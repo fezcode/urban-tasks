@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { format, differenceInDays, startOfDay } from 'date-fns';
 import ProjectIcon from './ProjectIcon';
+import DatePicker from './DatePicker';
 
 interface Props {
   taskId: string;
@@ -211,7 +212,12 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
 
           {project && (
             <span className="inline-flex items-center gap-1.5 text-[12px] text-text-secondary">
-              <ProjectIcon projectId={project.id} color={project.color} size={16} />
+              <ProjectIcon
+                projectId={project.id}
+                color={project.color}
+                iconSeed={project.iconSeed}
+                size={16}
+              />
               {project.name}
             </span>
           )}
@@ -254,25 +260,15 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <input
-              type="date"
-              className="bg-surface border border-border rounded-lg px-3 py-1.5 text-[13px] text-text-primary outline-none focus:border-accent transition-base cursor-pointer"
-              value={task.dueDate || ''}
-              onChange={(e) => setDueDate(e.target.value)}
+            <DatePicker
+              value={task.dueDate}
+              onChange={(d) => setDueDate(d)}
+              onClear={() => setDueDate('')}
             />
             {dueDateInfo && (
               <span className={`text-[12px] font-medium ${dueDateInfo.className}`}>
                 {dueDateInfo.label}
               </span>
-            )}
-            {task.dueDate && (
-              <button
-                onClick={() => setDueDate('')}
-                className="p-1 rounded text-text-tertiary hover:text-danger transition-base"
-                title="Clear due date"
-              >
-                <X size={14} />
-              </button>
             )}
           </div>
         </div>
