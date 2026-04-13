@@ -42,7 +42,7 @@ const CommandPalette: React.FC<Props> = ({
   onTagClick,
   onViewChange,
 }) => {
-  const { state, dispatch } = useAppState();
+  const { state, syncDispatch } = useAppState();
   const { theme, toggle: toggleTheme } = useTheme();
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
@@ -208,7 +208,7 @@ const CommandPalette: React.FC<Props> = ({
 
   const handleDeleteTask = (e: React.MouseEvent, taskId: string) => {
     e.stopPropagation();
-    dispatch({ type: 'DELETE_TASK', id: taskId });
+    syncDispatch({ type: 'DELETE_TASK', id: taskId });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

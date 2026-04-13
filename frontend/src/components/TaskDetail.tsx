@@ -41,7 +41,7 @@ function getDueDateLabel(dueDate: string): { label: string; className: string } 
 }
 
 const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
-  const { state, dispatch } = useAppState();
+  const { state, syncDispatch } = useAppState();
   const task = state.tasks.find((t) => t.id === taskId);
   const project = task ? state.projects.find((p) => p.id === task.projectId) : null;
 
@@ -79,7 +79,7 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
       done: 'todo',
     };
     const newStatus = next[task.status];
-    dispatch({
+    syncDispatch({
       type: 'UPDATE_TASK',
       id: task.id,
       updates: {
@@ -92,13 +92,13 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
   const saveTitle = () => {
     const title = titleDraft.trim();
     if (title && title !== task.title) {
-      dispatch({ type: 'UPDATE_TASK', id: task.id, updates: { title } });
+      syncDispatch({ type: 'UPDATE_TASK', id: task.id, updates: { title } });
     }
     setIsEditingTitle(false);
   };
 
   const saveBody = () => {
-    dispatch({ type: 'UPDATE_TASK', id: task.id, updates: { body: bodyDraft } });
+    syncDispatch({ type: 'UPDATE_TASK', id: task.id, updates: { body: bodyDraft } });
     setIsEditingBody(false);
   };
 
@@ -112,7 +112,7 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
       setTagInput('');
       return;
     }
-    dispatch({
+    syncDispatch({
       type: 'UPDATE_TASK',
       id: task.id,
       updates: { tags: [...(task.tags || []), tag] },
@@ -122,7 +122,7 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
   };
 
   const removeTag = (tag: string) => {
-    dispatch({
+    syncDispatch({
       type: 'UPDATE_TASK',
       id: task.id,
       updates: { tags: (task.tags || []).filter((t) => t !== tag) },
@@ -130,7 +130,7 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
   };
 
   const setDueDate = (dateStr: string) => {
-    dispatch({
+    syncDispatch({
       type: 'UPDATE_TASK',
       id: task.id,
       updates: { dueDate: dateStr || undefined },
@@ -138,7 +138,7 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
   };
 
   const handleDelete = () => {
-    dispatch({ type: 'DELETE_TASK', id: task.id });
+    syncDispatch({ type: 'DELETE_TASK', id: task.id });
     onClose();
   };
 

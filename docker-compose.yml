@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-urban}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-urban_dev_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-urban_tasks}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-urban}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT:-8080}:8080"
+    environment:
+      PORT: 8080
+      DATABASE_URL: postgres://${POSTGRES_USER:-urban}:${POSTGRES_PASSWORD:-urban_dev_pass}@postgres:5432/${POSTGRES_DB:-urban_tasks}?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:-CHANGE_ME_IN_PRODUCTION_minimum_32_chars}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173}
+      MIGRATIONS_PATH: file://migrations
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      RATE_LIMIT_RPS: ${RATE_LIMIT_RPS:-100}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:

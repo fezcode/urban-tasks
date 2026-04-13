@@ -25,7 +25,7 @@ function getDueDateInfo(dueDate: string): { label: string; className: string } {
 }
 
 const TaskItem: React.FC<Props> = ({ task, showProject, isSelected, onClick, onTagClick }) => {
-  const { state, dispatch } = useAppState();
+  const { state, syncDispatch } = useAppState();
   const [isHovered, setIsHovered] = useState(false);
 
   const project = state.projects.find((p) => p.id === task.projectId);
@@ -37,7 +37,7 @@ const TaskItem: React.FC<Props> = ({ task, showProject, isSelected, onClick, onT
       done: 'todo',
     };
     const newStatus = next[task.status];
-    dispatch({
+    syncDispatch({
       type: 'UPDATE_TASK',
       id: task.id,
       updates: {
@@ -48,7 +48,7 @@ const TaskItem: React.FC<Props> = ({ task, showProject, isSelected, onClick, onT
   };
 
   const setStatus = (status: TaskStatus) => {
-    dispatch({
+    syncDispatch({
       type: 'UPDATE_TASK',
       id: task.id,
       updates: {
@@ -59,7 +59,7 @@ const TaskItem: React.FC<Props> = ({ task, showProject, isSelected, onClick, onT
   };
 
   const handleDelete = () => {
-    dispatch({ type: 'DELETE_TASK', id: task.id });
+    syncDispatch({ type: 'DELETE_TASK', id: task.id });
   };
 
   const statusColors: Record<TaskStatus, string> = {

@@ -44,7 +44,7 @@ const MainContent: React.FC<Props> = ({
   onClearDueToday,
   onOpenCommandPalette,
 }) => {
-  const { state, dispatch } = useAppState();
+  const { state, syncDispatch } = useAppState();
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [filter, setFilter] = useState<Filter>('all');
@@ -120,7 +120,7 @@ const MainContent: React.FC<Props> = ({
       projectId: targetProject,
       createdAt: new Date().toISOString(),
     };
-    dispatch({ type: 'ADD_TASK', task });
+    syncDispatch({ type: 'ADD_TASK', task });
     setNewTaskTitle('');
     inputRef.current?.focus();
   };

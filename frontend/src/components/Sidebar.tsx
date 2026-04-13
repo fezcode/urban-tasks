@@ -42,7 +42,7 @@ const Sidebar: React.FC<Props> = ({
   activeTag,
   onTagClick,
 }) => {
-  const { state, dispatch } = useAppState();
+  const { state, dispatch, syncDispatch } = useAppState();
   const { theme, toggle: toggleTheme } = useTheme();
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState('');
@@ -82,7 +82,7 @@ const Sidebar: React.FC<Props> = ({
       name,
       color: getNextColor(state.projects),
     };
-    dispatch({ type: 'ADD_PROJECT', project });
+    syncDispatch({ type: 'ADD_PROJECT', project });
     dispatch({ type: 'SET_ACTIVE_PROJECT', id: project.id });
     setNewName('');
     setIsCreating(false);
@@ -92,19 +92,19 @@ const Sidebar: React.FC<Props> = ({
   const handleRename = (id: string) => {
     const name = editName.trim();
     if (name) {
-      dispatch({ type: 'RENAME_PROJECT', id, name });
+      syncDispatch({ type: 'RENAME_PROJECT', id, name });
     }
     setEditingId(null);
     setEditName('');
   };
 
   const handleDelete = (id: string) => {
-    dispatch({ type: 'DELETE_PROJECT', id });
+    syncDispatch({ type: 'DELETE_PROJECT', id });
     setMenuOpenId(null);
   };
 
   const handleRandomize = (id: string) => {
-    dispatch({ type: 'RANDOMIZE_PROJECT_STYLE', id });
+    syncDispatch({ type: 'RANDOMIZE_PROJECT_STYLE', id });
     setMenuOpenId(null);
   };
 
