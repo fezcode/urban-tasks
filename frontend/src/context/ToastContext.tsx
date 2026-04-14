@@ -107,6 +107,9 @@ export const ToastProvider: React.FC<ProviderProps> = ({
       {Array.from(grouped.entries()).map(([position, items]) => (
         <div
           key={position}
+          role="region"
+          aria-label="Notifications"
+          aria-live="polite"
           className={`fixed z-[80] flex flex-col gap-2 pointer-events-none max-w-sm w-[calc(100%-2rem)] sm:w-auto sm:min-w-[260px] ${CONTAINER_CLASS[position]} ${
             position.startsWith('bottom') ? 'flex-col-reverse' : ''
           }`}

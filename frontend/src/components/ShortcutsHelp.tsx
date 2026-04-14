@@ -34,15 +34,19 @@ const ShortcutsHelp: React.FC<Props> = ({ onClose }) => {
       <div
         className="bg-surface border border-border rounded-xl shadow-xl w-full max-w-md"
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="shortcuts-title"
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div className="flex items-center gap-2">
             <Keyboard size={16} className="text-text-tertiary" />
-            <h3 className="text-[14px] font-semibold text-text-primary">Keyboard shortcuts</h3>
+            <h3 id="shortcuts-title" className="text-[14px] font-semibold text-text-primary">Keyboard shortcuts</h3>
           </div>
           <button
             onClick={onClose}
             className="p-1.5 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-surface-hover transition-base"
+            aria-label="Close shortcuts help"
           >
             <X size={16} />
           </button>

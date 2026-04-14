@@ -86,6 +86,16 @@ const TaskItem: React.FC<Props> = ({ task, showProject, isSelected, onClick, onT
       onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onKeyDown={(e) => {
+        if ((e.key === 'Enter' || e.key === ' ') && onClick) {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={`Task: ${task.title}`}
+      aria-pressed={isSelected}
     >
       {/* Status circle */}
       <button
@@ -95,6 +105,7 @@ const TaskItem: React.FC<Props> = ({ task, showProject, isSelected, onClick, onT
         }}
         className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-base ${statusColors[task.status]}`}
         title={`Status: ${task.status}`}
+        aria-label={`Cycle status, currently ${task.status}`}
       >
         {task.status === 'done' && <Check size={12} className="text-white" strokeWidth={3} />}
         {task.status === 'in-progress' && <div className="w-2 h-2 rounded-full bg-accent" />}
@@ -202,6 +213,7 @@ const TaskItem: React.FC<Props> = ({ task, showProject, isSelected, onClick, onT
             }}
             className="p-1.5 rounded-md text-text-tertiary hover:text-accent hover:bg-accent-light transition-base"
             title="Start"
+            aria-label="Start task"
           >
             <Play size={14} />
           </button>
@@ -214,6 +226,7 @@ const TaskItem: React.FC<Props> = ({ task, showProject, isSelected, onClick, onT
             }}
             className="p-1.5 rounded-md text-text-tertiary hover:text-status-active hover:bg-status-active-bg transition-base"
             title="Complete"
+            aria-label="Mark task complete"
           >
             <Check size={14} />
           </button>
@@ -226,6 +239,7 @@ const TaskItem: React.FC<Props> = ({ task, showProject, isSelected, onClick, onT
             }}
             className="p-1.5 rounded-md text-text-tertiary hover:text-text-primary hover:bg-bg-secondary transition-base"
             title="Reopen"
+            aria-label="Reopen task"
           >
             <RotateCcw size={14} />
           </button>
@@ -237,6 +251,7 @@ const TaskItem: React.FC<Props> = ({ task, showProject, isSelected, onClick, onT
           }}
           className="p-1.5 rounded-md text-text-tertiary hover:text-red-500 hover:bg-red-50 transition-base"
           title="Delete"
+          aria-label="Delete task"
         >
           <Trash2 size={14} />
         </button>

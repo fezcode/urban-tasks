@@ -16,6 +16,9 @@ const Onboarding: React.FC<Props> = ({ onClose, onEnableNotifications, notificat
       <div
         className="w-full max-w-md bg-bg rounded-2xl border border-border shadow-2xl p-6 sm:p-8 animate-in slide-in-from-bottom-4 fade-in"
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="onboarding-title"
       >
         <div className="flex items-start justify-between mb-5">
           <div className="flex items-center gap-3">
@@ -23,7 +26,7 @@ const Onboarding: React.FC<Props> = ({ onClose, onEnableNotifications, notificat
               <Sparkles size={20} className="text-accent" />
             </div>
             <div>
-              <h2 className="text-[17px] font-semibold text-text-primary">Welcome to Urban Tasks</h2>
+              <h2 id="onboarding-title" className="text-[17px] font-semibold text-text-primary">Welcome to Urban Tasks</h2>
               <p className="text-[12px] text-text-tertiary">A quick tour in 30 seconds</p>
             </div>
           </div>

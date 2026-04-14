@@ -219,7 +219,7 @@ const Sidebar: React.FC<Props> = ({
   const isTasksActive = currentView === 'tasks' && !showDueToday && !showUpcoming && !showArchive;
 
   return (
-    <aside className="w-full flex-shrink-0 bg-bg-secondary border-r border-border-light flex flex-col h-full select-none">
+    <aside className="w-full flex-shrink-0 bg-bg-secondary border-r border-border-light flex flex-col h-full select-none" aria-label="Primary navigation">
       {/* Logo */}
       <div className="px-5 pt-6 pb-2">
         <div className="flex items-center gap-2.5">

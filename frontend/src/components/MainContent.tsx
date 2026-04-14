@@ -204,7 +204,7 @@ const MainContent: React.FC<Props> = ({
 
   if (currentView === 'calendar') {
     return (
-      <main className="flex-1 flex flex-col min-w-0 bg-bg overflow-hidden">
+      <main id="main-content" className="flex-1 flex flex-col min-w-0 bg-bg overflow-hidden" tabIndex={-1}>
         <Suspense fallback={<div className="p-6 text-text-tertiary">Loading calendar…</div>}>
           <Calendar onMenuClick={onMenuClick} onSelectTask={onSelectTask} />
         </Suspense>
@@ -213,7 +213,7 @@ const MainContent: React.FC<Props> = ({
   }
 
   return (
-    <main className="flex-1 flex flex-col min-w-0 bg-bg overflow-hidden">
+    <main id="main-content" className="flex-1 flex flex-col min-w-0 bg-bg overflow-hidden" tabIndex={-1}>
       {/* Header */}
       <header className="flex-shrink-0 px-4 sm:px-6 lg:px-10 pt-6 lg:pt-10 pb-4 lg:pb-6">
         <div>

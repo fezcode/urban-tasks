@@ -43,6 +43,10 @@ const ConfirmDialog: React.FC<Props> = ({
       <div
         className="bg-surface border border-border rounded-xl shadow-xl w-full max-w-sm p-5"
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-dialog-title"
+        aria-describedby="confirm-dialog-message"
       >
         <div className="flex items-start gap-3">
           {danger && (
@@ -51,8 +55,8 @@ const ConfirmDialog: React.FC<Props> = ({
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <h3 className="text-[15px] font-semibold text-text-primary">{title}</h3>
-            <p className="text-[13px] text-text-secondary mt-1 leading-relaxed">{message}</p>
+            <h3 id="confirm-dialog-title" className="text-[15px] font-semibold text-text-primary">{title}</h3>
+            <p id="confirm-dialog-message" className="text-[13px] text-text-secondary mt-1 leading-relaxed">{message}</p>
           </div>
         </div>
         <div className="flex justify-end gap-2 mt-5">

@@ -29,6 +29,6 @@
 
 ## Technical
 - [~] **Tests** — backend unit tests for auth/priority; integration tests pending
-- [ ] **Accessibility** — ARIA labels, full keyboard navigation, screen reader support
+- [x] **Accessibility** — ARIA labels, full keyboard navigation, screen reader support
 - [ ] **i18n** — internationalization and RTL layout support
 - [x] **Code splitting** — lazy loading to reduce bundle size
