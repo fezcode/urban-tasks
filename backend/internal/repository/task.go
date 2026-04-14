@@ -20,9 +20,9 @@ func NewTaskRepo(pool *pgxpool.Pool) *TaskRepo {
 
 func (r *TaskRepo) Create(ctx context.Context, t *model.Task) error {
 	_, err := r.pool.Exec(ctx,
-		`INSERT INTO tasks (id, user_id, project_id, title, body, status, priority, tags, links, subtasks, due_date, position, created_at, updated_at, completed_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
-		t.ID, t.UserID, t.ProjectID, t.Title, t.Body, t.Status, t.Priority, t.Tags, t.Links, t.Subtasks, t.DueDate, t.Position, t.CreatedAt, t.UpdatedAt, t.CompletedAt,
+		`INSERT INTO tasks (id, user_id, project_id, title, body, status, priority, tags, links, subtasks, due_date, recurrence, position, created_at, updated_at, completed_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+		t.ID, t.UserID, t.ProjectID, t.Title, t.Body, t.Status, t.Priority, t.Tags, t.Links, t.Subtasks, t.DueDate, t.Recurrence, t.Position, t.CreatedAt, t.UpdatedAt, t.CompletedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("creating task: %w", err)
@@ -32,7 +32,7 @@ func (r *TaskRepo) Create(ctx context.Context, t *model.Task) error {
 
 func (r *TaskRepo) ListByUser(ctx context.Context, userID string) ([]model.Task, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT id, user_id, project_id, title, body, status, priority, tags, links, subtasks, due_date, position, created_at, updated_at, completed_at
+		`SELECT id, user_id, project_id, title, body, status, priority, tags, links, subtasks, due_date, recurrence, position, created_at, updated_at, completed_at
 		 FROM tasks WHERE user_id = $1 ORDER BY position, created_at DESC`, userID,
 	)
 	if err != nil {
@@ -45,7 +45,7 @@ func (r *TaskRepo) ListByUser(ctx context.Context, userID string) ([]model.Task,
 
 func (r *TaskRepo) ListByProject(ctx context.Context, projectID, userID string) ([]model.Task, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT id, user_id, project_id, title, body, status, priority, tags, links, subtasks, due_date, position, created_at, updated_at, completed_at
+		`SELECT id, user_id, project_id, title, body, status, priority, tags, links, subtasks, due_date, recurrence, position, created_at, updated_at, completed_at
 		 FROM tasks WHERE project_id = $1 AND user_id = $2 ORDER BY position, created_at DESC`,
 		projectID, userID,
 	)
@@ -60,9 +60,9 @@ func (r *TaskRepo) ListByProject(ctx context.Context, projectID, userID string) 
 func (r *TaskRepo) GetByID(ctx context.Context, id, userID string) (*model.Task, error) {
 	t := &model.Task{}
 	err := r.pool.QueryRow(ctx,
-		`SELECT id, user_id, project_id, title, body, status, priority, tags, links, subtasks, due_date, position, created_at, updated_at, completed_at
+		`SELECT id, user_id, project_id, title, body, status, priority, tags, links, subtasks, due_date, recurrence, position, created_at, updated_at, completed_at
 		 FROM tasks WHERE id = $1 AND user_id = $2`, id, userID,
-	).Scan(&t.ID, &t.UserID, &t.ProjectID, &t.Title, &t.Body, &t.Status, &t.Priority, &t.Tags, &t.Links, &t.Subtasks, &t.DueDate, &t.Position, &t.CreatedAt, &t.UpdatedAt, &t.CompletedAt)
+	).Scan(&t.ID, &t.UserID, &t.ProjectID, &t.Title, &t.Body, &t.Status, &t.Priority, &t.Tags, &t.Links, &t.Subtasks, &t.DueDate, &t.Recurrence, &t.Position, &t.CreatedAt, &t.UpdatedAt, &t.CompletedAt)
 	if err == pgx.ErrNoRows {
 		return nil, nil
 	}
@@ -75,9 +75,9 @@ func (r *TaskRepo) GetByID(ctx context.Context, id, userID string) (*model.Task,
 func (r *TaskRepo) Update(ctx context.Context, t *model.Task) error {
 	_, err := r.pool.Exec(ctx,
 		`UPDATE tasks SET project_id = $1, title = $2, body = $3, status = $4, priority = $5, tags = $6, links = $7, subtasks = $8,
-		 due_date = $9, position = $10, updated_at = $11, completed_at = $12
-		 WHERE id = $13 AND user_id = $14`,
-		t.ProjectID, t.Title, t.Body, t.Status, t.Priority, t.Tags, t.Links, t.Subtasks, t.DueDate, t.Position, t.UpdatedAt, t.CompletedAt, t.ID, t.UserID,
+		 due_date = $9, recurrence = $10, position = $11, updated_at = $12, completed_at = $13
+		 WHERE id = $14 AND user_id = $15`,
+		t.ProjectID, t.Title, t.Body, t.Status, t.Priority, t.Tags, t.Links, t.Subtasks, t.DueDate, t.Recurrence, t.Position, t.UpdatedAt, t.CompletedAt, t.ID, t.UserID,
 	)
 	if err != nil {
 		return fmt.Errorf("updating task: %w", err)
@@ -125,7 +125,7 @@ func scanTasks(rows pgx.Rows) ([]model.Task, error) {
 		var t model.Task
 		if err := rows.Scan(
 			&t.ID, &t.UserID, &t.ProjectID, &t.Title, &t.Body, &t.Status, &t.Priority,
-			&t.Tags, &t.Links, &t.Subtasks, &t.DueDate, &t.Position, &t.CreatedAt, &t.UpdatedAt, &t.CompletedAt,
+			&t.Tags, &t.Links, &t.Subtasks, &t.DueDate, &t.Recurrence, &t.Position, &t.CreatedAt, &t.UpdatedAt, &t.CompletedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scanning task: %w", err)
 		}

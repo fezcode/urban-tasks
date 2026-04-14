@@ -8,7 +8,7 @@
 ## Task Management
 - [x] **Subtasks / checklists** — break tasks into steps
 - [x] **Task priorities** — high / medium / low with visual indicators
-- [ ] **Recurring tasks** — daily, weekly, custom repeat schedules
+- [x] **Recurring tasks** — daily, weekly, biweekly, monthly repeat
 - [ ] **Assignees / multi-user** — collaboration support
 - [x] **Drag-and-drop reordering** — manual sort within projects and sidebar
 - [x] **Attachments and links** — files or URLs on tasks

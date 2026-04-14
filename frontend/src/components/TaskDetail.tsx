@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAppState } from '../context/AppState';
-import type { TaskStatus, TaskPriority } from '../context/types';
+import type { TaskStatus, TaskPriority, TaskRecurrence } from '../context/types';
 import ReactMarkdown from 'react-markdown';
 import {
   X,
@@ -20,6 +20,7 @@ import {
   ListChecks,
   Square,
   CheckSquare,
+  RefreshCw,
 } from 'lucide-react';
 import { format, differenceInDays, startOfDay } from 'date-fns';
 import ProjectIcon from './ProjectIcon';
@@ -227,6 +228,14 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
     syncDispatch({ type: 'UPDATE_TASK', id: task.id, updates: { priority } });
   };
 
+  const setRecurrence = (recurrence: TaskRecurrence | null) => {
+    syncDispatch({
+      type: 'UPDATE_TASK',
+      id: task.id,
+      updates: { recurrence: recurrence ?? undefined },
+    });
+  };
+
   const handleDelete = () => {
     syncDispatch({ type: 'DELETE_TASK', id: task.id });
     onClose();
@@ -401,6 +410,47 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
               );
             })}
           </div>
+        </div>
+
+        {/* Recurrence */}
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <RefreshCw size={14} className="text-text-tertiary" />
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
+              Repeat
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {(
+              [
+                { value: null, label: 'Never' },
+                { value: 'daily', label: 'Daily' },
+                { value: 'weekly', label: 'Weekly' },
+                { value: 'biweekly', label: 'Biweekly' },
+                { value: 'monthly', label: 'Monthly' },
+              ] as { value: TaskRecurrence | null; label: string }[]
+            ).map(({ value, label }) => {
+              const active = (task.recurrence ?? null) === value;
+              return (
+                <button
+                  key={label}
+                  onClick={() => setRecurrence(value)}
+                  className={`px-2.5 py-1 rounded-full text-[12px] font-medium transition-base ${
+                    active
+                      ? 'bg-accent text-text-inverse'
+                      : 'text-text-tertiary hover:bg-surface-hover'
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          {task.recurrence && !task.dueDate && (
+            <p className="mt-2 text-2xs text-status-warning">
+              Set a due date to activate recurring behavior.
+            </p>
+          )}
         </div>
 
         {/* Tags */}

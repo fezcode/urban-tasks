@@ -1,5 +1,6 @@
 export type TaskStatus = 'todo' | 'in-progress' | 'done';
 export type TaskPriority = 'none' | 'low' | 'medium' | 'high';
+export type TaskRecurrence = 'daily' | 'weekly' | 'biweekly' | 'monthly';
 
 export interface TaskLink {
   id: string;
@@ -21,6 +22,7 @@ export interface Task {
   links?: TaskLink[];
   subtasks?: Subtask[];
   dueDate?: string;
+  recurrence?: TaskRecurrence;
   status: TaskStatus;
   priority?: TaskPriority;
   projectId: string;

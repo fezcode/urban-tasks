@@ -21,6 +21,35 @@ func isValidPriority(p string) bool {
 	return false
 }
 
+func isValidRecurrence(r string) bool {
+	switch r {
+	case "daily", "weekly", "biweekly", "monthly":
+		return true
+	}
+	return false
+}
+
+func advanceDueDate(dueDate string, recurrence string) string {
+	t, err := time.Parse(time.RFC3339, dueDate)
+	if err != nil {
+		t, err = time.Parse("2006-01-02", dueDate)
+		if err != nil {
+			return dueDate
+		}
+	}
+	switch recurrence {
+	case "daily":
+		t = t.AddDate(0, 0, 1)
+	case "weekly":
+		t = t.AddDate(0, 0, 7)
+	case "biweekly":
+		t = t.AddDate(0, 0, 14)
+	case "monthly":
+		t = t.AddDate(0, 1, 0)
+	}
+	return t.Format(time.RFC3339)
+}
+
 type TaskService struct {
 	tasks    *repository.TaskRepo
 	projects *repository.ProjectRepo
@@ -107,6 +136,12 @@ func (s *TaskService) Create(ctx context.Context, userID string, req model.Creat
 		Links:     links,
 		Subtasks:  subtasks,
 		DueDate:   req.DueDate,
+		Recurrence: func() *string {
+			if req.Recurrence != nil && isValidRecurrence(*req.Recurrence) {
+				return req.Recurrence
+			}
+			return nil
+		}(),
 		Position:  pos,
 		CreatedAt: now,
 		UpdatedAt: now,
@@ -134,12 +169,20 @@ func (s *TaskService) Update(ctx context.Context, id, userID string, req model.U
 		t.Body = req.Body
 	}
 	if req.Status != nil {
-		t.Status = *req.Status
-		if *req.Status == "done" {
-			now := time.Now().UTC()
-			t.CompletedAt = &now
-		} else {
+		// Recurring task completed: advance due date and keep it open instead of marking done.
+		if *req.Status == "done" && t.Recurrence != nil && t.DueDate != nil {
+			next := advanceDueDate(*t.DueDate, *t.Recurrence)
+			t.DueDate = &next
+			t.Status = "todo"
 			t.CompletedAt = nil
+		} else {
+			t.Status = *req.Status
+			if *req.Status == "done" {
+				now := time.Now().UTC()
+				t.CompletedAt = &now
+			} else {
+				t.CompletedAt = nil
+			}
 		}
 	}
 	if req.Priority != nil && isValidPriority(*req.Priority) {
@@ -156,6 +199,13 @@ func (s *TaskService) Update(ctx context.Context, id, userID string, req model.U
 	}
 	if req.DueDate != nil {
 		t.DueDate = req.DueDate
+	}
+	if req.Recurrence != nil {
+		if *req.Recurrence == "" {
+			t.Recurrence = nil
+		} else if isValidRecurrence(*req.Recurrence) {
+			t.Recurrence = req.Recurrence
+		}
 	}
 	if req.ProjectID != nil {
 		p, err := s.projects.GetByID(ctx, *req.ProjectID, userID)

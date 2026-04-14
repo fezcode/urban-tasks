@@ -97,9 +97,10 @@ func (h *DataHandler) Import(w http.ResponseWriter, r *http.Request) {
 			Body:      t.Body,
 			Tags:      t.Tags,
 			Links:     t.Links,
-			Subtasks:  t.Subtasks,
-			DueDate:   t.DueDate,
-			Priority:  &priority,
+			Subtasks:   t.Subtasks,
+			DueDate:    t.DueDate,
+			Recurrence: t.Recurrence,
+			Priority:   &priority,
 		})
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, "failed to import task")
