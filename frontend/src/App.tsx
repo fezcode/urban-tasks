@@ -1,13 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppStateProvider } from './context/AppState';
 import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
-import TaskDetail from './components/TaskDetail';
-import CommandPalette from './components/CommandPalette';
 import AuthPage from './components/AuthPage';
 import type { View } from './components/Sidebar';
+
+const TaskDetail = lazy(() => import('./components/TaskDetail'));
+const CommandPalette = lazy(() => import('./components/CommandPalette'));
+const ShortcutsHelp = lazy(() => import('./components/ShortcutsHelp'));
 
 const AuthenticatedApp: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('tasks');
@@ -18,13 +20,35 @@ const AuthenticatedApp: React.FC = () => {
   const [showDueToday, setShowDueToday] = useState(false);
   const [showUpcoming, setShowUpcoming] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
-  // Ctrl+K / Cmd+K to open command palette
+  // Global keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      // Ctrl+K / Cmd+K always
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setCommandPaletteOpen((prev) => !prev);
+        return;
+      }
+
+      // Skip single-key shortcuts when typing in inputs
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable) return;
+      }
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      if (e.key === 'n') {
+        e.preventDefault();
+        setCurrentView('tasks');
+        window.dispatchEvent(new Event('urban-tasks:add'));
+      } else if (e.key === '?') {
+        e.preventDefault();
+        setShortcutsOpen(true);
+      } else if (e.key === 'Escape') {
+        setSelectedTaskId(null);
       }
     };
     window.addEventListener('keydown', handler);
@@ -135,26 +159,37 @@ const AuthenticatedApp: React.FC = () => {
 
         {/* Task detail panel */}
         {currentView === 'tasks' && selectedTaskId && (
-          <TaskDetail
-            key={selectedTaskId}
-            taskId={selectedTaskId}
-            onClose={() => setSelectedTaskId(null)}
-            onTagClick={handleTagClick}
-          />
+          <Suspense fallback={null}>
+            <TaskDetail
+              key={selectedTaskId}
+              taskId={selectedTaskId}
+              onClose={() => setSelectedTaskId(null)}
+              onTagClick={handleTagClick}
+            />
+          </Suspense>
         )}
 
         {/* Command palette */}
         {commandPaletteOpen && (
-          <CommandPalette
-            onClose={() => setCommandPaletteOpen(false)}
-            onSelectTask={(id) => {
-              setSelectedTaskId(id);
-              setCurrentView('tasks');
-            }}
-            onCreateTask={handleCreateTask}
-            onTagClick={handleTagClick}
-            onViewChange={handleViewChange}
-          />
+          <Suspense fallback={null}>
+            <CommandPalette
+              onClose={() => setCommandPaletteOpen(false)}
+              onSelectTask={(id) => {
+                setSelectedTaskId(id);
+                setCurrentView('tasks');
+              }}
+              onCreateTask={handleCreateTask}
+              onTagClick={handleTagClick}
+              onViewChange={handleViewChange}
+            />
+          </Suspense>
+        )}
+
+        {/* Shortcuts help */}
+        {shortcutsOpen && (
+          <Suspense fallback={null}>
+            <ShortcutsHelp onClose={() => setShortcutsOpen(false)} />
+          </Suspense>
         )}
       </div>
     </AppStateProvider>

@@ -1,7 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Suspense, lazy } from 'react';
 import { useAppState } from '../context/AppState';
 import TaskItem from './TaskItem';
-import Dashboard from './Dashboard';
+
+const Dashboard = lazy(() => import('./Dashboard'));
 import {
   Plus,
   CheckCircle2,
@@ -259,7 +260,11 @@ const MainContent: React.FC<Props> = ({
       {currentView === 'dashboard' ? (
         <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-10 pb-10">
           <div className="max-w-4xl">
-            <Dashboard />
+            <Suspense
+              fallback={<div className="py-10 text-center text-text-tertiary">Loading…</div>}
+            >
+              <Dashboard />
+            </Suspense>
           </div>
         </div>
       ) : (

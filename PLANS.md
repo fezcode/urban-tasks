@@ -21,13 +21,13 @@
 
 ## UX Polish
 - [ ] **Notifications / reminders** — browser notifications for due dates
-- [ ] **Keyboard shortcuts** — quick status toggle, navigation, task creation
+- [x] **Keyboard shortcuts** — quick status toggle, navigation, task creation
 - [ ] **Onboarding** — first-run guidance for new users
-- [ ] **Confirmation dialogs** — destructive actions require confirmation
+- [x] **Confirmation dialogs** — destructive actions require confirmation
 - [ ] **PWA support** — service worker, offline mode, install prompt
 
 ## Technical
 - [ ] **Tests** — unit and integration test coverage
 - [ ] **Accessibility** — ARIA labels, full keyboard navigation, screen reader support
 - [ ] **i18n** — internationalization and RTL layout support
-- [ ] **Code splitting** — lazy loading to reduce bundle size
+- [x] **Code splitting** — lazy loading to reduce bundle size

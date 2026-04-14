@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { format, differenceInDays, startOfDay } from 'date-fns';
 import ProjectIcon from './ProjectIcon';
+import ConfirmDialog from './ConfirmDialog';
 
 export type View = 'tasks' | 'dashboard';
 
@@ -59,6 +60,7 @@ const Sidebar: React.FC<Props> = ({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const createInputRef = useRef<HTMLInputElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -108,9 +110,16 @@ const Sidebar: React.FC<Props> = ({
     setEditName('');
   };
 
-  const handleDelete = (id: string) => {
-    syncDispatch({ type: 'DELETE_PROJECT', id });
+  const requestDelete = (id: string) => {
+    setConfirmDeleteId(id);
     setMenuOpenId(null);
+  };
+
+  const confirmDelete = () => {
+    if (confirmDeleteId) {
+      syncDispatch({ type: 'DELETE_PROJECT', id: confirmDeleteId });
+    }
+    setConfirmDeleteId(null);
   };
 
   const handleRandomize = (id: string) => {
@@ -397,7 +406,7 @@ const Sidebar: React.FC<Props> = ({
                       Shuffle Style
                     </button>
                     <button
-                      onClick={() => handleDelete(project.id)}
+                      onClick={() => requestDelete(project.id)}
                       className="w-full flex items-center gap-2 px-3 py-1.5 text-[13px] text-danger hover:bg-danger-bg transition-base"
                     >
                       <Trash2 size={13} />
@@ -486,6 +495,26 @@ const Sidebar: React.FC<Props> = ({
           {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
         </button>
       </div>
+
+      {confirmDeleteId &&
+        (() => {
+          const p = state.projects.find((pr) => pr.id === confirmDeleteId);
+          const taskCount = state.tasks.filter((t) => t.projectId === confirmDeleteId).length;
+          return (
+            <ConfirmDialog
+              title={`Delete "${p?.name ?? 'project'}"?`}
+              message={
+                taskCount > 0
+                  ? `This will permanently delete the project and all ${taskCount} of its tasks. This cannot be undone.`
+                  : 'This will permanently delete the project. This cannot be undone.'
+              }
+              confirmLabel="Delete"
+              danger
+              onConfirm={confirmDelete}
+              onCancel={() => setConfirmDeleteId(null)}
+            />
+          );
+        })()}
     </aside>
   );
 };
