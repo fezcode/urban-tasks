@@ -13,6 +13,7 @@ const TaskDetail = lazy(() => import('./components/TaskDetail'));
 const CommandPalette = lazy(() => import('./components/CommandPalette'));
 const ShortcutsHelp = lazy(() => import('./components/ShortcutsHelp'));
 const Onboarding = lazy(() => import('./components/Onboarding'));
+const InstallPrompt = lazy(() => import('./components/InstallPrompt'));
 
 const ONBOARDING_KEY = 'urban-tasks:onboarded';
 const NOTIFICATIONS_ENABLED_KEY = 'urban-tasks:notifications-enabled';
@@ -218,6 +219,10 @@ const AuthenticatedApp: React.FC = () => {
             <ShortcutsHelp onClose={() => setShortcutsOpen(false)} />
           </Suspense>
         )}
+
+        <Suspense fallback={null}>
+          <InstallPrompt />
+        </Suspense>
 
         {/* First-run onboarding */}
         {showOnboarding && (
