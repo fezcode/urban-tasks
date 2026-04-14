@@ -58,6 +58,25 @@ const Sidebar: React.FC<Props> = ({
   onTagClick,
 }) => {
   const { state, dispatch, syncDispatch, reload } = useAppState();
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+
+  const handleProjectDrop = (targetId: string) => {
+    if (!dragId || dragId === targetId) {
+      setDragId(null);
+      setDragOverId(null);
+      return;
+    }
+    const ids = state.projects.map((p) => p.id);
+    const from = ids.indexOf(dragId);
+    const to = ids.indexOf(targetId);
+    if (from < 0 || to < 0) return;
+    ids.splice(from, 1);
+    ids.splice(to, 0, dragId);
+    syncDispatch({ type: 'REORDER_PROJECTS', orderedIds: ids });
+    setDragId(null);
+    setDragOverId(null);
+  };
   const { success, error: toastError } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { theme, toggle: toggleTheme } = useTheme();
@@ -393,7 +412,34 @@ const Sidebar: React.FC<Props> = ({
             }
 
             return (
-              <div key={project.id} className="relative group">
+              <div
+                key={project.id}
+                className={`relative group ${
+                  dragOverId === project.id && dragId !== project.id
+                    ? 'ring-2 ring-accent/40 rounded-lg'
+                    : ''
+                } ${dragId === project.id ? 'opacity-40' : ''}`}
+                draggable
+                onDragStart={(e) => {
+                  setDragId(project.id);
+                  e.dataTransfer.effectAllowed = 'move';
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'move';
+                  if (dragOverId !== project.id) setDragOverId(project.id);
+                }}
+                onDragLeave={() => {
+                  if (dragOverId === project.id) setDragOverId(null);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  handleProjectDrop(project.id);
+                }}
+                onDragEnd={() => {
+                  setDragId(null);
+                  setDragOverId(null);
+                }}>
                 <button
                   onClick={() => {
                     dispatch({ type: 'SET_ACTIVE_PROJECT', id: project.id });

@@ -24,6 +24,7 @@ export interface Task {
   status: TaskStatus;
   priority?: TaskPriority;
   projectId: string;
+  position?: number;
   createdAt: string;
   completedAt?: string;
 }
@@ -33,6 +34,7 @@ export interface Project {
   name: string;
   color: string;
   iconSeed?: number;
+  position?: number;
 }
 
 export interface AppState {
@@ -50,4 +52,6 @@ export type Action =
   | { type: 'DELETE_PROJECT'; id: string }
   | { type: 'SET_ACTIVE_PROJECT'; id: string | null }
   | { type: 'RANDOMIZE_PROJECT_STYLE'; id: string }
+  | { type: 'REORDER_PROJECTS'; orderedIds: string[] }
+  | { type: 'REORDER_TASKS'; projectId: string; orderedIds: string[] }
   | { type: 'SET_STATE'; state: AppState };

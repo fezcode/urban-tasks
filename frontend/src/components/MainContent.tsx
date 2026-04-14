@@ -62,6 +62,8 @@ const MainContent: React.FC<Props> = ({
   const [isAdding, setIsAdding] = useState(false);
   const [filter, setFilter] = useState<Filter>('all');
   const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
+  const [dragTaskId, setDragTaskId] = useState<string | null>(null);
+  const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -123,12 +125,22 @@ const MainContent: React.FC<Props> = ({
       ? tagFilteredTasks
       : tagFilteredTasks.filter((t) => t.status === filter);
 
+  const singleProjectView =
+    !!state.activeProjectId && !showArchive && !showUpcoming && !showDueToday && !activeTag;
+
   const sortedTasks = [...filteredTasks].sort((a, b) => {
     if (showArchive) {
       // Most recently completed first
       const aDone = a.completedAt ? new Date(a.completedAt).getTime() : 0;
       const bDone = b.completedAt ? new Date(b.completedAt).getTime() : 0;
       return bDone - aDone;
+    }
+    if (singleProjectView) {
+      // Manual order wins; fall back to created date
+      const pa = a.position ?? Number.MAX_SAFE_INTEGER;
+      const pb = b.position ?? Number.MAX_SAFE_INTEGER;
+      if (pa !== pb) return pa - pb;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     }
     const order: Record<TaskStatus, number> = { 'in-progress': 0, todo: 1, done: 2 };
     if (order[a.status] !== order[b.status]) return order[a.status] - order[b.status];
@@ -449,15 +461,86 @@ const MainContent: React.FC<Props> = ({
                 ) : (
                   // Flat list for single project
                   <div className="space-y-0.5">
-                    {sortedTasks.map((task) => (
-                      <TaskItem
-                        key={task.id}
-                        task={task}
-                        isSelected={task.id === selectedTaskId}
-                        onClick={() => onSelectTask(task.id === selectedTaskId ? null : task.id)}
-                        onTagClick={onTagClick}
-                      />
-                    ))}
+                    {sortedTasks.map((task) => {
+                      const canReorder = singleProjectView;
+                      return (
+                        <div
+                          key={task.id}
+                          draggable={canReorder}
+                          onDragStart={
+                            canReorder
+                              ? (e) => {
+                                  setDragTaskId(task.id);
+                                  e.dataTransfer.effectAllowed = 'move';
+                                }
+                              : undefined
+                          }
+                          onDragOver={
+                            canReorder
+                              ? (e) => {
+                                  e.preventDefault();
+                                  e.dataTransfer.dropEffect = 'move';
+                                  if (dragOverTaskId !== task.id) setDragOverTaskId(task.id);
+                                }
+                              : undefined
+                          }
+                          onDragLeave={
+                            canReorder
+                              ? () => {
+                                  if (dragOverTaskId === task.id) setDragOverTaskId(null);
+                                }
+                              : undefined
+                          }
+                          onDrop={
+                            canReorder
+                              ? (e) => {
+                                  e.preventDefault();
+                                  if (!dragTaskId || dragTaskId === task.id) {
+                                    setDragTaskId(null);
+                                    setDragOverTaskId(null);
+                                    return;
+                                  }
+                                  const ids = sortedTasks.map((t) => t.id);
+                                  const from = ids.indexOf(dragTaskId);
+                                  const to = ids.indexOf(task.id);
+                                  if (from < 0 || to < 0) return;
+                                  ids.splice(from, 1);
+                                  ids.splice(to, 0, dragTaskId);
+                                  syncDispatch({
+                                    type: 'REORDER_TASKS',
+                                    projectId: state.activeProjectId!,
+                                    orderedIds: ids,
+                                  });
+                                  setDragTaskId(null);
+                                  setDragOverTaskId(null);
+                                }
+                              : undefined
+                          }
+                          onDragEnd={
+                            canReorder
+                              ? () => {
+                                  setDragTaskId(null);
+                                  setDragOverTaskId(null);
+                                }
+                              : undefined
+                          }
+                          className={`${
+                            dragOverTaskId === task.id && dragTaskId !== task.id
+                              ? 'ring-2 ring-accent/40 rounded-xl'
+                              : ''
+                          } ${dragTaskId === task.id ? 'opacity-40' : ''}`}
+                        >
+                          <TaskItem
+                            task={task}
+                            isSelected={task.id === selectedTaskId}
+                            onClick={() =>
+                              onSelectTask(task.id === selectedTaskId ? null : task.id)
+                            }
+                            onTagClick={onTagClick}
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
                 )
               ) : (

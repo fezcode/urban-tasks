@@ -10,7 +10,7 @@
 - [x] **Task priorities** — high / medium / low with visual indicators
 - [ ] **Recurring tasks** — daily, weekly, custom repeat schedules
 - [ ] **Assignees / multi-user** — collaboration support
-- [ ] **Drag-and-drop reordering** — manual sort within projects
+- [x] **Drag-and-drop reordering** — manual sort within projects and sidebar
 - [x] **Attachments and links** — files or URLs on tasks
 
 ## Views & Navigation

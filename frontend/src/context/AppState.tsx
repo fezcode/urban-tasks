@@ -74,6 +74,27 @@ const appReducer = (state: AppState, action: Action): AppState => {
         ),
       };
     }
+    case 'REORDER_PROJECTS': {
+      const indexOf = new Map(action.orderedIds.map((id, i) => [id, i]));
+      const reordered = [...state.projects].sort(
+        (a, b) => (indexOf.get(a.id) ?? 0) - (indexOf.get(b.id) ?? 0)
+      );
+      return {
+        ...state,
+        projects: reordered.map((p, i) => ({ ...p, position: i })),
+      };
+    }
+    case 'REORDER_TASKS': {
+      const indexOf = new Map(action.orderedIds.map((id, i) => [id, i]));
+      return {
+        ...state,
+        tasks: state.tasks.map((t) =>
+          t.projectId === action.projectId && indexOf.has(t.id)
+            ? { ...t, position: indexOf.get(t.id) }
+            : t
+        ),
+      };
+    }
     case 'SET_STATE':
       return action.state;
     default:
@@ -174,6 +195,18 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             await api.projects.update(action.id, { color: newColor, iconSeed: newSeed });
             break;
           }
+
+          case 'REORDER_PROJECTS':
+            await Promise.all(
+              action.orderedIds.map((id, i) => api.projects.update(id, { position: i }))
+            );
+            break;
+
+          case 'REORDER_TASKS':
+            await Promise.all(
+              action.orderedIds.map((id, i) => api.tasks.update(id, { position: i }))
+            );
+            break;
 
           // SET_ACTIVE_PROJECT and SET_STATE are local-only
         }
