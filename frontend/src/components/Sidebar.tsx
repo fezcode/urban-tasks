@@ -19,10 +19,13 @@ import {
   Sparkles,
   CalendarRange,
   Archive,
+  Download,
+  Upload,
 } from 'lucide-react';
 import { format, differenceInDays, startOfDay } from 'date-fns';
 import ProjectIcon from './ProjectIcon';
 import ConfirmDialog from './ConfirmDialog';
+import * as api from '../api/client';
 
 export type View = 'tasks' | 'dashboard';
 
@@ -53,7 +56,8 @@ const Sidebar: React.FC<Props> = ({
   activeTag,
   onTagClick,
 }) => {
-  const { state, dispatch, syncDispatch } = useAppState();
+  const { state, dispatch, syncDispatch, reload } = useAppState();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { theme, toggle: toggleTheme } = useTheme();
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState('');
@@ -113,6 +117,46 @@ const Sidebar: React.FC<Props> = ({
   const requestDelete = (id: string) => {
     setConfirmDeleteId(id);
     setMenuOpenId(null);
+  };
+
+  const handleExport = async () => {
+    try {
+      const payload = await api.data.export();
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `urban-tasks-${format(new Date(), 'yyyy-MM-dd')}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Export failed', e);
+      alert('Export failed. Please try again.');
+    }
+  };
+
+  const handleImportClick = () => fileInputRef.current?.click();
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const payload = JSON.parse(text);
+      if (!Array.isArray(payload.projects) || !Array.isArray(payload.tasks)) {
+        throw new Error('Invalid file format');
+      }
+      const result = await api.data.import({
+        projects: payload.projects,
+        tasks: payload.tasks,
+      });
+      await reload();
+      alert(`Imported ${result.projectsCreated} projects and ${result.tasksCreated} tasks.`);
+    } catch (err) {
+      console.error('Import failed', err);
+      alert('Import failed: ' + (err instanceof Error ? err.message : 'unknown error'));
+    }
   };
 
   const confirmDelete = () => {
@@ -482,18 +526,41 @@ const Sidebar: React.FC<Props> = ({
       </div>
 
       {/* Footer */}
-      <div className="px-4 py-3 border-t border-border-light flex items-center justify-between">
+      <div className="px-4 py-3 border-t border-border-light flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-2xs text-text-tertiary">
           <div className="w-1.5 h-1.5 rounded-full bg-status-active" />
           <span>{state.tasks.length} tasks</span>
         </div>
-        <button
-          onClick={toggleTheme}
-          className="p-2 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-surface-hover transition-base"
-          title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-        >
-          {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
-        </button>
+        <div className="flex items-center gap-0.5">
+          <button
+            onClick={handleExport}
+            className="p-2 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-surface-hover transition-base"
+            title="Export data as JSON"
+          >
+            <Download size={16} />
+          </button>
+          <button
+            onClick={handleImportClick}
+            className="p-2 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-surface-hover transition-base"
+            title="Import data from JSON"
+          >
+            <Upload size={16} />
+          </button>
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-surface-hover transition-base"
+            title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+          >
+            {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+          </button>
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/json"
+          onChange={handleImportFile}
+          className="hidden"
+        />
       </div>
 
       {confirmDeleteId &&

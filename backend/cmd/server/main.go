@@ -64,6 +64,7 @@ func main() {
 	authH := handler.NewAuthHandler(authSvc)
 	projectH := handler.NewProjectHandler(projectSvc)
 	taskH := handler.NewTaskHandler(taskSvc)
+	dataH := handler.NewDataHandler(projectSvc, taskSvc)
 
 	// Router
 	r := chi.NewRouter()
@@ -109,6 +110,10 @@ func main() {
 			protected.Post("/tasks", taskH.Create)
 			protected.Patch("/tasks/{id}", taskH.Update)
 			protected.Delete("/tasks/{id}", taskH.Delete)
+
+			// Data export / import
+			protected.Get("/data/export", dataH.Export)
+			protected.Post("/data/import", dataH.Import)
 		})
 	})
 

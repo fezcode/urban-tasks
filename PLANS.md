@@ -3,7 +3,7 @@
 ## Data & Persistence
 - [x] **Backend API + database** — Go + Chi + PostgreSQL, JWT auth, full CRUD REST API
 - [ ] **Undo/redo** — reversible actions for task and project mutations
-- [ ] **Data export/import** — JSON backup and restore
+- [x] **Data export/import** — JSON backup and restore
 
 ## Task Management
 - [ ] **Subtasks / checklists** — break tasks into steps
@@ -27,7 +27,7 @@
 - [ ] **PWA support** — service worker, offline mode, install prompt
 
 ## Technical
-- [ ] **Tests** — unit and integration test coverage
+- [~] **Tests** — backend unit tests for auth/priority; integration tests pending
 - [ ] **Accessibility** — ARIA labels, full keyboard navigation, screen reader support
 - [ ] **i18n** — internationalization and RTL layout support
 - [x] **Code splitting** — lazy loading to reduce bundle size

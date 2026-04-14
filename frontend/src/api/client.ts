@@ -128,6 +128,29 @@ export const projects = {
 
 // --- Tasks ---
 
+// --- Data export / import ---
+
+export interface ExportData {
+  version: number;
+  exportedAt: string;
+  projects: Project[];
+  tasks: Task[];
+}
+
+export interface ImportResult {
+  projectsCreated: number;
+  tasksCreated: number;
+}
+
+export const data = {
+  export: () => request<ExportData>('/data/export'),
+  import: (payload: { projects: Project[]; tasks: Task[] }) =>
+    request<ImportResult>('/data/import', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+};
+
 export const tasks = {
   list: (projectId?: string) =>
     request<Task[]>(`/tasks${projectId ? `?projectId=${projectId}` : ''}`),
