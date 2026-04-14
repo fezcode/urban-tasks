@@ -14,6 +14,9 @@ import {
   Pencil,
   CalendarClock,
   Flag,
+  Link2,
+  Plus,
+  Link as LinkIcon,
 } from 'lucide-react';
 import { format, differenceInDays, startOfDay } from 'date-fns';
 import ProjectIcon from './ProjectIcon';
@@ -51,9 +54,13 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
   const [isEditingBody, setIsEditingBody] = useState(false);
   const [bodyDraft, setBodyDraft] = useState('');
   const [tagInput, setTagInput] = useState('');
+  const [isAddingLink, setIsAddingLink] = useState(false);
+  const [newLinkTitle, setNewLinkTitle] = useState('');
+  const [newLinkUrl, setNewLinkUrl] = useState('');
   const titleRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const tagRef = useRef<HTMLInputElement>(null);
+  const linkTitleRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!task) onClose();
@@ -62,6 +69,10 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
   useEffect(() => {
     if (isEditingTitle) titleRef.current?.focus();
   }, [isEditingTitle]);
+
+  useEffect(() => {
+    if (isAddingLink) linkTitleRef.current?.focus();
+  }, [isAddingLink]);
 
   useEffect(() => {
     if (isEditingBody && bodyRef.current) {
@@ -127,6 +138,40 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
       type: 'UPDATE_TASK',
       id: task.id,
       updates: { tags: (task.tags || []).filter((t) => t !== tag) },
+    });
+  };
+
+  const addLink = () => {
+    const title = newLinkTitle.trim();
+    let url = newLinkUrl.trim();
+    if (!url) return;
+
+    if (!/^https?:\/\//i.test(url)) {
+      url = 'https://' + url;
+    }
+
+    const newLink = {
+      id: Math.random().toString(36).substring(2, 9),
+      title: title || url,
+      url,
+    };
+
+    syncDispatch({
+      type: 'UPDATE_TASK',
+      id: task.id,
+      updates: { links: [...(task.links || []), newLink] },
+    });
+
+    setNewLinkTitle('');
+    setNewLinkUrl('');
+    setIsAddingLink(false);
+  };
+
+  const removeLink = (linkId: string) => {
+    syncDispatch({
+      type: 'UPDATE_TASK',
+      id: task.id,
+      updates: { links: (task.links || []).filter((l) => l.id !== linkId) },
     });
   };
 
@@ -367,6 +412,97 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
                 if (tagInput.trim()) addTag();
               }}
             />
+          </div>
+        </div>
+
+        {/* Links */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <LinkIcon size={14} className="text-text-tertiary" />
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
+                Links & Attachments
+              </span>
+            </div>
+            {!isAddingLink && (
+              <button
+                onClick={() => setIsAddingLink(true)}
+                className="text-2xs text-text-tertiary hover:text-accent transition-base flex items-center gap-1"
+              >
+                <Plus size={12} />
+                Add
+              </button>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            {(task.links || []).map((link) => (
+              <div
+                key={link.id}
+                className="group/link flex items-center justify-between p-2 rounded-lg hover:bg-surface-hover border border-transparent hover:border-border transition-base"
+              >
+                <a
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 min-w-0"
+                >
+                  <Link2 size={14} className="text-accent flex-shrink-0" />
+                  <span className="text-[13px] text-text-primary truncate font-medium group-hover/link:text-accent transition-base">
+                    {link.title}
+                  </span>
+                </a>
+                <button
+                  onClick={() => removeLink(link.id)}
+                  className="opacity-0 group-hover/link:opacity-100 p-1 rounded text-text-tertiary hover:text-danger hover:bg-danger-bg transition-base"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+
+            {isAddingLink && (
+              <div className="p-3 rounded-lg bg-surface border border-accent/30 space-y-3 animate-in fade-in slide-in-from-top-2">
+                <input
+                  ref={linkTitleRef}
+                  type="text"
+                  placeholder="Link title (optional)"
+                  className="w-full bg-transparent text-[13px] text-text-primary outline-none border-b border-border focus:border-accent pb-1"
+                  value={newLinkTitle}
+                  onChange={(e) => setNewLinkTitle(e.target.value)}
+                />
+                <input
+                  type="text"
+                  placeholder="Paste URL..."
+                  className="w-full bg-transparent text-[13px] text-text-primary outline-none border-b border-border focus:border-accent pb-1"
+                  value={newLinkUrl}
+                  onChange={(e) => setNewLinkUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') addLink();
+                    if (e.key === 'Escape') setIsAddingLink(false);
+                  }}
+                />
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => setIsAddingLink(false)}
+                    className="px-2 py-1 text-[11px] text-text-secondary hover:text-text-primary"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={addLink}
+                    disabled={!newLinkUrl.trim()}
+                    className="px-3 py-1 bg-accent text-text-inverse text-[11px] font-medium rounded-md hover:bg-accent-hover disabled:opacity-50"
+                  >
+                    Add Link
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!isAddingLink && (!task.links || task.links.length === 0) && (
+              <p className="text-[12px] text-text-tertiary italic px-1">No links added yet.</p>
+            )}
           </div>
         </div>
 

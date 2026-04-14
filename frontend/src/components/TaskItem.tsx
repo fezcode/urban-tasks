@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAppState } from '../context/AppState';
 import type { Task, TaskStatus, TaskPriority } from '../context/types';
-import { Trash2, Play, RotateCcw, Check, CalendarClock, Flag } from 'lucide-react';
+import { Trash2, Play, RotateCcw, Check, CalendarClock, Flag, Link2 } from 'lucide-react';
 import { formatDistanceToNow, differenceInDays, startOfDay, format } from 'date-fns';
 
 interface Props {
@@ -149,6 +149,13 @@ const TaskItem: React.FC<Props> = ({ task, showProject, isSelected, onClick, onT
             <span className={`inline-flex items-center gap-1 text-2xs ${dueDateInfo.className}`}>
               <CalendarClock size={11} />
               {dueDateInfo.label}
+            </span>
+          )}
+
+          {task.links && task.links.length > 0 && (
+            <span className="inline-flex items-center gap-1 text-2xs text-text-tertiary">
+              <Link2 size={11} className="text-accent" />
+              {task.links.length}
             </span>
           )}
 

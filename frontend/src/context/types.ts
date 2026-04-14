@@ -1,11 +1,18 @@
 export type TaskStatus = 'todo' | 'in-progress' | 'done';
 export type TaskPriority = 'none' | 'low' | 'medium' | 'high';
 
+export interface TaskLink {
+  id: string;
+  title: string;
+  url: string;
+}
+
 export interface Task {
   id: string;
   title: string;
   body?: string;
   tags?: string[];
+  links?: TaskLink[];
   dueDate?: string;
   status: TaskStatus;
   priority?: TaskPriority;

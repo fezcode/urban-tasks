@@ -22,6 +22,12 @@ type Project struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
+type TaskLink struct {
+	ID    string `json:"id"`
+	Title string `json:"title"`
+	URL   string `json:"url"`
+}
+
 type Task struct {
 	ID          string     `json:"id"`
 	UserID      string     `json:"-"`
@@ -31,6 +37,7 @@ type Task struct {
 	Status      string     `json:"status"`
 	Priority    string     `json:"priority"`
 	Tags        []string   `json:"tags"`
+	Links       []TaskLink `json:"links"`
 	DueDate     *string    `json:"dueDate,omitempty"`
 	Position    int        `json:"position"`
 	CreatedAt   time.Time  `json:"createdAt"`
@@ -80,21 +87,23 @@ type UpdateProjectRequest struct {
 }
 
 type CreateTaskRequest struct {
-	ProjectID string   `json:"projectId"`
-	Title     string   `json:"title"`
-	Body      *string  `json:"body,omitempty"`
-	Tags      []string `json:"tags,omitempty"`
-	DueDate   *string  `json:"dueDate,omitempty"`
-	Priority  *string  `json:"priority,omitempty"`
+	ProjectID string     `json:"projectId"`
+	Title     string     `json:"title"`
+	Body      *string    `json:"body,omitempty"`
+	Tags      []string   `json:"tags,omitempty"`
+	Links     []TaskLink `json:"links,omitempty"`
+	DueDate   *string    `json:"dueDate,omitempty"`
+	Priority  *string    `json:"priority,omitempty"`
 }
 
 type UpdateTaskRequest struct {
-	Title     *string  `json:"title,omitempty"`
-	Body      *string  `json:"body,omitempty"`
-	Status    *string  `json:"status,omitempty"`
-	Priority  *string  `json:"priority,omitempty"`
-	Tags      []string `json:"tags,omitempty"`
-	DueDate   *string  `json:"dueDate,omitempty"`
-	ProjectID *string  `json:"projectId,omitempty"`
-	Position  *int     `json:"position,omitempty"`
+	Title     *string    `json:"title,omitempty"`
+	Body      *string    `json:"body,omitempty"`
+	Status    *string    `json:"status,omitempty"`
+	Priority  *string    `json:"priority,omitempty"`
+	Tags      []string   `json:"tags,omitempty"`
+	Links     []TaskLink `json:"links,omitempty"`
+	DueDate   *string    `json:"dueDate,omitempty"`
+	ProjectID *string    `json:"projectId,omitempty"`
+	Position  *int       `json:"position,omitempty"`
 }

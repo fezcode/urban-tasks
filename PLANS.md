@@ -11,7 +11,7 @@
 - [ ] **Recurring tasks** — daily, weekly, custom repeat schedules
 - [ ] **Assignees / multi-user** — collaboration support
 - [ ] **Drag-and-drop reordering** — manual sort within projects
-- [ ] **Attachments and links** — files or URLs on tasks
+- [x] **Attachments and links** — files or URLs on tasks
 
 ## Views & Navigation
 - [ ] **Calendar view** — month/week visualization of due dates
