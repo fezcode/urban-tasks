@@ -20,9 +20,9 @@
 - [ ] **Dashboard improvements** — velocity tracking, trends, burndown
 
 ## UX Polish
-- [ ] **Notifications / reminders** — browser notifications for due dates
+- [x] **Notifications / reminders** — browser notifications for due dates
 - [x] **Keyboard shortcuts** — quick status toggle, navigation, task creation
-- [ ] **Onboarding** — first-run guidance for new users
+- [x] **Onboarding** — first-run guidance for new users
 - [x] **Confirmation dialogs** — destructive actions require confirmation
 - [x] **Toast notifications** — non-blocking feedback for success/error actions (6-position)
 - [ ] **PWA support** — service worker, offline mode, install prompt

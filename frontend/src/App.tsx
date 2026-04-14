@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { AppStateProvider } from './context/AppState';
+import { AppStateProvider, useAppState } from './context/AppState';
 import { ToastProvider } from './context/ToastContext';
+import { useDueReminders, requestNotificationPermission } from './hooks/useDueReminders';
 import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
 import AuthPage from './components/AuthPage';
@@ -11,6 +12,11 @@ import type { View } from './components/Sidebar';
 const TaskDetail = lazy(() => import('./components/TaskDetail'));
 const CommandPalette = lazy(() => import('./components/CommandPalette'));
 const ShortcutsHelp = lazy(() => import('./components/ShortcutsHelp'));
+const Onboarding = lazy(() => import('./components/Onboarding'));
+
+const ONBOARDING_KEY = 'urban-tasks:onboarded';
+const NOTIFICATIONS_ENABLED_KEY = 'urban-tasks:notifications-enabled';
+const notificationsSupported = typeof window !== 'undefined' && 'Notification' in window;
 
 const AuthenticatedApp: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('tasks');
@@ -22,6 +28,12 @@ const AuthenticatedApp: React.FC = () => {
   const [showUpcoming, setShowUpcoming] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(
+    () => notificationsSupported && !localStorage.getItem(ONBOARDING_KEY)
+  );
+  const [notificationsEnabled, setNotificationsEnabled] = useState(
+    () => localStorage.getItem(NOTIFICATIONS_ENABLED_KEY) === 'true'
+  );
 
   // Global keyboard shortcuts
   useEffect(() => {
@@ -106,8 +118,22 @@ const AuthenticatedApp: React.FC = () => {
     window.dispatchEvent(new Event('urban-tasks:add'));
   }, []);
 
+  const dismissOnboarding = useCallback(() => {
+    localStorage.setItem(ONBOARDING_KEY, 'true');
+    setShowOnboarding(false);
+  }, []);
+
+  const enableNotifications = useCallback(async () => {
+    const perm = await requestNotificationPermission();
+    if (perm === 'granted') {
+      localStorage.setItem(NOTIFICATIONS_ENABLED_KEY, 'true');
+      setNotificationsEnabled(true);
+    }
+  }, []);
+
   return (
     <AppStateProvider>
+      <RemindersWatcher enabled={notificationsEnabled} />
       <div className="flex h-screen bg-bg overflow-hidden">
         {/* Mobile sidebar backdrop */}
         {sidebarOpen && (
@@ -192,9 +218,29 @@ const AuthenticatedApp: React.FC = () => {
             <ShortcutsHelp onClose={() => setShortcutsOpen(false)} />
           </Suspense>
         )}
+
+        {/* First-run onboarding */}
+        {showOnboarding && (
+          <Suspense fallback={null}>
+            <Onboarding
+              onClose={dismissOnboarding}
+              onEnableNotifications={async () => {
+                await enableNotifications();
+                dismissOnboarding();
+              }}
+              notificationsSupported={notificationsSupported}
+            />
+          </Suspense>
+        )}
       </div>
     </AppStateProvider>
   );
+};
+
+const RemindersWatcher: React.FC<{ enabled: boolean }> = ({ enabled }) => {
+  const { state } = useAppState();
+  useDueReminders(state.tasks, enabled);
+  return null;
 };
 
 const AppShell: React.FC = () => {
