@@ -28,7 +28,7 @@ import ConfirmDialog from './ConfirmDialog';
 import * as api from '../api/client';
 import { useToast } from '../context/ToastContext';
 
-export type View = 'tasks' | 'dashboard';
+export type View = 'tasks' | 'dashboard' | 'calendar';
 
 interface Props {
   currentView: View;
@@ -281,6 +281,20 @@ const Sidebar: React.FC<Props> = ({
         >
           <LayoutDashboard size={18} className={currentView === 'dashboard' ? 'text-accent' : ''} />
           <span>Dashboard</span>
+        </button>
+        <button
+          onClick={() => {
+            onViewChange('calendar');
+            onNavigate?.();
+          }}
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] transition-base ${
+            currentView === 'calendar'
+              ? 'bg-surface text-text-primary shadow-sm font-medium'
+              : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
+          }`}
+        >
+          <CalendarRange size={18} className={currentView === 'calendar' ? 'text-accent' : ''} />
+          <span>Calendar</span>
         </button>
         <button
           onClick={() => {

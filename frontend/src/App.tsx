@@ -186,7 +186,7 @@ const AuthenticatedApp: React.FC = () => {
         />
 
         {/* Task detail panel */}
-        {currentView === 'tasks' && selectedTaskId && (
+        {(currentView === 'tasks' || currentView === 'calendar') && selectedTaskId && (
           <Suspense fallback={null}>
             <TaskDetail
               key={selectedTaskId}

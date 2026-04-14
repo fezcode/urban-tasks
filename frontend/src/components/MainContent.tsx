@@ -3,6 +3,7 @@ import { useAppState } from '../context/AppState';
 import TaskItem from './TaskItem';
 
 const Dashboard = lazy(() => import('./Dashboard'));
+const Calendar = lazy(() => import('./Calendar'));
 import {
   Plus,
   CheckCircle2,
@@ -200,6 +201,16 @@ const MainContent: React.FC<Props> = ({
   ];
 
   const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+
+  if (currentView === 'calendar') {
+    return (
+      <main className="flex-1 flex flex-col min-w-0 bg-bg overflow-hidden">
+        <Suspense fallback={<div className="p-6 text-text-tertiary">Loading calendar…</div>}>
+          <Calendar onMenuClick={onMenuClick} onSelectTask={onSelectTask} />
+        </Suspense>
+      </main>
+    );
+  }
 
   return (
     <main className="flex-1 flex flex-col min-w-0 bg-bg overflow-hidden">
