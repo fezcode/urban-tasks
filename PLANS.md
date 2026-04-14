@@ -2,7 +2,7 @@
 
 ## Data & Persistence
 - [x] **Backend API + database** — Go + Chi + PostgreSQL, JWT auth, full CRUD REST API
-- [ ] **Undo/redo** — reversible actions for task and project mutations
+- [x] **Undo/redo** — reversible actions for task updates (Ctrl+Z / Ctrl+Shift+Z)
 - [x] **Data export/import** — JSON backup and restore
 
 ## Task Management

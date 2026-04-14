@@ -46,6 +46,18 @@ const AuthenticatedApp: React.FC = () => {
         return;
       }
 
+      // Undo / redo (Ctrl/Cmd+Z, Shift+Z or Ctrl/Cmd+Y)
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'z' || e.key === 'Z')) {
+        e.preventDefault();
+        window.dispatchEvent(new Event(e.shiftKey ? 'urban-tasks:redo' : 'urban-tasks:undo'));
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'y') {
+        e.preventDefault();
+        window.dispatchEvent(new Event('urban-tasks:redo'));
+        return;
+      }
+
       // Skip single-key shortcuts when typing in inputs
       const target = e.target as HTMLElement | null;
       if (target) {
@@ -243,8 +255,20 @@ const AuthenticatedApp: React.FC = () => {
 };
 
 const RemindersWatcher: React.FC<{ enabled: boolean }> = ({ enabled }) => {
-  const { state } = useAppState();
+  const { state, undo, redo } = useAppState();
   useDueReminders(state.tasks, enabled);
+
+  useEffect(() => {
+    const onUndo = () => undo();
+    const onRedo = () => redo();
+    window.addEventListener('urban-tasks:undo', onUndo);
+    window.addEventListener('urban-tasks:redo', onRedo);
+    return () => {
+      window.removeEventListener('urban-tasks:undo', onUndo);
+      window.removeEventListener('urban-tasks:redo', onRedo);
+    };
+  }, [undo, redo]);
+
   return null;
 };
 

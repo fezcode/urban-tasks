@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useRef,
   useCallback,
+  useState,
 } from 'react';
 import type { AppState, Action } from './types';
 import * as api from '../api/client';
@@ -107,6 +108,10 @@ interface AppStateContextValue {
   dispatch: React.Dispatch<Action>;
   syncDispatch: (action: Action) => Promise<void>;
   reload: () => Promise<void>;
+  undo: () => void;
+  redo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
 }
 
 const AppStateContext = createContext<AppStateContextValue | undefined>(undefined);
@@ -114,7 +119,12 @@ const AppStateContext = createContext<AppStateContextValue | undefined>(undefine
 export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
   const loaded = useRef(false);
-  const { error: toastError } = useToast();
+  const { error: toastError, info: toastInfo } = useToast();
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const isHistoryAction = useRef(false);
+  const [undoStack, setUndoStack] = useState<Action[]>([]);
+  const [redoStack, setRedoStack] = useState<Action[]>([]);
 
   const reload = useCallback(async () => {
     try {
@@ -139,6 +149,21 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Dispatch that also syncs to the API — fire-and-forget with local optimistic update
   const syncDispatch = useCallback(
     async (action: Action) => {
+      // Track inverse for undo (only UPDATE_TASK, skips redo/undo-triggered dispatches)
+      if (!isHistoryAction.current && action.type === 'UPDATE_TASK') {
+        const prev = stateRef.current.tasks.find((t) => t.id === action.id);
+        if (prev) {
+          const inverseUpdates: Partial<typeof prev> = {};
+          for (const key of Object.keys(action.updates) as (keyof typeof action.updates)[]) {
+            (inverseUpdates as Record<string, unknown>)[key] = (prev as unknown as Record<string, unknown>)[
+              key as string
+            ];
+          }
+          setUndoStack((s) => [...s.slice(-49), { type: 'UPDATE_TASK', id: action.id, updates: inverseUpdates }]);
+          setRedoStack([]);
+        }
+      }
+
       // Optimistic local update first
       dispatch(action);
 
@@ -219,8 +244,72 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     [reload, state.projects, toastError]
   );
 
+  const undo = useCallback(() => {
+    setUndoStack((stack) => {
+      if (stack.length === 0) return stack;
+      const entry = stack[stack.length - 1];
+      // Capture inverse-of-inverse for redo
+      if (entry.type === 'UPDATE_TASK') {
+        const current = stateRef.current.tasks.find((t) => t.id === entry.id);
+        if (current) {
+          const redoUpdates: Record<string, unknown> = {};
+          for (const key of Object.keys(entry.updates)) {
+            redoUpdates[key] = (current as unknown as Record<string, unknown>)[key];
+          }
+          setRedoStack((r) => [
+            ...r.slice(-49),
+            { type: 'UPDATE_TASK', id: entry.id, updates: redoUpdates as Partial<typeof current> },
+          ]);
+        }
+      }
+      isHistoryAction.current = true;
+      syncDispatch(entry).finally(() => {
+        isHistoryAction.current = false;
+      });
+      toastInfo('Undone');
+      return stack.slice(0, -1);
+    });
+  }, [syncDispatch, toastInfo]);
+
+  const redo = useCallback(() => {
+    setRedoStack((stack) => {
+      if (stack.length === 0) return stack;
+      const entry = stack[stack.length - 1];
+      if (entry.type === 'UPDATE_TASK') {
+        const current = stateRef.current.tasks.find((t) => t.id === entry.id);
+        if (current) {
+          const undoUpdates: Record<string, unknown> = {};
+          for (const key of Object.keys(entry.updates)) {
+            undoUpdates[key] = (current as unknown as Record<string, unknown>)[key];
+          }
+          setUndoStack((u) => [
+            ...u.slice(-49),
+            { type: 'UPDATE_TASK', id: entry.id, updates: undoUpdates as Partial<typeof current> },
+          ]);
+        }
+      }
+      isHistoryAction.current = true;
+      syncDispatch(entry).finally(() => {
+        isHistoryAction.current = false;
+      });
+      toastInfo('Redone');
+      return stack.slice(0, -1);
+    });
+  }, [syncDispatch, toastInfo]);
+
   return (
-    <AppStateContext.Provider value={{ state, dispatch, syncDispatch, reload }}>
+    <AppStateContext.Provider
+      value={{
+        state,
+        dispatch,
+        syncDispatch,
+        reload,
+        undo,
+        redo,
+        canUndo: undoStack.length > 0,
+        canRedo: redoStack.length > 0,
+      }}
+    >
       {children}
     </AppStateContext.Provider>
   );

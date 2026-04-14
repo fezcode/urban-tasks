@@ -11,6 +11,8 @@ const mod = isMac ? '⌘' : 'Ctrl';
 const SHORTCUTS: { keys: string[]; label: string }[] = [
   { keys: [`${mod}`, 'K'], label: 'Open command palette' },
   { keys: ['N'], label: 'Add task' },
+  { keys: [`${mod}`, 'Z'], label: 'Undo last task edit' },
+  { keys: [`${mod}`, 'Shift', 'Z'], label: 'Redo' },
   { keys: ['?'], label: 'Show this shortcuts help' },
   { keys: ['Esc'], label: 'Close overlay / deselect' },
 ];
