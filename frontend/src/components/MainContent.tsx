@@ -11,13 +11,17 @@ import {
   Search,
   X,
   CalendarDays,
+  CalendarRange,
+  Archive as ArchiveIcon,
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, differenceInDays, startOfDay } from 'date-fns';
 import type { Task, TaskStatus } from '../context/types';
 import type { View } from './Sidebar';
 import ProjectIcon from './ProjectIcon';
 
-type Filter = 'all' | 'todo' | 'in-progress' | 'done';
+type Filter = 'all' | 'todo' | 'in-progress';
+
+const PRIORITY_RANK: Record<string, number> = { high: 0, medium: 1, low: 2, none: 3 };
 
 interface Props {
   currentView: View;
@@ -29,6 +33,10 @@ interface Props {
   onClearTag: () => void;
   showDueToday?: boolean;
   onClearDueToday?: () => void;
+  showUpcoming?: boolean;
+  onClearUpcoming?: () => void;
+  showArchive?: boolean;
+  onClearArchive?: () => void;
   onOpenCommandPalette: () => void;
 }
 
@@ -42,6 +50,10 @@ const MainContent: React.FC<Props> = ({
   onClearTag,
   showDueToday,
   onClearDueToday,
+  showUpcoming,
+  onClearUpcoming,
+  showArchive,
+  onClearArchive,
   onOpenCommandPalette,
 }) => {
   const { state, syncDispatch } = useAppState();
@@ -82,29 +94,55 @@ const MainContent: React.FC<Props> = ({
     ? state.tasks.filter((t) => t.projectId === state.activeProjectId)
     : state.tasks;
 
-  // Apply due-today filter
+  // View-level scope: archive shows only done; all other views hide done
+  const scopedTasks = showArchive
+    ? projectTasks.filter((t) => t.status === 'done')
+    : projectTasks.filter((t) => t.status !== 'done');
+
+  // Due-date views
   const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const dueTodayFilteredTasks = showDueToday
-    ? projectTasks.filter((t) => t.dueDate === todayStr)
-    : projectTasks;
+  const today = startOfDay(new Date());
+  const dateFilteredTasks = showDueToday
+    ? scopedTasks.filter((t) => t.dueDate === todayStr)
+    : showUpcoming
+      ? scopedTasks.filter((t) => {
+          if (!t.dueDate) return false;
+          const diff = differenceInDays(startOfDay(new Date(t.dueDate)), today);
+          return diff >= 0 && diff <= 7;
+        })
+      : scopedTasks;
 
   // Apply tag filter
   const tagFilteredTasks = activeTag
-    ? dueTodayFilteredTasks.filter((t) => t.tags?.includes(activeTag))
-    : dueTodayFilteredTasks;
+    ? dateFilteredTasks.filter((t) => t.tags?.includes(activeTag))
+    : dateFilteredTasks;
 
   const filteredTasks =
-    filter === 'all' ? tagFilteredTasks : tagFilteredTasks.filter((t) => t.status === filter);
+    filter === 'all' || showArchive
+      ? tagFilteredTasks
+      : tagFilteredTasks.filter((t) => t.status === filter);
 
   const sortedTasks = [...filteredTasks].sort((a, b) => {
+    if (showArchive) {
+      // Most recently completed first
+      const aDone = a.completedAt ? new Date(a.completedAt).getTime() : 0;
+      const bDone = b.completedAt ? new Date(b.completedAt).getTime() : 0;
+      return bDone - aDone;
+    }
     const order: Record<TaskStatus, number> = { 'in-progress': 0, todo: 1, done: 2 };
     if (order[a.status] !== order[b.status]) return order[a.status] - order[b.status];
+    const pa = PRIORITY_RANK[a.priority ?? 'none'] ?? 3;
+    const pb = PRIORITY_RANK[b.priority ?? 'none'] ?? 3;
+    if (pa !== pb) return pa - pb;
+    // Upcoming view: sort by due date ascending
+    if (showUpcoming && a.dueDate && b.dueDate) {
+      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+    }
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
   const todoCount = tagFilteredTasks.filter((t) => t.status === 'todo').length;
   const activeCount = tagFilteredTasks.filter((t) => t.status === 'in-progress').length;
-  const doneCount = tagFilteredTasks.filter((t) => t.status === 'done').length;
 
   const handleAddTask = () => {
     const title = newTaskTitle.trim();
@@ -146,7 +184,6 @@ const MainContent: React.FC<Props> = ({
     { key: 'all', label: 'All', count: tagFilteredTasks.length },
     { key: 'todo', label: 'To do', count: todoCount },
     { key: 'in-progress', label: 'Active', count: activeCount },
-    { key: 'done', label: 'Done', count: doneCount },
   ];
 
   const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
@@ -177,9 +214,13 @@ const MainContent: React.FC<Props> = ({
                   : 'Dashboard'
                 : showDueToday
                   ? 'Today'
-                  : activeProject
-                    ? activeProject.name
-                    : 'All Tasks'}
+                  : showUpcoming
+                    ? 'Upcoming'
+                    : showArchive
+                      ? 'Archive'
+                      : activeProject
+                        ? activeProject.name
+                        : 'All Tasks'}
             </h1>
             <div className="ml-auto flex-shrink-0">
               <button
@@ -200,8 +241,16 @@ const MainContent: React.FC<Props> = ({
               {tagFilteredTasks.length === 0
                 ? activeTag
                   ? `No tasks tagged @${activeTag}`
-                  : 'No tasks yet. Create one to get started.'
-                : `${todoCount + activeCount} remaining · ${doneCount} completed`}
+                  : showArchive
+                    ? 'No completed tasks yet'
+                    : showUpcoming
+                      ? 'Nothing due in the next 7 days'
+                      : showDueToday
+                        ? 'Nothing due today'
+                        : 'No tasks yet. Create one to get started.'
+                : showArchive
+                  ? `${tagFilteredTasks.length} completed`
+                  : `${todoCount + activeCount} remaining`}
             </p>
           )}
         </div>
@@ -216,7 +265,7 @@ const MainContent: React.FC<Props> = ({
       ) : (
         <>
           {/* Filter banners */}
-          {(activeTag || showDueToday) && (
+          {(activeTag || showDueToday || showUpcoming || showArchive) && (
             <div className="flex-shrink-0 px-4 sm:px-6 lg:px-10 pb-3 flex flex-wrap gap-2">
               {showDueToday && (
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-status-warning-bg text-status-warning text-[13px] font-medium">
@@ -225,6 +274,30 @@ const MainContent: React.FC<Props> = ({
                   <button
                     onClick={onClearDueToday}
                     className="p-0.5 rounded-full hover:bg-status-warning/20 transition-base"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
+              {showUpcoming && (
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent-light text-accent text-[13px] font-medium">
+                  <CalendarRange size={13} />
+                  <span>Next 7 days</span>
+                  <button
+                    onClick={onClearUpcoming}
+                    className="p-0.5 rounded-full hover:bg-accent/20 transition-base"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
+              {showArchive && (
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-bg-tertiary text-text-secondary text-[13px] font-medium">
+                  <ArchiveIcon size={13} />
+                  <span>Archive</span>
+                  <button
+                    onClick={onClearArchive}
+                    className="p-0.5 rounded-full hover:bg-surface-hover transition-base"
                   >
                     <X size={14} />
                   </button>
@@ -245,36 +318,38 @@ const MainContent: React.FC<Props> = ({
           )}
 
           {/* Filters + Add button */}
-          <div className="flex-shrink-0 px-4 sm:px-6 lg:px-10 pb-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-1 bg-bg-secondary rounded-lg p-1 overflow-x-auto no-scrollbar">
-                {filters.map((f) => (
-                  <button
-                    key={f.key}
-                    onClick={() => setFilter(f.key)}
-                    className={`px-3 py-1.5 rounded-md text-[13px] whitespace-nowrap transition-base ${
-                      filter === f.key
-                        ? 'bg-surface text-text-primary shadow-sm font-medium'
-                        : 'text-text-secondary hover:text-text-primary'
-                    }`}
-                  >
-                    {f.label}
-                    {f.count > 0 && (
-                      <span className="ml-1.5 text-2xs text-text-tertiary">{f.count}</span>
-                    )}
-                  </button>
-                ))}
-              </div>
+          {!showArchive && (
+            <div className="flex-shrink-0 px-4 sm:px-6 lg:px-10 pb-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-1 bg-bg-secondary rounded-lg p-1 overflow-x-auto no-scrollbar">
+                  {filters.map((f) => (
+                    <button
+                      key={f.key}
+                      onClick={() => setFilter(f.key)}
+                      className={`px-3 py-1.5 rounded-md text-[13px] whitespace-nowrap transition-base ${
+                        filter === f.key
+                          ? 'bg-surface text-text-primary shadow-sm font-medium'
+                          : 'text-text-secondary hover:text-text-primary'
+                      }`}
+                    >
+                      {f.label}
+                      {f.count > 0 && (
+                        <span className="ml-1.5 text-2xs text-text-tertiary">{f.count}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
 
-              <button
-                onClick={() => setIsAdding(true)}
-                className="flex items-center gap-2 px-3.5 py-2 bg-accent text-text-inverse rounded-lg text-[13px] font-medium hover:bg-accent-hover transition-base active:scale-[0.97] flex-shrink-0"
-              >
-                <Plus size={16} />
-                <span className="hidden sm:inline">Add task</span>
-              </button>
+                <button
+                  onClick={() => setIsAdding(true)}
+                  className="flex items-center gap-2 px-3.5 py-2 bg-accent text-text-inverse rounded-lg text-[13px] font-medium hover:bg-accent-hover transition-base active:scale-[0.97] flex-shrink-0"
+                >
+                  <Plus size={16} />
+                  <span className="hidden sm:inline">Add task</span>
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Task list */}
           <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-10 pb-10">
@@ -386,13 +461,7 @@ const MainContent: React.FC<Props> = ({
                     <>
                       <ListFilter size={32} className="text-text-tertiary/40 mb-3" />
                       <p className="text-[14px] text-text-tertiary">
-                        No{' '}
-                        {filter === 'done'
-                          ? 'completed'
-                          : filter === 'in-progress'
-                            ? 'active'
-                            : 'pending'}{' '}
-                        tasks
+                        No {filter === 'in-progress' ? 'active' : 'pending'} tasks
                       </p>
                     </>
                   ) : (

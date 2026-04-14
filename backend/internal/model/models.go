@@ -29,6 +29,7 @@ type Task struct {
 	Title       string     `json:"title"`
 	Body        *string    `json:"body,omitempty"`
 	Status      string     `json:"status"`
+	Priority    string     `json:"priority"`
 	Tags        []string   `json:"tags"`
 	DueDate     *string    `json:"dueDate,omitempty"`
 	Position    int        `json:"position"`
@@ -84,12 +85,14 @@ type CreateTaskRequest struct {
 	Body      *string  `json:"body,omitempty"`
 	Tags      []string `json:"tags,omitempty"`
 	DueDate   *string  `json:"dueDate,omitempty"`
+	Priority  *string  `json:"priority,omitempty"`
 }
 
 type UpdateTaskRequest struct {
 	Title     *string  `json:"title,omitempty"`
 	Body      *string  `json:"body,omitempty"`
 	Status    *string  `json:"status,omitempty"`
+	Priority  *string  `json:"priority,omitempty"`
 	Tags      []string `json:"tags,omitempty"`
 	DueDate   *string  `json:"dueDate,omitempty"`
 	ProjectID *string  `json:"projectId,omitempty"`

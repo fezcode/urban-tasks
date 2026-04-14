@@ -17,8 +17,10 @@ import {
   CalendarDays,
   Tag,
   Sparkles,
+  CalendarRange,
+  Archive,
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, differenceInDays, startOfDay } from 'date-fns';
 import ProjectIcon from './ProjectIcon';
 
 export type View = 'tasks' | 'dashboard';
@@ -29,6 +31,10 @@ interface Props {
   onNavigate?: () => void;
   showDueToday?: boolean;
   onDueTodayClick?: () => void;
+  showUpcoming?: boolean;
+  onUpcomingClick?: () => void;
+  showArchive?: boolean;
+  onArchiveClick?: () => void;
   activeTag?: string | null;
   onTagClick?: (tag: string) => void;
 }
@@ -39,6 +45,10 @@ const Sidebar: React.FC<Props> = ({
   onNavigate,
   showDueToday,
   onDueTodayClick,
+  showUpcoming,
+  onUpcomingClick,
+  showArchive,
+  onArchiveClick,
   activeTag,
   onTagClick,
 }) => {
@@ -115,6 +125,15 @@ const Sidebar: React.FC<Props> = ({
     (t) => t.dueDate === todayStr && t.status !== 'done'
   ).length;
 
+  const today = startOfDay(new Date());
+  const upcomingCount = state.tasks.filter((t) => {
+    if (!t.dueDate || t.status === 'done') return false;
+    const diff = differenceInDays(startOfDay(new Date(t.dueDate)), today);
+    return diff >= 0 && diff <= 7;
+  }).length;
+
+  const archiveCount = state.tasks.filter((t) => t.status === 'done').length;
+
   // Build tag map: tag → count (non-done tasks)
   const tagMap = useMemo(() => {
     const map = new Map<string, number>();
@@ -122,7 +141,7 @@ const Sidebar: React.FC<Props> = ({
     return map;
   }, [state.tasks]);
 
-  const isTasksActive = currentView === 'tasks' && !showDueToday;
+  const isTasksActive = currentView === 'tasks' && !showDueToday && !showUpcoming && !showArchive;
 
   return (
     <aside className="w-full flex-shrink-0 bg-bg-secondary border-r border-border-light flex flex-col h-full select-none">
@@ -207,6 +226,44 @@ const Sidebar: React.FC<Props> = ({
             >
               {dueTodayCount}
             </span>
+          )}
+        </button>
+        <button
+          onClick={() => {
+            onUpcomingClick?.();
+            onNavigate?.();
+          }}
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] transition-base ${
+            showUpcoming
+              ? 'bg-surface text-text-primary shadow-sm font-medium'
+              : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
+          }`}
+        >
+          <CalendarRange size={18} className={showUpcoming ? 'text-accent' : ''} />
+          <span>Upcoming</span>
+          {upcomingCount > 0 && (
+            <span
+              className={`ml-auto text-2xs tabular-nums ${showUpcoming ? 'text-accent font-medium' : 'text-text-tertiary'}`}
+            >
+              {upcomingCount}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => {
+            onArchiveClick?.();
+            onNavigate?.();
+          }}
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] transition-base ${
+            showArchive
+              ? 'bg-surface text-text-primary shadow-sm font-medium'
+              : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
+          }`}
+        >
+          <Archive size={18} className={showArchive ? 'text-accent' : ''} />
+          <span>Archive</span>
+          {archiveCount > 0 && (
+            <span className="ml-auto text-2xs text-text-tertiary tabular-nums">{archiveCount}</span>
           )}
         </button>
       </div>

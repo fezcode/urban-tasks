@@ -13,6 +13,14 @@ import (
 
 var ErrTaskNotFound = errors.New("task not found")
 
+func isValidPriority(p string) bool {
+	switch p {
+	case "none", "low", "medium", "high":
+		return true
+	}
+	return false
+}
+
 type TaskService struct {
 	tasks    *repository.TaskRepo
 	projects *repository.ProjectRepo
@@ -71,6 +79,11 @@ func (s *TaskService) Create(ctx context.Context, userID string, req model.Creat
 		tags = []string{}
 	}
 
+	priority := "none"
+	if req.Priority != nil && isValidPriority(*req.Priority) {
+		priority = *req.Priority
+	}
+
 	now := time.Now().UTC()
 	t := &model.Task{
 		ID:        uuid.New().String(),
@@ -79,6 +92,7 @@ func (s *TaskService) Create(ctx context.Context, userID string, req model.Creat
 		Title:     req.Title,
 		Body:      req.Body,
 		Status:    "todo",
+		Priority:  priority,
 		Tags:      tags,
 		DueDate:   req.DueDate,
 		Position:  pos,
@@ -115,6 +129,9 @@ func (s *TaskService) Update(ctx context.Context, id, userID string, req model.U
 		} else {
 			t.CompletedAt = nil
 		}
+	}
+	if req.Priority != nil && isValidPriority(*req.Priority) {
+		t.Priority = *req.Priority
 	}
 	if req.Tags != nil {
 		t.Tags = req.Tags

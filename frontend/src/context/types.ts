@@ -1,4 +1,5 @@
 export type TaskStatus = 'todo' | 'in-progress' | 'done';
+export type TaskPriority = 'none' | 'low' | 'medium' | 'high';
 
 export interface Task {
   id: string;
@@ -7,6 +8,7 @@ export interface Task {
   tags?: string[];
   dueDate?: string;
   status: TaskStatus;
+  priority?: TaskPriority;
   projectId: string;
   createdAt: string;
   completedAt?: string;

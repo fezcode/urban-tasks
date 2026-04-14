@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAppState } from '../context/AppState';
-import type { TaskStatus } from '../context/types';
+import type { TaskStatus, TaskPriority } from '../context/types';
 import ReactMarkdown from 'react-markdown';
 import {
   X,
@@ -13,6 +13,7 @@ import {
   RotateCcw,
   Pencil,
   CalendarClock,
+  Flag,
 } from 'lucide-react';
 import { format, differenceInDays, startOfDay } from 'date-fns';
 import ProjectIcon from './ProjectIcon';
@@ -135,6 +136,10 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
       id: task.id,
       updates: { dueDate: dateStr || undefined },
     });
+  };
+
+  const setPriority = (priority: TaskPriority) => {
+    syncDispatch({ type: 'UPDATE_TASK', id: task.id, updates: { priority } });
   };
 
   const handleDelete = () => {
@@ -270,6 +275,46 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
                 {dueDateInfo.label}
               </span>
             )}
+          </div>
+        </div>
+
+        {/* Priority */}
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Flag size={14} className="text-text-tertiary" />
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
+              Priority
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {(['none', 'low', 'medium', 'high'] as TaskPriority[]).map((p) => {
+              const active = (task.priority ?? 'none') === p;
+              const colorClass =
+                p === 'high'
+                  ? active
+                    ? 'bg-danger text-white'
+                    : 'text-danger hover:bg-danger-bg'
+                  : p === 'medium'
+                    ? active
+                      ? 'bg-status-warning text-white'
+                      : 'text-status-warning hover:bg-status-warning-bg'
+                    : p === 'low'
+                      ? active
+                        ? 'bg-accent text-white'
+                        : 'text-accent hover:bg-accent-light'
+                      : active
+                        ? 'bg-surface-hover text-text-primary'
+                        : 'text-text-tertiary hover:bg-surface-hover';
+              return (
+                <button
+                  key={p}
+                  onClick={() => setPriority(p)}
+                  className={`px-2.5 py-1 rounded-full text-[12px] font-medium capitalize transition-base ${colorClass}`}
+                >
+                  {p}
+                </button>
+              );
+            })}
           </div>
         </div>
 

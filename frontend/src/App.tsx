@@ -16,6 +16,8 @@ const AuthenticatedApp: React.FC = () => {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [showDueToday, setShowDueToday] = useState(false);
+  const [showUpcoming, setShowUpcoming] = useState(false);
+  const [showArchive, setShowArchive] = useState(false);
 
   // Ctrl+K / Cmd+K to open command palette
   useEffect(() => {
@@ -29,23 +31,50 @@ const AuthenticatedApp: React.FC = () => {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  const handleViewChange = useCallback((view: View) => {
-    setCurrentView(view);
-    setActiveTag(null);
+  const clearSpecials = useCallback(() => {
     setShowDueToday(false);
+    setShowUpcoming(false);
+    setShowArchive(false);
   }, []);
 
-  const handleTagClick = useCallback((tag: string) => {
-    setActiveTag(tag);
-    setShowDueToday(false);
-    setCurrentView('tasks');
-  }, []);
+  const handleViewChange = useCallback(
+    (view: View) => {
+      setCurrentView(view);
+      setActiveTag(null);
+      clearSpecials();
+    },
+    [clearSpecials]
+  );
+
+  const handleTagClick = useCallback(
+    (tag: string) => {
+      setActiveTag(tag);
+      clearSpecials();
+      setCurrentView('tasks');
+    },
+    [clearSpecials]
+  );
 
   const handleDueTodayClick = useCallback(() => {
+    clearSpecials();
     setShowDueToday(true);
     setActiveTag(null);
     setCurrentView('tasks');
-  }, []);
+  }, [clearSpecials]);
+
+  const handleUpcomingClick = useCallback(() => {
+    clearSpecials();
+    setShowUpcoming(true);
+    setActiveTag(null);
+    setCurrentView('tasks');
+  }, [clearSpecials]);
+
+  const handleArchiveClick = useCallback(() => {
+    clearSpecials();
+    setShowArchive(true);
+    setActiveTag(null);
+    setCurrentView('tasks');
+  }, [clearSpecials]);
 
   const handleCreateTask = useCallback(() => {
     setCurrentView('tasks');
@@ -77,6 +106,10 @@ const AuthenticatedApp: React.FC = () => {
             }}
             showDueToday={showDueToday}
             onDueTodayClick={handleDueTodayClick}
+            showUpcoming={showUpcoming}
+            onUpcomingClick={handleUpcomingClick}
+            showArchive={showArchive}
+            onArchiveClick={handleArchiveClick}
             activeTag={activeTag}
             onTagClick={handleTagClick}
           />
@@ -93,6 +126,10 @@ const AuthenticatedApp: React.FC = () => {
           onClearTag={() => setActiveTag(null)}
           showDueToday={showDueToday}
           onClearDueToday={() => setShowDueToday(false)}
+          showUpcoming={showUpcoming}
+          onClearUpcoming={() => setShowUpcoming(false)}
+          showArchive={showArchive}
+          onClearArchive={() => setShowArchive(false)}
           onOpenCommandPalette={() => setCommandPaletteOpen(true)}
         />
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAppState } from '../context/AppState';
-import type { Task, TaskStatus } from '../context/types';
-import { Trash2, Play, RotateCcw, Check, CalendarClock } from 'lucide-react';
+import type { Task, TaskStatus, TaskPriority } from '../context/types';
+import { Trash2, Play, RotateCcw, Check, CalendarClock, Flag } from 'lucide-react';
 import { formatDistanceToNow, differenceInDays, startOfDay, format } from 'date-fns';
 
 interface Props {
@@ -11,6 +11,13 @@ interface Props {
   onClick?: () => void;
   onTagClick?: (tag: string) => void;
 }
+
+export const PRIORITY_META: Record<TaskPriority, { label: string; className: string } | null> = {
+  none: null,
+  low: { label: 'Low', className: 'text-text-tertiary' },
+  medium: { label: 'Med', className: 'text-status-warning' },
+  high: { label: 'High', className: 'text-danger' },
+};
 
 function getDueDateInfo(dueDate: string): { label: string; className: string } {
   const today = startOfDay(new Date());
@@ -69,6 +76,7 @@ const TaskItem: React.FC<Props> = ({ task, showProject, isSelected, onClick, onT
   };
 
   const dueDateInfo = task.dueDate ? getDueDateInfo(task.dueDate) : null;
+  const priorityMeta = PRIORITY_META[task.priority ?? 'none'];
 
   return (
     <div
@@ -125,6 +133,16 @@ const TaskItem: React.FC<Props> = ({ task, showProject, isSelected, onClick, onT
                 @{tag}
               </button>
             ))}
+
+          {/* Priority */}
+          {priorityMeta && task.status !== 'done' && (
+            <span
+              className={`inline-flex items-center gap-1 text-2xs font-medium ${priorityMeta.className}`}
+            >
+              <Flag size={11} />
+              {priorityMeta.label}
+            </span>
+          )}
 
           {/* Due date */}
           {dueDateInfo && task.status !== 'done' && (

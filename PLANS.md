@@ -7,7 +7,7 @@
 
 ## Task Management
 - [ ] **Subtasks / checklists** — break tasks into steps
-- [ ] **Task priorities** — high / medium / low with visual indicators
+- [x] **Task priorities** — high / medium / low with visual indicators
 - [ ] **Recurring tasks** — daily, weekly, custom repeat schedules
 - [ ] **Assignees / multi-user** — collaboration support
 - [ ] **Drag-and-drop reordering** — manual sort within projects
@@ -15,8 +15,8 @@
 
 ## Views & Navigation
 - [ ] **Calendar view** — month/week visualization of due dates
-- [ ] **Upcoming / This week filter** — tasks due in the next 7 days
-- [ ] **Archive** — separate completed tasks from active list
+- [x] **Upcoming / This week filter** — tasks due in the next 7 days
+- [x] **Archive** — separate completed tasks from active list
 - [ ] **Dashboard improvements** — velocity tracking, trends, burndown
 
 ## UX Polish

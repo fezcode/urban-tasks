@@ -138,6 +138,7 @@ export const tasks = {
     body?: string;
     tags?: string[];
     dueDate?: string;
+    priority?: string;
   }) => request<Task>('/tasks', { method: 'POST', body: JSON.stringify(data) }),
   update: (id: string, data: Partial<Task>) =>
     request<Task>(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
