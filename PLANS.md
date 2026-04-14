@@ -6,7 +6,7 @@
 - [x] **Data export/import** — JSON backup and restore
 
 ## Task Management
-- [ ] **Subtasks / checklists** — break tasks into steps
+- [x] **Subtasks / checklists** — break tasks into steps
 - [x] **Task priorities** — high / medium / low with visual indicators
 - [ ] **Recurring tasks** — daily, weekly, custom repeat schedules
 - [ ] **Assignees / multi-user** — collaboration support

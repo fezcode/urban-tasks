@@ -17,6 +17,9 @@ import {
   Link2,
   Plus,
   Link as LinkIcon,
+  ListChecks,
+  Square,
+  CheckSquare,
 } from 'lucide-react';
 import { format, differenceInDays, startOfDay } from 'date-fns';
 import ProjectIcon from './ProjectIcon';
@@ -57,6 +60,7 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
   const [isAddingLink, setIsAddingLink] = useState(false);
   const [newLinkTitle, setNewLinkTitle] = useState('');
   const [newLinkUrl, setNewLinkUrl] = useState('');
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
   const titleRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const tagRef = useRef<HTMLInputElement>(null);
@@ -172,6 +176,42 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
       type: 'UPDATE_TASK',
       id: task.id,
       updates: { links: (task.links || []).filter((l) => l.id !== linkId) },
+    });
+  };
+
+  const addSubtask = () => {
+    const title = newSubtaskTitle.trim();
+    if (!title) return;
+    const newItem = {
+      id: Math.random().toString(36).substring(2, 9),
+      title,
+      done: false,
+    };
+    syncDispatch({
+      type: 'UPDATE_TASK',
+      id: task.id,
+      updates: { subtasks: [...(task.subtasks || []), newItem] },
+    });
+    setNewSubtaskTitle('');
+  };
+
+  const toggleSubtask = (id: string) => {
+    syncDispatch({
+      type: 'UPDATE_TASK',
+      id: task.id,
+      updates: {
+        subtasks: (task.subtasks || []).map((s) =>
+          s.id === id ? { ...s, done: !s.done } : s
+        ),
+      },
+    });
+  };
+
+  const removeSubtask = (id: string) => {
+    syncDispatch({
+      type: 'UPDATE_TASK',
+      id: task.id,
+      updates: { subtasks: (task.subtasks || []).filter((s) => s.id !== id) },
     });
   };
 
@@ -412,6 +452,81 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
                 if (tagInput.trim()) addTag();
               }}
             />
+          </div>
+        </div>
+
+        {/* Subtasks */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <ListChecks size={14} className="text-text-tertiary" />
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
+                Checklist
+              </span>
+            </div>
+            {task.subtasks && task.subtasks.length > 0 && (
+              <span className="text-2xs text-text-tertiary">
+                {task.subtasks.filter((s) => s.done).length}/{task.subtasks.length}
+              </span>
+            )}
+          </div>
+
+          {task.subtasks && task.subtasks.length > 0 && (
+            <div className="h-1 bg-surface rounded-full overflow-hidden mb-3">
+              <div
+                className="h-full bg-status-active transition-all duration-300"
+                style={{
+                  width: `${(task.subtasks.filter((s) => s.done).length / task.subtasks.length) * 100}%`,
+                }}
+              />
+            </div>
+          )}
+
+          <div className="space-y-1">
+            {(task.subtasks || []).map((sub) => (
+              <div
+                key={sub.id}
+                className="group/sub flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-surface-hover transition-base"
+              >
+                <button
+                  onClick={() => toggleSubtask(sub.id)}
+                  className="flex-shrink-0 text-text-tertiary hover:text-accent transition-base"
+                >
+                  {sub.done ? (
+                    <CheckSquare size={16} className="text-status-active" />
+                  ) : (
+                    <Square size={16} />
+                  )}
+                </button>
+                <span
+                  className={`flex-1 text-[13px] ${
+                    sub.done ? 'line-through text-text-tertiary' : 'text-text-primary'
+                  }`}
+                >
+                  {sub.title}
+                </span>
+                <button
+                  onClick={() => removeSubtask(sub.id)}
+                  className="opacity-0 group-hover/sub:opacity-100 p-0.5 rounded text-text-tertiary hover:text-danger transition-base"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+
+            <div className="flex items-center gap-2 px-2 py-1">
+              <Plus size={14} className="text-text-tertiary flex-shrink-0" />
+              <input
+                type="text"
+                placeholder="Add a checklist item..."
+                value={newSubtaskTitle}
+                onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') addSubtask();
+                }}
+                className="flex-1 bg-transparent text-[13px] text-text-primary placeholder-text-tertiary outline-none"
+              />
+            </div>
           </div>
         </div>
 

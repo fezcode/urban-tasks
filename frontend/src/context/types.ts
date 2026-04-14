@@ -7,12 +7,19 @@ export interface TaskLink {
   url: string;
 }
 
+export interface Subtask {
+  id: string;
+  title: string;
+  done: boolean;
+}
+
 export interface Task {
   id: string;
   title: string;
   body?: string;
   tags?: string[];
   links?: TaskLink[];
+  subtasks?: Subtask[];
   dueDate?: string;
   status: TaskStatus;
   priority?: TaskPriority;

@@ -96,6 +96,8 @@ func (h *DataHandler) Import(w http.ResponseWriter, r *http.Request) {
 			Title:     t.Title,
 			Body:      t.Body,
 			Tags:      t.Tags,
+			Links:     t.Links,
+			Subtasks:  t.Subtasks,
 			DueDate:   t.DueDate,
 			Priority:  &priority,
 		})

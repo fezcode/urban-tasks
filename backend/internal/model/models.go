@@ -28,6 +28,12 @@ type TaskLink struct {
 	URL   string `json:"url"`
 }
 
+type Subtask struct {
+	ID    string `json:"id"`
+	Title string `json:"title"`
+	Done  bool   `json:"done"`
+}
+
 type Task struct {
 	ID          string     `json:"id"`
 	UserID      string     `json:"-"`
@@ -38,6 +44,7 @@ type Task struct {
 	Priority    string     `json:"priority"`
 	Tags        []string   `json:"tags"`
 	Links       []TaskLink `json:"links"`
+	Subtasks    []Subtask  `json:"subtasks"`
 	DueDate     *string    `json:"dueDate,omitempty"`
 	Position    int        `json:"position"`
 	CreatedAt   time.Time  `json:"createdAt"`
@@ -92,6 +99,7 @@ type CreateTaskRequest struct {
 	Body      *string    `json:"body,omitempty"`
 	Tags      []string   `json:"tags,omitempty"`
 	Links     []TaskLink `json:"links,omitempty"`
+	Subtasks  []Subtask  `json:"subtasks,omitempty"`
 	DueDate   *string    `json:"dueDate,omitempty"`
 	Priority  *string    `json:"priority,omitempty"`
 }
@@ -103,6 +111,7 @@ type UpdateTaskRequest struct {
 	Priority  *string    `json:"priority,omitempty"`
 	Tags      []string   `json:"tags,omitempty"`
 	Links     []TaskLink `json:"links,omitempty"`
+	Subtasks  []Subtask  `json:"subtasks,omitempty"`
 	DueDate   *string    `json:"dueDate,omitempty"`
 	ProjectID *string    `json:"projectId,omitempty"`
 	Position  *int       `json:"position,omitempty"`

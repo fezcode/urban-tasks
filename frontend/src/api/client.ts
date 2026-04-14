@@ -161,6 +161,7 @@ export const tasks = {
     body?: string;
     tags?: string[];
     links?: { id: string; title: string; url: string }[];
+    subtasks?: { id: string; title: string; done: boolean }[];
     dueDate?: string;
     priority?: string;
   }) => request<Task>('/tasks', { method: 'POST', body: JSON.stringify(data) }),

@@ -84,6 +84,11 @@ func (s *TaskService) Create(ctx context.Context, userID string, req model.Creat
 		links = []model.TaskLink{}
 	}
 
+	subtasks := req.Subtasks
+	if subtasks == nil {
+		subtasks = []model.Subtask{}
+	}
+
 	priority := "none"
 	if req.Priority != nil && isValidPriority(*req.Priority) {
 		priority = *req.Priority
@@ -100,6 +105,7 @@ func (s *TaskService) Create(ctx context.Context, userID string, req model.Creat
 		Priority:  priority,
 		Tags:      tags,
 		Links:     links,
+		Subtasks:  subtasks,
 		DueDate:   req.DueDate,
 		Position:  pos,
 		CreatedAt: now,
@@ -144,6 +150,9 @@ func (s *TaskService) Update(ctx context.Context, id, userID string, req model.U
 	}
 	if req.Links != nil {
 		t.Links = req.Links
+	}
+	if req.Subtasks != nil {
+		t.Subtasks = req.Subtasks
 	}
 	if req.DueDate != nil {
 		t.DueDate = req.DueDate
