@@ -14,8 +14,19 @@ import {
   BarChart,
   Bar,
 } from 'recharts';
-import { format, subDays, isSameDay, isAfter, startOfDay } from 'date-fns';
-import { TrendingDown, CheckCircle2, Zap, BarChart3, Target } from 'lucide-react';
+import { format, subDays, isSameDay, isAfter, startOfDay, differenceInDays, addDays } from 'date-fns';
+import {
+  TrendingDown,
+  TrendingUp,
+  CheckCircle2,
+  Zap,
+  BarChart3,
+  Target,
+  AlertTriangle,
+  Flame,
+  CalendarClock,
+  Flag,
+} from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import ProjectIcon from './ProjectIcon';
 
@@ -79,6 +90,73 @@ const Dashboard: React.FC = () => {
     };
   });
 
+  // --- Overdue count ---
+  const today = startOfDay(new Date());
+  const overdueCount = tasks.filter(
+    (t) =>
+      t.status !== 'done' &&
+      t.dueDate &&
+      differenceInDays(startOfDay(new Date(t.dueDate)), today) < 0
+  ).length;
+
+  // --- Streak: consecutive days up to today with ≥1 completion ---
+  const completionDates = new Set(
+    tasks
+      .filter((t) => t.status === 'done' && t.completedAt)
+      .map((t) => format(startOfDay(new Date(t.completedAt!)), 'yyyy-MM-dd'))
+  );
+  let streak = 0;
+  for (let i = 0; ; i++) {
+    const key = format(subDays(today, i), 'yyyy-MM-dd');
+    if (completionDates.has(key)) streak++;
+    else break;
+  }
+
+  // --- Velocity trend: completions this week vs last week ---
+  const completedLast7 = tasks.filter(
+    (t) =>
+      t.status === 'done' &&
+      t.completedAt &&
+      !isAfter(startOfDay(new Date(t.completedAt)), today) &&
+      differenceInDays(today, startOfDay(new Date(t.completedAt))) < 7
+  ).length;
+  const completedPrior7 = tasks.filter((t) => {
+    if (t.status !== 'done' || !t.completedAt) return false;
+    const diff = differenceInDays(today, startOfDay(new Date(t.completedAt)));
+    return diff >= 7 && diff < 14;
+  }).length;
+  const velocityDelta =
+    completedPrior7 === 0
+      ? completedLast7 > 0
+        ? 100
+        : 0
+      : Math.round(((completedLast7 - completedPrior7) / completedPrior7) * 100);
+
+  // --- Upcoming due (next 7 days) ---
+  const upcomingDue = Array.from({ length: 7 }, (_, i) => {
+    const date = addDays(today, i);
+    const count = tasks.filter(
+      (t) =>
+        t.status !== 'done' &&
+        t.dueDate &&
+        isSameDay(startOfDay(new Date(t.dueDate)), date)
+    ).length;
+    return { name: i === 0 ? 'Today' : format(date, 'EEE'), count };
+  });
+
+  // --- Priority distribution ---
+  const priorityDist = (['high', 'medium', 'low', 'none'] as const).map((p) => ({
+    priority: p,
+    count: tasks.filter((t) => t.status !== 'done' && (t.priority ?? 'none') === p).length,
+  }));
+  const priorityColor: Record<string, string> = {
+    high: isDark ? '#E07A6C' : '#C94E3E',
+    medium: isDark ? '#D7A84D' : '#C98D28',
+    low: accentColor,
+    none: isDark ? '#555' : '#D5CFC7',
+  };
+  const priorityTotal = priorityDist.reduce((s, p) => s + p.count, 0);
+
   // --- Daily completions (last 7 days) ---
   const dailyCompletions = Array.from({ length: 7 }, (_, i) => {
     const date = subDays(new Date(), 6 - i);
@@ -113,12 +191,14 @@ const Dashboard: React.FC = () => {
   return (
     <div className="space-y-8 pb-12 animate-fade-in">
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
         {[
-          { label: 'Total Tasks', value: total, icon: BarChart3, accent: false },
-          { label: 'Completed', value: done, icon: CheckCircle2, accent: false },
-          { label: 'In Progress', value: active, icon: Zap, accent: true },
-          { label: 'Completion', value: `${completionRate}%`, icon: Target, accent: false },
+          { label: 'Total Tasks', value: total, icon: BarChart3, accent: false, danger: false, hint: null as string | null },
+          { label: 'Completed', value: done, icon: CheckCircle2, accent: false, danger: false, hint: null },
+          { label: 'In Progress', value: active, icon: Zap, accent: true, danger: false, hint: null },
+          { label: 'Completion', value: `${completionRate}%`, icon: Target, accent: false, danger: false, hint: null },
+          { label: 'Overdue', value: overdueCount, icon: AlertTriangle, accent: false, danger: overdueCount > 0, hint: null },
+          { label: 'Streak', value: `${streak}d`, icon: Flame, accent: false, danger: false, hint: streak > 0 ? 'Keep it going' : 'Complete a task today' },
         ].map((stat, i) => (
           <div
             key={i}
@@ -128,13 +208,84 @@ const Dashboard: React.FC = () => {
               <span className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
                 {stat.label}
               </span>
-              <stat.icon size={16} className={stat.accent ? 'text-accent' : 'text-text-tertiary'} />
+              <stat.icon
+                size={16}
+                className={
+                  stat.accent
+                    ? 'text-accent'
+                    : stat.danger
+                      ? 'text-danger'
+                      : 'text-text-tertiary'
+                }
+              />
             </div>
             <div className="text-2xl font-semibold text-text-primary tracking-tight">
               {stat.value}
             </div>
+            {stat.hint && <div className="mt-1 text-2xs text-text-tertiary">{stat.hint}</div>}
           </div>
         ))}
+      </div>
+
+      {/* Trend strip */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="bg-surface border border-border rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
+              This week
+            </span>
+            {velocityDelta >= 0 ? (
+              <TrendingUp size={16} className="text-status-active" />
+            ) : (
+              <TrendingDown size={16} className="text-danger" />
+            )}
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-semibold text-text-primary">{completedLast7}</span>
+            <span className="text-[12px] text-text-tertiary">completed</span>
+          </div>
+          <div
+            className={`mt-1 text-2xs font-medium ${
+              velocityDelta >= 0 ? 'text-status-active' : 'text-danger'
+            }`}
+          >
+            {velocityDelta >= 0 ? '+' : ''}
+            {velocityDelta}% vs. prior 7 days ({completedPrior7})
+          </div>
+        </div>
+
+        <div className="bg-surface border border-border rounded-2xl p-5 lg:col-span-2">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <CalendarClock size={16} className="text-accent" />
+              <h3 className="text-[14px] font-semibold text-text-primary">Upcoming</h3>
+            </div>
+            <span className="text-2xs text-text-tertiary">Next 7 days</span>
+          </div>
+          <div className="flex items-end gap-2 h-24">
+            {upcomingDue.map((d) => {
+              const max = Math.max(...upcomingDue.map((x) => x.count), 1);
+              const h = (d.count / max) * 100;
+              return (
+                <div key={d.name} className="flex-1 flex flex-col items-center gap-1.5">
+                  <div className="flex-1 w-full flex items-end">
+                    <div
+                      className="w-full rounded-t-md transition-all duration-500"
+                      style={{
+                        height: `${Math.max(h, d.count > 0 ? 10 : 2)}%`,
+                        backgroundColor: d.count > 0 ? accentColor : gridColor,
+                      }}
+                    />
+                  </div>
+                  <span className="text-2xs text-text-tertiary">{d.name}</span>
+                  <span className="text-2xs text-text-primary tabular-nums font-medium">
+                    {d.count}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {/* Charts row */}
@@ -281,6 +432,43 @@ const Dashboard: React.FC = () => {
           </ResponsiveContainer>
         </div>
       </div>
+
+      {/* Priority distribution (open tasks) */}
+      {priorityTotal > 0 && (
+        <div className="bg-surface border border-border rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2">
+              <Flag size={16} className="text-accent" />
+              <h3 className="text-[14px] font-semibold text-text-primary">Priority mix</h3>
+            </div>
+            <span className="text-2xs text-text-tertiary">Open tasks only</span>
+          </div>
+          <div className="space-y-3">
+            {priorityDist.map((p) => {
+              const pct = priorityTotal > 0 ? (p.count / priorityTotal) * 100 : 0;
+              return (
+                <div key={p.priority} className="flex items-center gap-3">
+                  <span className="w-14 text-[12px] capitalize text-text-secondary">
+                    {p.priority}
+                  </span>
+                  <div className="flex-1 h-2 bg-bg-tertiary rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${pct}%`,
+                        backgroundColor: priorityColor[p.priority],
+                      }}
+                    />
+                  </div>
+                  <span className="text-2xs text-text-tertiary tabular-nums w-10 text-right">
+                    {p.count}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Per-project breakdown (only when viewing all) */}
       {!state.activeProjectId && state.projects.length > 1 && (

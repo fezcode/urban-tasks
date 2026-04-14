@@ -17,7 +17,7 @@
 - [x] **Calendar view** — month/week visualization of due dates
 - [x] **Upcoming / This week filter** — tasks due in the next 7 days
 - [x] **Archive** — separate completed tasks from active list
-- [ ] **Dashboard improvements** — velocity tracking, trends, burndown
+- [x] **Dashboard improvements** — velocity tracking, trends, burndown
 
 ## UX Polish
 - [x] **Notifications / reminders** — browser notifications for due dates
