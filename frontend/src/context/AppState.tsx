@@ -8,6 +8,7 @@ import React, {
 } from 'react';
 import type { AppState, Action } from './types';
 import * as api from '../api/client';
+import { useToast } from './ToastContext';
 
 const PROJECT_COLORS = [
   '#C96442',
@@ -92,6 +93,7 @@ const AppStateContext = createContext<AppStateContextValue | undefined>(undefine
 export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
   const loaded = useRef(false);
+  const { error: toastError } = useToast();
 
   const reload = useCallback(async () => {
     try {
@@ -175,10 +177,11 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
       } catch (e) {
         console.error('API sync failed, reloading', e);
+        toastError('Change could not be saved — reverting.');
         await reload();
       }
     },
-    [reload, state.projects]
+    [reload, state.projects, toastError]
   );
 
   return (

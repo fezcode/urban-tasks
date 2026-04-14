@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppStateProvider } from './context/AppState';
+import { ToastProvider } from './context/ToastContext';
 import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
 import AuthPage from './components/AuthPage';
@@ -213,9 +214,11 @@ const AppShell: React.FC = () => {
 const App: React.FC = () => {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <AppShell />
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <AppShell />
+        </AuthProvider>
+      </ToastProvider>
     </ThemeProvider>
   );
 };

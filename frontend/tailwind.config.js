@@ -74,6 +74,10 @@ export default {
         'fade-in': 'fadeIn 0.2s ease-out',
         'slide-up': 'slideUp 0.25s ease-out',
         'slide-down': 'slideDown 0.2s ease-out',
+        'slide-in-right': 'slideInRight 0.25s ease-out',
+        'slide-in-left': 'slideInLeft 0.25s ease-out',
+        'slide-in-top': 'slideInTop 0.25s ease-out',
+        'slide-in-bottom': 'slideInBottom 0.25s ease-out',
       },
       keyframes: {
         fadeIn: {
@@ -86,6 +90,22 @@ export default {
         },
         slideDown: {
           from: { opacity: '0', transform: 'translateY(-4px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        slideInRight: {
+          from: { opacity: '0', transform: 'translateX(16px)' },
+          to: { opacity: '1', transform: 'translateX(0)' },
+        },
+        slideInLeft: {
+          from: { opacity: '0', transform: 'translateX(-16px)' },
+          to: { opacity: '1', transform: 'translateX(0)' },
+        },
+        slideInTop: {
+          from: { opacity: '0', transform: 'translateY(-16px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        slideInBottom: {
+          from: { opacity: '0', transform: 'translateY(16px)' },
           to: { opacity: '1', transform: 'translateY(0)' },
         },
       },

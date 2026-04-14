@@ -26,6 +26,7 @@ import { format, differenceInDays, startOfDay } from 'date-fns';
 import ProjectIcon from './ProjectIcon';
 import ConfirmDialog from './ConfirmDialog';
 import * as api from '../api/client';
+import { useToast } from '../context/ToastContext';
 
 export type View = 'tasks' | 'dashboard';
 
@@ -57,6 +58,7 @@ const Sidebar: React.FC<Props> = ({
   onTagClick,
 }) => {
   const { state, dispatch, syncDispatch, reload } = useAppState();
+  const { success, error: toastError } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { theme, toggle: toggleTheme } = useTheme();
   const [isCreating, setIsCreating] = useState(false);
@@ -129,9 +131,10 @@ const Sidebar: React.FC<Props> = ({
       a.download = `urban-tasks-${format(new Date(), 'yyyy-MM-dd')}.json`;
       a.click();
       URL.revokeObjectURL(url);
+      success('Data exported successfully');
     } catch (e) {
       console.error('Export failed', e);
-      alert('Export failed. Please try again.');
+      toastError('Export failed. Please try again.');
     }
   };
 
@@ -152,10 +155,10 @@ const Sidebar: React.FC<Props> = ({
         tasks: payload.tasks,
       });
       await reload();
-      alert(`Imported ${result.projectsCreated} projects and ${result.tasksCreated} tasks.`);
+      success(`Imported ${result.projectsCreated} projects and ${result.tasksCreated} tasks.`);
     } catch (err) {
       console.error('Import failed', err);
-      alert('Import failed: ' + (err instanceof Error ? err.message : 'unknown error'));
+      toastError('Import failed: ' + (err instanceof Error ? err.message : 'unknown error'));
     }
   };
 
