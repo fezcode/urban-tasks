@@ -1,7 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { X, RefreshCw, Check, ArrowRight, AlertTriangle } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { format } from 'date-fns';
+import { X, RefreshCw, Check, ArrowRight, AlertTriangle, Download, Upload } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useAppState } from '../context/AppState';
 import { useToast } from '../context/ToastContext';
+import * as api from '../api/client';
 import Avatar, { randomAvatarSeed } from './Avatar';
 
 interface Props {
@@ -10,7 +14,9 @@ interface Props {
 
 const ProfilePage: React.FC<Props> = ({ onClose }) => {
   const { user, updateProfile, deleteAccount } = useAuth();
+  const { reload } = useAppState();
   const { success, error: toastError } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState(user?.name ?? '');
   const [avatarSeed, setAvatarSeed] = useState<string>(user?.avatarSeed ?? user?.id ?? '');
@@ -62,6 +68,43 @@ const ProfilePage: React.FC<Props> = ({ onClose }) => {
     }
   };
 
+  const handleExport = async () => {
+    try {
+      const payload = await api.data.export();
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `urban-tasks-${format(new Date(), 'yyyy-MM-dd')}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      success('Data exported');
+    } catch (e) {
+      toastError(e instanceof Error ? e.message : 'Export failed');
+    }
+  };
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const payload = JSON.parse(text);
+      if (!Array.isArray(payload.projects) || !Array.isArray(payload.tasks)) {
+        throw new Error('Invalid file format');
+      }
+      const result = await api.data.import({
+        projects: payload.projects,
+        tasks: payload.tasks,
+      });
+      await reload();
+      success(`Imported ${result.projectsCreated} projects, ${result.tasksCreated} tasks`);
+    } catch (err) {
+      toastError('Import failed: ' + (err instanceof Error ? err.message : 'unknown error'));
+    }
+  };
+
   const handleDelete = async () => {
     if (deleteText !== user.email) return;
     setDeleting(true);
@@ -74,7 +117,7 @@ const ProfilePage: React.FC<Props> = ({ onClose }) => {
     }
   };
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[70] bg-black/55 backdrop-blur-sm flex items-start sm:items-center justify-center p-0 sm:p-6 animate-fade-in overflow-y-auto"
       role="dialog"
@@ -82,7 +125,7 @@ const ProfilePage: React.FC<Props> = ({ onClose }) => {
       aria-labelledby="profile-title"
     >
       <div
-        className="relative w-full max-w-2xl bg-[#F5EFE6] text-[#1F1B17] rounded-none sm:rounded-[28px] shadow-2xl overflow-hidden my-0 sm:my-6"
+        className="relative w-full max-w-[min(92vw,1100px)] bg-[#F5EFE6] text-[#1F1B17] rounded-none sm:rounded-[28px] shadow-2xl overflow-hidden my-0 sm:my-6"
         style={{
           boxShadow:
             '0 40px 80px -20px rgba(31, 27, 23, 0.35), 0 0 0 1px rgba(31, 27, 23, 0.06)',
@@ -195,10 +238,58 @@ const ProfilePage: React.FC<Props> = ({ onClose }) => {
             </div>
           </section>
 
-          {/* Danger zone */}
+          {/* Export / Load */}
           <section className="border-t border-[#1F1B17]/10 pt-8">
             <SectionLabel
               index="03"
+              title="Archive & restore"
+              hint="Carry your projects and tasks with you, or pour them back in."
+            />
+            <div className="mt-5 grid sm:grid-cols-2 gap-4">
+              <div className="rounded-2xl bg-[#EFE6D6] p-5">
+                <div className="text-[11px] uppercase tracking-[0.22em] text-[#1F1B17]/55 mb-1.5">
+                  Export
+                </div>
+                <p className="text-[13px] text-[#1F1B17]/65 leading-relaxed mb-4">
+                  A single JSON file with every project and task.
+                </p>
+                <button
+                  onClick={handleExport}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 text-[13px] font-medium rounded-full bg-[#1F1B17] text-[#F5EFE6] hover:bg-[#C96442] transition-colors"
+                >
+                  <Download size={14} />
+                  Download backup
+                </button>
+              </div>
+              <div className="rounded-2xl bg-[#EFE6D6] p-5">
+                <div className="text-[11px] uppercase tracking-[0.22em] text-[#1F1B17]/55 mb-1.5">
+                  Load
+                </div>
+                <p className="text-[13px] text-[#1F1B17]/65 leading-relaxed mb-4">
+                  Bring in a previous export. Adds to what's already here.
+                </p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/json,.json"
+                  onChange={handleImportFile}
+                  className="hidden"
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 text-[13px] font-medium rounded-full bg-[#E9DFCF] text-[#1F1B17] hover:bg-[#DBCCB5] transition-colors"
+                >
+                  <Upload size={14} />
+                  Import file
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {/* Danger zone */}
+          <section className="border-t border-[#1F1B17]/10 pt-8">
+            <SectionLabel
+              index="04"
               title="End of the road"
               hint="Irreversible. Everything tied to this account goes with it."
               accent="#8F3A24"
@@ -270,7 +361,8 @@ const ProfilePage: React.FC<Props> = ({ onClose }) => {
           </section>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
