@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -25,6 +26,7 @@ func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	tasks, err := h.tasks.List(r.Context(), userID, projectID)
 	if err != nil {
+		slog.Error("list tasks", "error", err, "userID", userID, "projectID", projectID)
 		respondError(w, http.StatusInternalServerError, "failed to list tasks")
 		return
 	}
@@ -73,6 +75,7 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 			respondError(w, http.StatusBadRequest, "project not found")
 			return
 		}
+		slog.Error("create task", "error", err, "userID", userID)
 		respondError(w, http.StatusInternalServerError, "failed to create task")
 		return
 	}

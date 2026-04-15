@@ -164,6 +164,9 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
       }
 
+      // Snapshot current state so we can roll back if the API call fails
+      const snapshot = stateRef.current;
+
       // Optimistic local update first
       dispatch(action);
 
@@ -237,9 +240,16 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           // SET_ACTIVE_PROJECT and SET_STATE are local-only
         }
       } catch (e) {
-        console.error('API sync failed, reloading', e);
+        console.error('API sync failed, reverting', e);
         toastError('Change could not be saved — reverting.');
-        await reload();
+        // Restore the pre-action snapshot so the UI matches persisted state
+        dispatch({ type: 'SET_STATE', state: snapshot });
+        // Best-effort refresh from server; if it fails, snapshot stays
+        try {
+          await reload();
+        } catch {
+          /* already reverted locally */
+        }
       }
     },
     [reload, state.projects, toastError]
