@@ -51,7 +51,7 @@ const AuthPage: React.FC = () => {
   return (
     <div className="min-h-screen w-full grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] bg-[#F5EFE6] text-[#1F1B17] font-sans">
       {/* LEFT — editorial hero panel */}
-      <aside className="relative hidden lg:flex flex-col justify-between overflow-hidden px-12 py-10 text-[#F5EFE6]">
+      <aside className="relative isolate hidden lg:flex flex-col justify-between overflow-hidden px-12 py-10 text-[#F5EFE6]">
         {/* Deep-ink base with warm terracotta blooms — keeps cream text legible edge-to-edge */}
         <div className="absolute inset-0 -z-10 bg-[#15110E]" />
         <div
