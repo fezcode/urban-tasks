@@ -224,6 +224,14 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
     });
   };
 
+  const setStartDate = (dateStr: string) => {
+    syncDispatch({
+      type: 'UPDATE_TASK',
+      id: task.id,
+      updates: { startDate: dateStr || undefined },
+    });
+  };
+
   const setPriority = (priority: TaskPriority) => {
     syncDispatch({ type: 'UPDATE_TASK', id: task.id, updates: { priority } });
   };
@@ -349,6 +357,28 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
             {task.title}
           </h2>
         )}
+
+        {/* Start date */}
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Calendar size={14} className="text-text-tertiary" />
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
+              Start Date
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <DatePicker
+              value={task.startDate}
+              onChange={(d) => setStartDate(d)}
+              onClear={() => setStartDate('')}
+            />
+            {!task.startDate && (
+              <span className="text-[12px] text-text-tertiary italic">
+                Defaults to {format(new Date(task.createdAt), 'MMM d, yyyy')}
+              </span>
+            )}
+          </div>
+        </div>
 
         {/* Due date */}
         <div>

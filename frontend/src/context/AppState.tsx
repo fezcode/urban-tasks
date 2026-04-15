@@ -181,6 +181,7 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               links: action.task.links,
               subtasks: action.task.subtasks,
               recurrence: action.task.recurrence,
+              startDate: action.task.startDate,
               dueDate: action.task.dueDate,
               priority: action.task.priority,
             });

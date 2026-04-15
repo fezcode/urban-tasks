@@ -21,6 +21,7 @@ export interface Task {
   tags?: string[];
   links?: TaskLink[];
   subtasks?: Subtask[];
+  startDate?: string;
   dueDate?: string;
   recurrence?: TaskRecurrence;
   status: TaskStatus;

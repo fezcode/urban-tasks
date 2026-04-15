@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { ThemeProvider } from './context/ThemeContext';
+import { PreferencesProvider } from './context/PreferencesContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppStateProvider, useAppState } from './context/AppState';
 import { ToastProvider } from './context/ToastContext';
@@ -295,11 +296,13 @@ const AppShell: React.FC = () => {
 const App: React.FC = () => {
   return (
     <ThemeProvider>
-      <ToastProvider>
-        <AuthProvider>
-          <AppShell />
-        </AuthProvider>
-      </ToastProvider>
+      <PreferencesProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <AppShell />
+          </AuthProvider>
+        </ToastProvider>
+      </PreferencesProvider>
     </ThemeProvider>
   );
 };

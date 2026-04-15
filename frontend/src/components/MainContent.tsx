@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect, Suspense, lazy } from 'react';
 import { useAppState } from '../context/AppState';
+import { useToast } from '../context/ToastContext';
+import { usePreferences } from '../context/PreferencesContext';
 import TaskItem from './TaskItem';
+import BlackHole from './BlackHole';
 
 const Dashboard = lazy(() => import('./Dashboard'));
 const Calendar = lazy(() => import('./Calendar'));
@@ -59,6 +62,8 @@ const MainContent: React.FC<Props> = ({
   onOpenCommandPalette,
 }) => {
   const { state, syncDispatch } = useAppState();
+  const { error: toastError } = useToast();
+  const { easterEggsEnabled } = usePreferences();
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [filter, setFilter] = useState<Filter>('all');
@@ -73,10 +78,16 @@ const MainContent: React.FC<Props> = ({
 
   // Listen for add-task events from command palette
   useEffect(() => {
-    const handler = () => setIsAdding(true);
+    const handler = () => {
+      if (state.projects.length === 0) {
+        toastError('Create a project first — tasks need a home.');
+        return;
+      }
+      setIsAdding(true);
+    };
     window.addEventListener('urban-tasks:add', handler);
     return () => window.removeEventListener('urban-tasks:add', handler);
-  }, []);
+  }, [state.projects.length, toastError]);
 
   // Clear selection if task is no longer in visible list
   useEffect(() => {
@@ -164,12 +175,21 @@ const MainContent: React.FC<Props> = ({
       setIsAdding(false);
       return;
     }
-    const targetProject = state.activeProjectId || state.projects[0]?.id || 'personal';
+    const targetProject = state.activeProjectId || state.projects[0]?.id;
+    if (!targetProject) {
+      toastError(
+        state.projects.length === 0
+          ? 'Create a project first — tasks need a home.'
+          : 'Pick a project from the sidebar before adding a task.'
+      );
+      return;
+    }
     const task: Task = {
       id: Date.now().toString(),
       title,
       status: 'todo',
       projectId: targetProject,
+      startDate: todayStr,
       createdAt: new Date().toISOString(),
     };
     syncDispatch({ type: 'ADD_TASK', task });
@@ -212,8 +232,30 @@ const MainContent: React.FC<Props> = ({
     );
   }
 
+  // Easter egg: show a black hole over the main content when the selected
+  // task's due date precedes its start (or creation) date.
+  const selectedTask = selectedTaskId
+    ? state.tasks.find((t) => t.id === selectedTaskId)
+    : null;
+  const effectiveStart = selectedTask
+    ? selectedTask.startDate ?? selectedTask.createdAt.slice(0, 10)
+    : null;
+  const showBlackHole = Boolean(
+    easterEggsEnabled &&
+      selectedTask &&
+      selectedTask.dueDate &&
+      effectiveStart &&
+      startOfDay(new Date(selectedTask.dueDate)) < startOfDay(new Date(effectiveStart))
+  );
+
   return (
-    <main id="main-content" className="flex-1 flex flex-col min-w-0 bg-bg overflow-hidden" tabIndex={-1}>
+    <main id="main-content" className="relative flex-1 flex flex-col min-w-0 bg-bg overflow-hidden" tabIndex={-1}>
+      {showBlackHole && selectedTask && (
+        <BlackHole
+          startDate={effectiveStart!}
+          dueDate={selectedTask.dueDate!}
+        />
+      )}
       {/* Header */}
       <header className="flex-shrink-0 px-4 sm:px-6 lg:px-10 pt-6 lg:pt-10 pb-4 lg:pb-6">
         <div>
@@ -369,8 +411,15 @@ const MainContent: React.FC<Props> = ({
                 </div>
 
                 <button
-                  onClick={() => setIsAdding(true)}
+                  onClick={() => {
+                    if (state.projects.length === 0) {
+                      toastError('Create a project first — tasks need a home.');
+                      return;
+                    }
+                    setIsAdding(true);
+                  }}
                   className="flex items-center gap-2 px-3.5 py-2 bg-accent text-text-inverse rounded-lg text-[13px] font-medium hover:bg-accent-hover transition-base active:scale-[0.97] flex-shrink-0"
+                  title={state.projects.length === 0 ? 'Create a project first' : undefined}
                 >
                   <Plus size={16} />
                   <span className="hidden sm:inline">Add task</span>

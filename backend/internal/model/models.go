@@ -51,6 +51,7 @@ type Task struct {
 	Tags        []string   `json:"tags"`
 	Links       []TaskLink `json:"links"`
 	Subtasks    []Subtask  `json:"subtasks"`
+	StartDate   *string    `json:"startDate,omitempty"`
 	DueDate     *string    `json:"dueDate,omitempty"`
 	Recurrence  *string    `json:"recurrence,omitempty"`
 	Position    int        `json:"position"`
@@ -107,6 +108,7 @@ type CreateTaskRequest struct {
 	Tags      []string   `json:"tags,omitempty"`
 	Links     []TaskLink `json:"links,omitempty"`
 	Subtasks   []Subtask `json:"subtasks,omitempty"`
+	StartDate  *string   `json:"startDate,omitempty"`
 	DueDate    *string   `json:"dueDate,omitempty"`
 	Priority   *string   `json:"priority,omitempty"`
 	Recurrence *string   `json:"recurrence,omitempty"`
@@ -120,6 +122,7 @@ type UpdateTaskRequest struct {
 	Tags      []string   `json:"tags,omitempty"`
 	Links     []TaskLink `json:"links,omitempty"`
 	Subtasks   []Subtask `json:"subtasks,omitempty"`
+	StartDate  *string   `json:"startDate,omitempty"`
 	DueDate    *string   `json:"dueDate,omitempty"`
 	Recurrence *string   `json:"recurrence,omitempty"`
 	ProjectID  *string   `json:"projectId,omitempty"`

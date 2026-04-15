@@ -98,6 +98,7 @@ func (h *DataHandler) Import(w http.ResponseWriter, r *http.Request) {
 			Tags:      t.Tags,
 			Links:     t.Links,
 			Subtasks:   t.Subtasks,
+			StartDate:  t.StartDate,
 			DueDate:    t.DueDate,
 			Recurrence: t.Recurrence,
 			Priority:   &priority,

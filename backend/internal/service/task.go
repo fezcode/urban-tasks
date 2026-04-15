@@ -135,6 +135,7 @@ func (s *TaskService) Create(ctx context.Context, userID string, req model.Creat
 		Tags:      tags,
 		Links:     links,
 		Subtasks:  subtasks,
+		StartDate: req.StartDate,
 		DueDate:   req.DueDate,
 		Recurrence: func() *string {
 			if req.Recurrence != nil && isValidRecurrence(*req.Recurrence) {
@@ -197,8 +198,19 @@ func (s *TaskService) Update(ctx context.Context, id, userID string, req model.U
 	if req.Subtasks != nil {
 		t.Subtasks = req.Subtasks
 	}
+	if req.StartDate != nil {
+		if *req.StartDate == "" {
+			t.StartDate = nil
+		} else {
+			t.StartDate = req.StartDate
+		}
+	}
 	if req.DueDate != nil {
-		t.DueDate = req.DueDate
+		if *req.DueDate == "" {
+			t.DueDate = nil
+		} else {
+			t.DueDate = req.DueDate
+		}
 	}
 	if req.Recurrence != nil {
 		if *req.Recurrence == "" {

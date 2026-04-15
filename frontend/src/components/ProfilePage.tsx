@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { format } from 'date-fns';
-import { X, RefreshCw, Check, ArrowRight, AlertTriangle, Download, Upload } from 'lucide-react';
+import { X, RefreshCw, Check, ArrowRight, AlertTriangle, Download, Upload, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useAppState } from '../context/AppState';
 import { useToast } from '../context/ToastContext';
+import { usePreferences } from '../context/PreferencesContext';
 import * as api from '../api/client';
 import Avatar, { randomAvatarSeed } from './Avatar';
 
@@ -16,6 +17,7 @@ const ProfilePage: React.FC<Props> = ({ onClose }) => {
   const { user, updateProfile, deleteAccount } = useAuth();
   const { reload } = useAppState();
   const { success, error: toastError } = useToast();
+  const { easterEggsEnabled, setEasterEggsEnabled } = usePreferences();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState(user?.name ?? '');
@@ -283,10 +285,49 @@ const ProfilePage: React.FC<Props> = ({ onClose }) => {
             </div>
           </section>
 
-          {/* Danger zone */}
+          {/* Preferences */}
           <section className="border-t border-border-light pt-8">
             <SectionLabel
               index="04"
+              title="Quiet mode"
+              hint="Flourishes, surprises, and hidden corners."
+            />
+            <div className="mt-5 flex items-center justify-between gap-6 rounded-2xl bg-bg-secondary border border-border-light p-5">
+              <div className="min-w-0 flex items-start gap-3">
+                <Sparkles size={18} className="text-accent flex-shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <div className="text-[14px] text-text-primary font-medium">Easter eggs</div>
+                  <p className="text-[12px] text-text-secondary mt-0.5 leading-relaxed">
+                    Small rewards for curious behavior. Turn off if you'd rather keep things strictly practical.
+                  </p>
+                </div>
+              </div>
+              <button
+                role="switch"
+                aria-checked={easterEggsEnabled}
+                onClick={() => {
+                  const next = !easterEggsEnabled;
+                  setEasterEggsEnabled(next);
+                  success(next ? 'Easter eggs enabled' : 'Easter eggs disabled');
+                }}
+                className={`relative flex-shrink-0 w-11 h-6 rounded-full transition-colors ${
+                  easterEggsEnabled ? 'bg-accent' : 'bg-border'
+                }`}
+                aria-label="Toggle easter eggs"
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                    easterEggsEnabled ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+          </section>
+
+          {/* Danger zone */}
+          <section className="border-t border-border-light pt-8">
+            <SectionLabel
+              index="05"
               title="End of the road"
               hint="Irreversible. Everything tied to this account goes with it."
               danger

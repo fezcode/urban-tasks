@@ -12,8 +12,8 @@ import (
 	"urban-tasks/internal/model"
 )
 
-// scanDueDate converts a nullable pg date into *string (YYYY-MM-DD).
-func dueDateFrom(d pgtype.Date) *string {
+// dateFrom converts a nullable pg date into *string (YYYY-MM-DD).
+func dateFrom(d pgtype.Date) *string {
 	if !d.Valid {
 		return nil
 	}
@@ -21,8 +21,8 @@ func dueDateFrom(d pgtype.Date) *string {
 	return &s
 }
 
-// dueDateTo converts an optional YYYY-MM-DD string into a pgtype.Date.
-func dueDateTo(s *string) pgtype.Date {
+// dateTo converts an optional YYYY-MM-DD string into a pgtype.Date.
+func dateTo(s *string) pgtype.Date {
 	if s == nil || *s == "" {
 		return pgtype.Date{Valid: false}
 	}
@@ -41,11 +41,13 @@ func NewTaskRepo(pool *pgxpool.Pool) *TaskRepo {
 	return &TaskRepo{pool: pool}
 }
 
+const taskColumns = `id, user_id, project_id, title, body, status, priority, tags, links, subtasks, start_date, due_date, recurrence, position, created_at, updated_at, completed_at`
+
 func (r *TaskRepo) Create(ctx context.Context, t *model.Task) error {
 	_, err := r.pool.Exec(ctx,
-		`INSERT INTO tasks (id, user_id, project_id, title, body, status, priority, tags, links, subtasks, due_date, recurrence, position, created_at, updated_at, completed_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
-		t.ID, t.UserID, t.ProjectID, t.Title, t.Body, t.Status, t.Priority, t.Tags, t.Links, t.Subtasks, dueDateTo(t.DueDate), t.Recurrence, t.Position, t.CreatedAt, t.UpdatedAt, t.CompletedAt,
+		`INSERT INTO tasks (`+taskColumns+`)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
+		t.ID, t.UserID, t.ProjectID, t.Title, t.Body, t.Status, t.Priority, t.Tags, t.Links, t.Subtasks, dateTo(t.StartDate), dateTo(t.DueDate), t.Recurrence, t.Position, t.CreatedAt, t.UpdatedAt, t.CompletedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("creating task: %w", err)
@@ -55,7 +57,7 @@ func (r *TaskRepo) Create(ctx context.Context, t *model.Task) error {
 
 func (r *TaskRepo) ListByUser(ctx context.Context, userID string) ([]model.Task, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT id, user_id, project_id, title, body, status, priority, tags, links, subtasks, due_date, recurrence, position, created_at, updated_at, completed_at
+		`SELECT `+taskColumns+`
 		 FROM tasks WHERE user_id = $1 ORDER BY position, created_at DESC`, userID,
 	)
 	if err != nil {
@@ -68,7 +70,7 @@ func (r *TaskRepo) ListByUser(ctx context.Context, userID string) ([]model.Task,
 
 func (r *TaskRepo) ListByProject(ctx context.Context, projectID, userID string) ([]model.Task, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT id, user_id, project_id, title, body, status, priority, tags, links, subtasks, due_date, recurrence, position, created_at, updated_at, completed_at
+		`SELECT `+taskColumns+`
 		 FROM tasks WHERE project_id = $1 AND user_id = $2 ORDER BY position, created_at DESC`,
 		projectID, userID,
 	)
@@ -82,27 +84,28 @@ func (r *TaskRepo) ListByProject(ctx context.Context, projectID, userID string) 
 
 func (r *TaskRepo) GetByID(ctx context.Context, id, userID string) (*model.Task, error) {
 	t := &model.Task{}
-	var due pgtype.Date
+	var start, due pgtype.Date
 	err := r.pool.QueryRow(ctx,
-		`SELECT id, user_id, project_id, title, body, status, priority, tags, links, subtasks, due_date, recurrence, position, created_at, updated_at, completed_at
+		`SELECT `+taskColumns+`
 		 FROM tasks WHERE id = $1 AND user_id = $2`, id, userID,
-	).Scan(&t.ID, &t.UserID, &t.ProjectID, &t.Title, &t.Body, &t.Status, &t.Priority, &t.Tags, &t.Links, &t.Subtasks, &due, &t.Recurrence, &t.Position, &t.CreatedAt, &t.UpdatedAt, &t.CompletedAt)
+	).Scan(&t.ID, &t.UserID, &t.ProjectID, &t.Title, &t.Body, &t.Status, &t.Priority, &t.Tags, &t.Links, &t.Subtasks, &start, &due, &t.Recurrence, &t.Position, &t.CreatedAt, &t.UpdatedAt, &t.CompletedAt)
 	if err == pgx.ErrNoRows {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("getting task: %w", err)
 	}
-	t.DueDate = dueDateFrom(due)
+	t.StartDate = dateFrom(start)
+	t.DueDate = dateFrom(due)
 	return t, nil
 }
 
 func (r *TaskRepo) Update(ctx context.Context, t *model.Task) error {
 	_, err := r.pool.Exec(ctx,
 		`UPDATE tasks SET project_id = $1, title = $2, body = $3, status = $4, priority = $5, tags = $6, links = $7, subtasks = $8,
-		 due_date = $9, recurrence = $10, position = $11, updated_at = $12, completed_at = $13
-		 WHERE id = $14 AND user_id = $15`,
-		t.ProjectID, t.Title, t.Body, t.Status, t.Priority, t.Tags, t.Links, t.Subtasks, dueDateTo(t.DueDate), t.Recurrence, t.Position, t.UpdatedAt, t.CompletedAt, t.ID, t.UserID,
+		 start_date = $9, due_date = $10, recurrence = $11, position = $12, updated_at = $13, completed_at = $14
+		 WHERE id = $15 AND user_id = $16`,
+		t.ProjectID, t.Title, t.Body, t.Status, t.Priority, t.Tags, t.Links, t.Subtasks, dateTo(t.StartDate), dateTo(t.DueDate), t.Recurrence, t.Position, t.UpdatedAt, t.CompletedAt, t.ID, t.UserID,
 	)
 	if err != nil {
 		return fmt.Errorf("updating task: %w", err)
@@ -148,14 +151,15 @@ func scanTasks(rows pgx.Rows) ([]model.Task, error) {
 	var tasks []model.Task
 	for rows.Next() {
 		var t model.Task
-		var due pgtype.Date
+		var start, due pgtype.Date
 		if err := rows.Scan(
 			&t.ID, &t.UserID, &t.ProjectID, &t.Title, &t.Body, &t.Status, &t.Priority,
-			&t.Tags, &t.Links, &t.Subtasks, &due, &t.Recurrence, &t.Position, &t.CreatedAt, &t.UpdatedAt, &t.CompletedAt,
+			&t.Tags, &t.Links, &t.Subtasks, &start, &due, &t.Recurrence, &t.Position, &t.CreatedAt, &t.UpdatedAt, &t.CompletedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scanning task: %w", err)
 		}
-		t.DueDate = dueDateFrom(due)
+		t.StartDate = dateFrom(start)
+		t.DueDate = dateFrom(due)
 		if t.Tags == nil {
 			t.Tags = []string{}
 		}
