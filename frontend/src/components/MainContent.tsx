@@ -25,8 +25,27 @@ import type { View } from './Sidebar';
 import ProjectIcon from './ProjectIcon';
 
 type Filter = 'all' | 'todo' | 'in-progress';
+type PriorityFilter = 'all' | 'high' | 'medium' | 'low';
 
 const PRIORITY_RANK: Record<string, number> = { high: 0, medium: 1, low: 2, none: 3 };
+
+const PRIORITY_CHIP_STYLE: Record<Exclude<PriorityFilter, 'all'>, { active: string; idle: string; dot: string }> = {
+  high: {
+    active: 'bg-danger text-white border-danger',
+    idle: 'text-danger border-danger/40 hover:bg-danger-bg',
+    dot: 'bg-danger',
+  },
+  medium: {
+    active: 'bg-status-warning text-white border-status-warning',
+    idle: 'text-status-warning border-status-warning/40 hover:bg-status-warning-bg',
+    dot: 'bg-status-warning',
+  },
+  low: {
+    active: 'bg-accent text-white border-accent',
+    idle: 'text-accent border-accent/40 hover:bg-accent-light',
+    dot: 'bg-accent',
+  },
+};
 
 interface Props {
   currentView: View;
@@ -67,6 +86,7 @@ const MainContent: React.FC<Props> = ({
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [filter, setFilter] = useState<Filter>('all');
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all');
   const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
   const [dragTaskId, setDragTaskId] = useState<string | null>(null);
   const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null);
@@ -132,10 +152,15 @@ const MainContent: React.FC<Props> = ({
     ? dateFilteredTasks.filter((t) => t.tags?.includes(activeTag))
     : dateFilteredTasks;
 
-  const filteredTasks =
+  const statusFilteredTasks =
     filter === 'all' || showArchive
       ? tagFilteredTasks
       : tagFilteredTasks.filter((t) => t.status === filter);
+
+  const filteredTasks =
+    priorityFilter === 'all'
+      ? statusFilteredTasks
+      : statusFilteredTasks.filter((t) => (t.priority ?? 'none') === priorityFilter);
 
   const singleProjectView =
     !!state.activeProjectId && !showArchive && !showUpcoming && !showDueToday && !activeTag;
@@ -219,6 +244,12 @@ const MainContent: React.FC<Props> = ({
     { key: 'todo', label: 'To do', count: todoCount },
     { key: 'in-progress', label: 'Active', count: activeCount },
   ];
+
+  const priorityCounts = {
+    high: statusFilteredTasks.filter((t) => t.priority === 'high').length,
+    medium: statusFilteredTasks.filter((t) => t.priority === 'medium').length,
+    low: statusFilteredTasks.filter((t) => t.priority === 'low').length,
+  };
 
   const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
 
@@ -390,24 +421,64 @@ const MainContent: React.FC<Props> = ({
           {/* Filters + Add button */}
           {!showArchive && (
             <div className="flex-shrink-0 px-4 sm:px-6 lg:px-10 pb-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-1 bg-bg-secondary rounded-lg p-1 overflow-x-auto no-scrollbar">
-                  {filters.map((f) => (
-                    <button
-                      key={f.key}
-                      onClick={() => setFilter(f.key)}
-                      className={`px-3 py-1.5 rounded-md text-[13px] whitespace-nowrap transition-base ${
-                        filter === f.key
-                          ? 'bg-surface text-text-primary shadow-sm font-medium'
-                          : 'text-text-secondary hover:text-text-primary'
-                      }`}
-                    >
-                      {f.label}
-                      {f.count > 0 && (
-                        <span className="ml-1.5 text-2xs text-text-tertiary">{f.count}</span>
-                      )}
-                    </button>
-                  ))}
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-1 bg-bg-secondary rounded-lg p-1 overflow-x-auto no-scrollbar">
+                    {filters.map((f) => (
+                      <button
+                        key={f.key}
+                        onClick={() => setFilter(f.key)}
+                        className={`px-3 py-1.5 rounded-md text-[13px] whitespace-nowrap transition-base ${
+                          filter === f.key
+                            ? 'bg-surface text-text-primary shadow-sm font-medium'
+                            : 'text-text-secondary hover:text-text-primary'
+                        }`}
+                      >
+                        {f.label}
+                        {f.count > 0 && (
+                          <span className="ml-1.5 text-2xs text-text-tertiary">{f.count}</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    {(['high', 'medium', 'low'] as const).map((p) => {
+                      const active = priorityFilter === p;
+                      const style = PRIORITY_CHIP_STYLE[p];
+                      const count = priorityCounts[p];
+                      return (
+                        <button
+                          key={p}
+                          onClick={() => setPriorityFilter(active ? 'all' : p)}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[12px] font-medium capitalize whitespace-nowrap transition-base ${
+                            active ? style.active : style.idle
+                          }`}
+                          title={`Filter by ${p} priority`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-white/90' : style.dot}`}
+                          />
+                          {p}
+                          {count > 0 && (
+                            <span className={`text-2xs ${active ? 'text-white/80' : 'opacity-70'}`}>
+                              {count}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                    {priorityFilter !== 'all' && (
+                      <button
+                        onClick={() => setPriorityFilter('all')}
+                        className="p-1 rounded-full text-text-tertiary hover:text-text-primary hover:bg-surface-hover transition-base"
+                        aria-label="Clear priority filter"
+                        title="Clear priority filter"
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <button
