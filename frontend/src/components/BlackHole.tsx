@@ -35,6 +35,7 @@ const BlackHole: React.FC<Props> = ({ startDate, dueDate }) => {
       role="button"
       aria-label="Dismiss easter egg"
       title="Click to return"
+      style={{ containerType: 'size' }}
     >
       <style>{`
         @keyframes bh-spin-slow { to { transform: translate(-50%,-50%) rotate(360deg); } }
@@ -84,8 +85,8 @@ const BlackHole: React.FC<Props> = ({ startDate, dueDate }) => {
       <div
         className="absolute top-1/2 left-1/2 pointer-events-none"
         style={{
-          width: 560,
-          height: 560,
+          width: 'min(560px, 85cqmin)',
+          height: 'min(560px, 85cqmin)',
           transform: 'translate(-50%,-50%)',
           background:
             'radial-gradient(circle, transparent 38%, rgba(255,180,140,0.09) 40%, transparent 43%, transparent 56%, rgba(255,220,180,0.07) 58%, transparent 62%)',
@@ -97,8 +98,8 @@ const BlackHole: React.FC<Props> = ({ startDate, dueDate }) => {
       <div
         className="absolute top-1/2 left-1/2 rounded-full"
         style={{
-          width: 480,
-          height: 480,
+          width: 'min(480px, 72cqmin)',
+          height: 'min(480px, 72cqmin)',
           transform: 'translate(-50%,-50%)',
           background:
             'conic-gradient(from 0deg, rgba(255,255,255,0) 0deg, rgba(255,160,80,0.0) 20deg, rgba(255,170,90,0.7) 90deg, rgba(255,230,200,0.95) 150deg, rgba(201,100,66,0.85) 210deg, rgba(120,40,20,0.55) 280deg, rgba(0,0,0,0) 360deg)',
@@ -115,8 +116,8 @@ const BlackHole: React.FC<Props> = ({ startDate, dueDate }) => {
       <div
         className="absolute top-1/2 left-1/2 rounded-full pointer-events-none"
         style={{
-          width: 620,
-          height: 620,
+          width: 'min(620px, 94cqmin)',
+          height: 'min(620px, 94cqmin)',
           transform: 'translate(-50%,-50%)',
           background:
             'conic-gradient(from 180deg, transparent 0deg, rgba(255,140,80,0.2) 120deg, rgba(255,210,180,0.24) 180deg, rgba(255,120,60,0.12) 240deg, transparent 360deg)',
@@ -133,8 +134,8 @@ const BlackHole: React.FC<Props> = ({ startDate, dueDate }) => {
       <div
         className="absolute top-1/2 left-1/2 rounded-full"
         style={{
-          width: 240,
-          height: 240,
+          width: 'min(240px, 36cqmin)',
+          height: 'min(240px, 36cqmin)',
           background: '#000',
           boxShadow:
             '0 0 60px 12px rgba(255,170,110,0.5), inset 0 0 80px rgba(255,200,150,0.18)',
@@ -151,9 +152,10 @@ const BlackHole: React.FC<Props> = ({ startDate, dueDate }) => {
           — Causality violation detected —
         </div>
         <h2
-          className="font-display font-light text-white text-[clamp(36px,7vw,84px)] leading-none"
+          className="font-display font-light text-white leading-none"
           style={{
-            letterSpacing: '0.32em',
+            fontSize: 'clamp(28px, 9cqmin, 84px)',
+            letterSpacing: '0.28em',
             textShadow:
               '0 0 22px rgba(255,180,120,0.6), 0 0 48px rgba(255,120,60,0.4)',
             animation: 'bh-title-in 1.8s cubic-bezier(.2,.8,.2,1) backwards',

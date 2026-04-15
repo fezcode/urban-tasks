@@ -18,6 +18,7 @@
 - [x] **Upcoming / This week filter** — tasks due in the next 7 days
 - [x] **Archive** — separate completed tasks from active list
 - [x] **Dashboard improvements** — velocity tracking, trends, burndown
+- [x] **Priority View** — High/Medium/Low filter chips in the main toolbar, composes with status/tag/date filters
 
 ## UX Polish
 - [x] **Notifications / reminders** — browser notifications for due dates
