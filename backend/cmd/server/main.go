@@ -137,6 +137,11 @@ func main() {
 			// Data export / import
 			protected.Get("/data/export", dataH.Export)
 			protected.Post("/data/import", dataH.Import)
+
+			// Current user profile
+			protected.Get("/me", authH.GetMe)
+			protected.Patch("/me", authH.UpdateMe)
+			protected.Delete("/me", authH.DeleteMe)
 		})
 	})
 

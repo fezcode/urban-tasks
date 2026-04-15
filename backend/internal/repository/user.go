@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -33,9 +34,9 @@ func (r *UserRepo) Create(ctx context.Context, u *model.User) error {
 func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*model.User, error) {
 	u := &model.User{}
 	err := r.pool.QueryRow(ctx,
-		`SELECT id, email, name, password_hash, created_at, updated_at
+		`SELECT id, email, name, avatar_seed, password_hash, created_at, updated_at
 		 FROM users WHERE email = $1`, email,
-	).Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.CreatedAt, &u.UpdatedAt)
+	).Scan(&u.ID, &u.Email, &u.Name, &u.AvatarSeed, &u.PasswordHash, &u.CreatedAt, &u.UpdatedAt)
 	if err == pgx.ErrNoRows {
 		return nil, nil
 	}
@@ -48,9 +49,9 @@ func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*model.User, e
 func (r *UserRepo) GetByID(ctx context.Context, id string) (*model.User, error) {
 	u := &model.User{}
 	err := r.pool.QueryRow(ctx,
-		`SELECT id, email, name, password_hash, created_at, updated_at
+		`SELECT id, email, name, avatar_seed, password_hash, created_at, updated_at
 		 FROM users WHERE id = $1`, id,
-	).Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.CreatedAt, &u.UpdatedAt)
+	).Scan(&u.ID, &u.Email, &u.Name, &u.AvatarSeed, &u.PasswordHash, &u.CreatedAt, &u.UpdatedAt)
 	if err == pgx.ErrNoRows {
 		return nil, nil
 	}
@@ -58,4 +59,28 @@ func (r *UserRepo) GetByID(ctx context.Context, id string) (*model.User, error) 
 		return nil, fmt.Errorf("getting user by id: %w", err)
 	}
 	return u, nil
+}
+
+func (r *UserRepo) Update(ctx context.Context, id string, req model.UpdateUserRequest) (*model.User, error) {
+	now := time.Now().UTC()
+	_, err := r.pool.Exec(ctx,
+		`UPDATE users SET
+			name = COALESCE($2, name),
+			avatar_seed = COALESCE($3, avatar_seed),
+			updated_at = $4
+		 WHERE id = $1`,
+		id, req.Name, req.AvatarSeed, now,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("updating user: %w", err)
+	}
+	return r.GetByID(ctx, id)
+}
+
+func (r *UserRepo) Delete(ctx context.Context, id string) error {
+	_, err := r.pool.Exec(ctx, `DELETE FROM users WHERE id = $1`, id)
+	if err != nil {
+		return fmt.Errorf("deleting user: %w", err)
+	}
+	return nil
 }

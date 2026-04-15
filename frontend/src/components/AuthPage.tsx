@@ -52,12 +52,23 @@ const AuthPage: React.FC = () => {
     <div className="min-h-screen w-full grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] bg-[#F5EFE6] text-[#1F1B17] font-sans">
       {/* LEFT — editorial hero panel */}
       <aside className="relative hidden lg:flex flex-col justify-between overflow-hidden px-12 py-10 text-[#F5EFE6]">
-        {/* Warm gradient base */}
+        {/* Deep-ink base with warm terracotta blooms — keeps cream text legible edge-to-edge */}
+        <div className="absolute inset-0 -z-10 bg-[#15110E]" />
         <div
           className="absolute inset-0 -z-10"
           style={{
             background:
-              'radial-gradient(120% 90% at 20% 10%, #E5835B 0%, #C96442 38%, #6B2E1E 78%, #1F1B17 100%)',
+              'radial-gradient(55% 55% at 85% 18%, rgba(201,100,66,0.55) 0%, rgba(201,100,66,0) 70%),' +
+              'radial-gradient(45% 45% at 12% 92%, rgba(212,118,83,0.35) 0%, rgba(212,118,83,0) 72%),' +
+              'radial-gradient(80% 60% at 50% 50%, rgba(107,46,30,0.25) 0%, rgba(107,46,30,0) 75%)',
+          }}
+        />
+        {/* Subtle vignette so corners stay dark enough for text */}
+        <div
+          className="absolute inset-0 -z-10"
+          style={{
+            background:
+              'radial-gradient(120% 120% at 50% 50%, transparent 50%, rgba(10,8,6,0.5) 100%)',
           }}
         />
         {/* Fine grain overlay */}

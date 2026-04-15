@@ -2,17 +2,15 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import {
   login as apiLogin,
   register as apiRegister,
+  updateMe as apiUpdateMe,
+  deleteMe as apiDeleteMe,
   clearTokens,
   hasTokens,
   setAuthExpiredHandler,
 } from '../api/client';
-import type { AuthResponse } from '../api/client';
+import type { AuthResponse, UserProfile } from '../api/client';
 
-interface AuthUser {
-  id: string;
-  email: string;
-  name: string;
-}
+type AuthUser = UserProfile;
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -21,6 +19,8 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, name: string, password: string) => Promise<void>;
   logout: () => void;
+  updateProfile: (patch: { name?: string; avatarSeed?: string | null }) => Promise<void>;
+  deleteAccount: () => Promise<void>;
   error: string | null;
   clearError: () => void;
 }
@@ -53,7 +53,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const handleAuth = useCallback((resp: AuthResponse) => {
-    const u = { id: resp.user.id, email: resp.user.email, name: resp.user.name };
+    const u: AuthUser = {
+      id: resp.user.id,
+      email: resp.user.email,
+      name: resp.user.name,
+      avatarSeed: resp.user.avatarSeed,
+    };
     setUser(u);
     localStorage.setItem('auth_user', JSON.stringify(u));
     setError(null);
@@ -95,6 +100,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('auth_user');
   }, []);
 
+  const updateProfile = useCallback(
+    async (patch: { name?: string; avatarSeed?: string | null }) => {
+      const updated = await apiUpdateMe(patch);
+      setUser(updated);
+      localStorage.setItem('auth_user', JSON.stringify(updated));
+    },
+    []
+  );
+
+  const deleteAccount = useCallback(async () => {
+    await apiDeleteMe();
+    setUser(null);
+    localStorage.removeItem('auth_user');
+  }, []);
+
   const clearError = useCallback(() => setError(null), []);
 
   return (
@@ -106,6 +126,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         register,
         logout,
+        updateProfile,
+        deleteAccount,
         error,
         clearError,
       }}

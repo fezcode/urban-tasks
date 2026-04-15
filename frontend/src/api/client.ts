@@ -85,10 +85,33 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 // --- Auth ---
 
+export interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  avatarSeed?: string;
+}
+
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
-  user: { id: string; email: string; name: string };
+  user: UserProfile;
+}
+
+export function getMe(): Promise<UserProfile> {
+  return request<UserProfile>('/me');
+}
+
+export function updateMe(patch: { name?: string; avatarSeed?: string | null }): Promise<UserProfile> {
+  return request<UserProfile>('/me', {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  });
+}
+
+export async function deleteMe(): Promise<void> {
+  await request<void>('/me', { method: 'DELETE' });
+  clearTokens();
 }
 
 export async function register(

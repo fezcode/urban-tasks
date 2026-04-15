@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"urban-tasks/internal/middleware"
 	"urban-tasks/internal/model"
 	"urban-tasks/internal/service"
 )
@@ -68,6 +69,40 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, resp)
+}
+
+func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.UserIDFromContext(r.Context())
+	user, err := h.auth.GetUser(r.Context(), userID)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "user not found")
+		return
+	}
+	respondJSON(w, http.StatusOK, user)
+}
+
+func (h *AuthHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.UserIDFromContext(r.Context())
+	var req model.UpdateUserRequest
+	if err := decodeJSON(r, &req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	user, err := h.auth.UpdateUser(r.Context(), userID, req)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, user)
+}
+
+func (h *AuthHandler) DeleteMe(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.UserIDFromContext(r.Context())
+	if err := h.auth.DeleteUser(r.Context(), userID); err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to delete account")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {

@@ -6,9 +6,15 @@ type User struct {
 	ID           string    `json:"id"`
 	Email        string    `json:"email"`
 	Name         string    `json:"name"`
+	AvatarSeed   *string   `json:"avatarSeed,omitempty"`
 	PasswordHash string    `json:"-"`
 	CreatedAt    time.Time `json:"createdAt"`
 	UpdatedAt    time.Time `json:"updatedAt"`
+}
+
+type UpdateUserRequest struct {
+	Name       *string `json:"name,omitempty"`
+	AvatarSeed *string `json:"avatarSeed,omitempty"`
 }
 
 type Project struct {

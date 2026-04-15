@@ -1,9 +1,10 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, Suspense, lazy } from 'react';
 import { useAppState } from '../context/AppState';
 import { getNextColor } from '../context/AppState';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import Logo from './Logo';
+import Avatar from './Avatar';
 import {
   Inbox,
   Plus,
@@ -24,12 +25,15 @@ import {
   Download,
   Upload,
   LogOut,
+  UserCog,
 } from 'lucide-react';
 import { format, differenceInDays, startOfDay } from 'date-fns';
 import ProjectIcon from './ProjectIcon';
 import ConfirmDialog from './ConfirmDialog';
 import * as api from '../api/client';
 import { useToast } from '../context/ToastContext';
+
+const ProfilePage = lazy(() => import('./ProfilePage'));
 
 export type View = 'tasks' | 'dashboard' | 'calendar';
 
@@ -85,6 +89,7 @@ const Sidebar: React.FC<Props> = ({
   const { theme, toggle: toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -614,13 +619,12 @@ const Sidebar: React.FC<Props> = ({
                 : 'hover:bg-surface-hover'
             }`}
           >
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-semibold text-text-inverse flex-shrink-0"
-              style={{ backgroundColor: 'rgb(var(--color-accent))' }}
-              aria-hidden="true"
-            >
-              {(user.name || user.email || '?').trim().charAt(0).toUpperCase()}
-            </div>
+            <Avatar
+              seed={user.avatarSeed ?? user.id}
+              name={user.name}
+              size={32}
+              className="flex-shrink-0 rounded-full"
+            />
             <div className="flex-1 min-w-0 text-left">
               <div className="text-[13px] font-medium text-text-primary truncate">
                 {user.name || 'Unnamed'}
@@ -635,6 +639,17 @@ const Sidebar: React.FC<Props> = ({
               role="menu"
               className="absolute bottom-full left-3 right-3 mb-1 z-50 bg-surface border border-border rounded-lg shadow-lg py-1 animate-fade-in"
             >
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setProfileMenuOpen(false);
+                  setProfileOpen(true);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-text-primary hover:bg-surface-hover transition-base"
+              >
+                <UserCog size={14} className="text-text-tertiary" />
+                Edit profile
+              </button>
               <button
                 role="menuitem"
                 onClick={() => {
@@ -720,6 +735,12 @@ const Sidebar: React.FC<Props> = ({
           }}
           onCancel={() => setConfirmLogout(false)}
         />
+      )}
+
+      {profileOpen && (
+        <Suspense fallback={null}>
+          <ProfilePage onClose={() => setProfileOpen(false)} />
+        </Suspense>
       )}
     </aside>
   );

@@ -108,6 +108,31 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (*model.
 	return &model.RefreshResponse{AccessToken: access, RefreshToken: refresh}, nil
 }
 
+func (s *AuthService) GetUser(ctx context.Context, userID string) (*model.User, error) {
+	u, err := s.users.GetByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if u == nil {
+		return nil, ErrInvalidCredentials
+	}
+	return u, nil
+}
+
+func (s *AuthService) UpdateUser(ctx context.Context, userID string, req model.UpdateUserRequest) (*model.User, error) {
+	if req.Name != nil {
+		trimmed := *req.Name
+		if len(trimmed) == 0 {
+			return nil, fmt.Errorf("name cannot be empty")
+		}
+	}
+	return s.users.Update(ctx, userID, req)
+}
+
+func (s *AuthService) DeleteUser(ctx context.Context, userID string) error {
+	return s.users.Delete(ctx, userID)
+}
+
 func (s *AuthService) ValidateAccessToken(tokenStr string) (string, error) {
 	claims, err := s.parseToken(tokenStr, "access")
 	if err != nil {
