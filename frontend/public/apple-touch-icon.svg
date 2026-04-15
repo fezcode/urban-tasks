@@ -1,5 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180" fill="none">
-  <rect width="180" height="180" rx="40" fill="#C96442"/>
-  <path d="M45 70a25 25 0 0 1 25-25h28a25 25 0 0 1 0 50H70a25 25 0 0 1-25-25Z" fill="white" fill-opacity="0.9"/>
-  <path d="M78 110a25 25 0 0 1 25-25h28a25 25 0 0 1 0 50h-28a25 25 0 0 1-25-25Z" fill="white" fill-opacity="0.45"/>
+  <defs>
+    <linearGradient id="ut-g" x1="0" y1="0" x2="180" y2="180" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#D47653"/>
+      <stop offset="1" stop-color="#B0502F"/>
+    </linearGradient>
+    <clipPath id="ut-clip"><rect width="180" height="180" rx="40"/></clipPath>
+  </defs>
+  <g clip-path="url(#ut-clip)">
+    <rect width="180" height="180" rx="40" fill="url(#ut-g)"/>
+    <path d="M180 22 L22 180 L-10 180 L-10 148 L148 -10 L180 -10 Z" fill="#F5EFE6" fill-opacity="0.92"/>
+    <circle cx="50" cy="50" r="14" fill="#F5EFE6"/>
+    <circle cx="130" cy="130" r="12" fill="#1F1B17"/>
+  </g>
 </svg>

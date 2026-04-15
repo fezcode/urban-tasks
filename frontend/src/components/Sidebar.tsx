@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useAppState } from '../context/AppState';
 import { getNextColor } from '../context/AppState';
 import { useTheme } from '../context/ThemeContext';
+import Logo from './Logo';
 import {
   Inbox,
   Plus,
@@ -223,20 +224,7 @@ const Sidebar: React.FC<Props> = ({
       {/* Logo */}
       <div className="px-5 pt-6 pb-2">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path
-                d="M2 4.5A2.5 2.5 0 0 1 4.5 2h3a2.5 2.5 0 0 1 0 5h-3A2.5 2.5 0 0 1 2 4.5Z"
-                fill="white"
-                fillOpacity="0.9"
-              />
-              <path
-                d="M6 11.5A2.5 2.5 0 0 1 8.5 9h3a2.5 2.5 0 0 1 0 5h-3A2.5 2.5 0 0 1 6 11.5Z"
-                fill="white"
-                fillOpacity="0.5"
-              />
-            </svg>
-          </div>
+          <Logo size={28} />
           <span className="font-semibold text-[15px] text-text-primary tracking-tight">
             Urban Tasks
           </span>

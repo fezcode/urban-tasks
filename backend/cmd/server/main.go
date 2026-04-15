@@ -10,6 +10,9 @@ import (
 	"syscall"
 	"time"
 
+	"net/url"
+	"strings"
+
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -74,14 +77,34 @@ func main() {
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logging)
 	r.Use(chimw.RealIP)
-	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   cfg.AllowedOrigins,
+	corsOpts := cors.Options{
 		AllowedMethods:   []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Authorization", "Content-Type", "X-Request-ID"},
 		ExposedHeaders:   []string{"X-Request-ID"},
 		AllowCredentials: true,
 		MaxAge:           300,
-	}))
+	}
+	if cfg.Environment == "development" {
+		// Dev: accept any localhost/127.0.0.1 origin on any port, plus any explicit allow-list entries.
+		explicit := make(map[string]bool, len(cfg.AllowedOrigins))
+		for _, o := range cfg.AllowedOrigins {
+			explicit[o] = true
+		}
+		corsOpts.AllowOriginFunc = func(_ *http.Request, origin string) bool {
+			if explicit[origin] {
+				return true
+			}
+			u, err := url.Parse(origin)
+			if err != nil {
+				return false
+			}
+			host := u.Hostname()
+			return host == "localhost" || host == "127.0.0.1" || strings.HasSuffix(host, ".localhost")
+		}
+	} else {
+		corsOpts.AllowedOrigins = cfg.AllowedOrigins
+	}
+	r.Use(cors.Handler(corsOpts))
 	r.Use(httprate.LimitByIP(cfg.RateLimitRPS, time.Minute))
 	r.Use(chimw.Compress(5))
 

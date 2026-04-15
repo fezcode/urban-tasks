@@ -56,6 +56,7 @@ export default {
           'system-ui',
           'sans-serif',
         ],
+        display: ['Fraunces', 'Georgia', 'ui-serif', 'serif'],
       },
       fontSize: {
         '2xs': ['0.6875rem', { lineHeight: '1rem' }],
