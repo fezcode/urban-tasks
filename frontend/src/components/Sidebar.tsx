@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useAppState } from '../context/AppState';
 import { getNextColor } from '../context/AppState';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import Logo from './Logo';
 import {
   Inbox,
@@ -22,6 +23,7 @@ import {
   Archive,
   Download,
   Upload,
+  LogOut,
 } from 'lucide-react';
 import { format, differenceInDays, startOfDay } from 'date-fns';
 import ProjectIcon from './ProjectIcon';
@@ -81,6 +83,20 @@ const Sidebar: React.FC<Props> = ({
   const { success, error: toastError } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { theme, toggle: toggleTheme } = useTheme();
+  const { user, logout } = useAuth();
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!profileMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+        setProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [profileMenuOpen]);
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -461,7 +477,13 @@ const Sidebar: React.FC<Props> = ({
                   />
                   <span className="truncate">{project.name}</span>
                   {count > 0 && (
-                    <span className="ml-auto text-2xs text-text-tertiary tabular-nums">
+                    <span
+                      className={`ml-auto text-2xs text-text-tertiary tabular-nums transition-opacity ${
+                        menuOpenId === project.id
+                          ? 'opacity-0'
+                          : 'group-hover:opacity-0'
+                      }`}
+                    >
                       {count}
                     </span>
                   )}
@@ -472,7 +494,10 @@ const Sidebar: React.FC<Props> = ({
                     e.stopPropagation();
                     setMenuOpenId(menuOpenId === project.id ? null : project.id);
                   }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-bg-tertiary transition-base"
+                  aria-label={`Project options for ${project.name}`}
+                  className={`absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded transition-base hover:bg-bg-tertiary ${
+                    menuOpenId === project.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                  }`}
                 >
                   <MoreHorizontal size={14} className="text-text-tertiary" />
                 </button>
@@ -576,8 +601,58 @@ const Sidebar: React.FC<Props> = ({
         )}
       </div>
 
+      {/* Profile */}
+      {user && (
+        <div className="px-3 pt-3 border-t border-border-light relative" ref={profileMenuRef}>
+          <button
+            onClick={() => setProfileMenuOpen((v) => !v)}
+            aria-expanded={profileMenuOpen}
+            aria-haspopup="menu"
+            className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-lg transition-base ${
+              profileMenuOpen
+                ? 'bg-surface-hover'
+                : 'hover:bg-surface-hover'
+            }`}
+          >
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-semibold text-text-inverse flex-shrink-0"
+              style={{ backgroundColor: 'rgb(var(--color-accent))' }}
+              aria-hidden="true"
+            >
+              {(user.name || user.email || '?').trim().charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <div className="text-[13px] font-medium text-text-primary truncate">
+                {user.name || 'Unnamed'}
+              </div>
+              <div className="text-2xs text-text-tertiary truncate">{user.email}</div>
+            </div>
+            <MoreHorizontal size={14} className="text-text-tertiary flex-shrink-0" />
+          </button>
+
+          {profileMenuOpen && (
+            <div
+              role="menu"
+              className="absolute bottom-full left-3 right-3 mb-1 z-50 bg-surface border border-border rounded-lg shadow-lg py-1 animate-fade-in"
+            >
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setProfileMenuOpen(false);
+                  setConfirmLogout(true);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-text-primary hover:bg-surface-hover transition-base"
+              >
+                <LogOut size={14} className="text-text-tertiary" />
+                Sign out
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Footer */}
-      <div className="px-4 py-3 border-t border-border-light flex items-center justify-between gap-2">
+      <div className="px-4 py-3 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-2xs text-text-tertiary">
           <div className="w-1.5 h-1.5 rounded-full bg-status-active" />
           <span>{state.tasks.length} tasks</span>
@@ -633,6 +708,19 @@ const Sidebar: React.FC<Props> = ({
             />
           );
         })()}
+
+      {confirmLogout && (
+        <ConfirmDialog
+          title="Sign out?"
+          message="You'll need to sign in again to access your tasks. Your data is safe on the server."
+          confirmLabel="Sign out"
+          onConfirm={() => {
+            setConfirmLogout(false);
+            logout();
+          }}
+          onCancel={() => setConfirmLogout(false)}
+        />
+      )}
     </aside>
   );
 };

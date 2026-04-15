@@ -32,3 +32,6 @@
 - [x] **Accessibility** — ARIA labels, full keyboard navigation, screen reader support
 - [ ] **i18n** — internationalization and RTL layout support
 - [x] **Code splitting** — lazy loading to reduce bundle size
+
+## Security
+- [ ] **Encryption** - we need to implement a secure way to store passwords and user data

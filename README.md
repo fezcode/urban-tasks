@@ -1,48 +1,94 @@
 # Urban Tasks
 
-A clean, minimal personal task manager with projects, burndown charts, and light/dark themes.
+A personal task manager with projects, a velocity dashboard, recurring tasks, calendar view,
+undo/redo, offline PWA support, and a warm editorial aesthetic. Go + PostgreSQL backend,
+React 19 + TypeScript + Vite frontend.
 
 ## Features
 
-- **Tasks** — Create, complete, and manage tasks with status cycling (to-do, active, done)
-- **Projects** — Organize tasks into color-coded projects with unique geometric icons
-- **Dashboard** — Burndown chart, daily velocity, status distribution, and per-project progress
-- **Light / Dark theme** — Toggle between warm light and dark modes, persisted to localStorage
-- **LocalStorage persistence** — All data saved automatically, no backend needed
-- **GitHub Pages ready** — Ships with a deploy workflow
+### Tasks
+- Status cycling (to-do → in-progress → done) and priority (low / medium / high)
+- Subtasks, tags, attachments/links, recurring schedules (daily / weekly / biweekly / monthly)
+- Drag-and-drop reordering within a project, manual sidebar order
+- Undo / redo for task edits (Ctrl+Z / Ctrl+Shift+Z)
+
+### Views
+- **Tasks** — grouped by project or flat single-project view
+- **Dashboard** — burndown, 7-day velocity delta, streaks, overdue count, upcoming mini-bars, priority mix, per-project breakdown
+- **Calendar** — month grid with priority-colored dots and a side panel per day
+- **Archive** — completed tasks separated from active work
+
+### UX
+- Light / dark theme, six-position toast system, confirmation dialogs
+- Browser notifications for due-today / overdue tasks
+- Command palette (Ctrl/⌘+K), keyboard shortcuts, onboarding flow
+- PWA: installable, service-worker cached, offline-capable
+- Accessible: ARIA labels, skip link, dialog roles, keyboard-first task list
+
+### Data
+- JWT auth (access + refresh)
+- Full JSON export / import
 
 ## Tech Stack
 
-- React 19
-- TypeScript
-- Tailwind CSS
-- Vite
-- Recharts
-- date-fns
-- Lucide Icons
+**Backend:** Go 1.25, Chi, pgx, PostgreSQL, golang-migrate, JWT
+**Frontend:** React 19, TypeScript, Vite, Tailwind CSS, Recharts, date-fns, Lucide, Fraunces + Inter
 
 ## Getting Started
 
+### Prerequisites
+- Go 1.25+
+- Node 22+
+- PostgreSQL 15+ (or Docker)
+
+### Backend
+
 ```bash
+cd backend
+export DATABASE_URL="postgres://postgres:postgres@localhost:5432/urban_tasks?sslmode=disable"
+export JWT_SECRET="change-me-in-production"
+export ENVIRONMENT="development"
+go run ./cmd/server
+```
+
+Migrations run automatically on startup. Dev mode accepts any `localhost` / `127.0.0.1` origin.
+
+### Frontend
+
+```bash
+cd frontend
 npm install
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173).
+Open [http://localhost:5173](http://localhost:5173). Vite proxies `/api/*` to the Go server.
 
-## Build
+## Docker
+
+Both services ship with a Dockerfile:
 
 ```bash
-npm run build
-npm run preview
+docker build -t urban-tasks-backend ./backend
+docker build -t urban-tasks-frontend ./frontend
+```
+
+The frontend image builds the SPA and serves it via nginx with a single-page fallback,
+long-cache for hashed assets, and no-cache on `sw.js` / `manifest.webmanifest`.
+
+## Tests
+
+```bash
+cd backend && go test ./...
 ```
 
 ## Deploy
 
-Push to `main` and the included GitHub Actions workflow (`.github/workflows/deploy.yml`) will build and deploy to GitHub Pages automatically.
-
-Make sure **Settings > Pages > Source** is set to **GitHub Actions** in your repo.
+Push to `main` and the included GitHub Actions workflow builds and deploys the frontend.
 
 ## License
 
 MIT
+
+---
+
+![](./quote.jpeg)
