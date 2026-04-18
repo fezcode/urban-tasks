@@ -18,23 +18,23 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTheme } from '@/theme/ThemeContext';
 import { api, Task, Project } from '@/api/client';
 
-type Filter = 'all' | 'todo' | 'in_progress' | 'done';
+type Filter = 'all' | 'todo' | 'in-progress' | 'done';
 
 const FILTERS: { key: Filter; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'todo', label: 'To do' },
-  { key: 'in_progress', label: 'Doing' },
+  { key: 'in-progress', label: 'Doing' },
   { key: 'done', label: 'Done' },
 ];
 
 const STATUS_LABEL: Record<Task['status'], string> = {
   todo: 'To do',
-  in_progress: 'In progress',
+  'in-progress': 'In progress',
   done: 'Done',
 };
 
 const nextStatus = (s: Task['status']): Task['status'] =>
-  s === 'todo' ? 'in_progress' : s === 'in_progress' ? 'done' : 'todo';
+  s === 'todo' ? 'in-progress' : s === 'in-progress' ? 'done' : 'todo';
 
 const isoDate = (s?: string) => (s ? s.slice(0, 10) : '');
 
@@ -95,7 +95,7 @@ export default function TasksScreen() {
     () => ({
       all: tasks.length,
       todo: tasks.filter((t) => t.status === 'todo').length,
-      in_progress: tasks.filter((t) => t.status === 'in_progress').length,
+      'in-progress': tasks.filter((t) => t.status === 'in-progress').length,
       done: tasks.filter((t) => t.status === 'done').length,
     }),
     [tasks],
@@ -416,7 +416,7 @@ function StatusIndicator({ status }: { status: Task['status'] }) {
       </View>
     );
   }
-  if (status === 'in_progress') {
+  if (status === 'in-progress') {
     return (
       <View
         style={{
@@ -686,7 +686,7 @@ function TaskFormModal({
             {mode === 'edit' && (
               <Field label="Status">
                 <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                  {(['todo', 'in_progress', 'done'] as const).map((s) => {
+                  {(['todo', 'in-progress', 'done'] as const).map((s) => {
                     const active = status === s;
                     return (
                       <TouchableOpacity

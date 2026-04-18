@@ -107,7 +107,7 @@ export interface Task {
   projectId: string;
   title: string;
   body?: string;
-  status: 'todo' | 'in_progress' | 'done';
+  status: 'todo' | 'in-progress' | 'done';
   priority?: 'low' | 'medium' | 'high';
   tags?: string[];
   startDate?: string;

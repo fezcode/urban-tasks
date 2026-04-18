@@ -103,6 +103,7 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 			respondError(w, http.StatusBadRequest, "project not found")
 			return
 		}
+		slog.Error("update task", "error", err, "userID", userID, "taskID", taskID)
 		respondError(w, http.StatusInternalServerError, "failed to update task")
 		return
 	}
