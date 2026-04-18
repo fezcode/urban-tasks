@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "Urban Tasks",
+    "slug": "urban-tasks",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "urbantasks",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#faf9f6",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.urbantasks.app"
+    },
+    "android": {
+      "package": "com.urbantasks.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#faf9f6"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
