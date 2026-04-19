@@ -11,6 +11,7 @@
       "backgroundColor": "#faf9f6",
       "resizeMode": "contain"
     },
+    "primaryColor": "#c96442",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.urbantasks.app"
@@ -22,7 +23,14 @@
       }
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "name": "Urban Tasks",
+      "shortName": "Tasks",
+      "themeColor": "#c96442",
+      "backgroundColor": "#faf9f6",
+      "display": "standalone",
+      "lang": "en",
+      "description": "A calm, editorial task manager."
     },
     "plugins": [
       "expo-router",
