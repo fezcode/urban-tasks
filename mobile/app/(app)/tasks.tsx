@@ -19,7 +19,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { CalendarClock, Check, Flag, Plus } from 'lucide-react-native';
 import { useTheme } from '@/theme/ThemeContext';
 import { api, Task, Project } from '@/api/client';
-import { DateField } from '@/components/ui';
+import { DateField, Markdown } from '@/components/ui';
 import { haptic } from '@/haptics';
 
 type Filter = 'all' | 'todo' | 'in-progress' | 'done';
@@ -700,6 +700,7 @@ function TaskFormModal({
   const [startDate, setStartDate] = useState<string | undefined>(undefined);
   const [tags, setTags] = useState('');
   const [busy, setBusy] = useState(false);
+  const [notesPreview, setNotesPreview] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
@@ -880,15 +881,66 @@ function TaskFormModal({
               <StyledInput value={title} onChangeText={setTitle} placeholder="What needs doing?" autoFocus={mode === 'create'} />
             </Field>
 
-            <Field label="Notes">
-              <StyledInput
-                value={body}
-                onChangeText={setBody}
-                placeholder="Add details (optional)"
-                multiline
-                minHeight={90}
-              />
-            </Field>
+            <View style={{ gap: spacing.sm }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <Text
+                  style={{
+                    color: palette.textTertiary,
+                    fontSize: 11,
+                    letterSpacing: 1.5,
+                    textTransform: 'uppercase',
+                    fontFamily: 'Inter_500Medium',
+                  }}
+                >
+                  Notes
+                </Text>
+                {body.trim().length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => setNotesPreview((v) => !v)}
+                    hitSlop={8}
+                  >
+                    <Text
+                      style={{
+                        color: palette.accent,
+                        fontSize: 12,
+                        fontFamily: 'Inter_500Medium',
+                      }}
+                    >
+                      {notesPreview ? 'Edit' : 'Preview'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              {notesPreview ? (
+                <View
+                  style={{
+                    backgroundColor: palette.surface,
+                    borderColor: palette.border,
+                    borderWidth: 1,
+                    borderRadius: radii.md,
+                    paddingHorizontal: spacing.md,
+                    paddingVertical: spacing.sm + 2,
+                    minHeight: 90,
+                  }}
+                >
+                  <Markdown>{body}</Markdown>
+                </View>
+              ) : (
+                <StyledInput
+                  value={body}
+                  onChangeText={setBody}
+                  placeholder="Add details — markdown supported"
+                  multiline
+                  minHeight={90}
+                />
+              )}
+            </View>
 
             {mode === 'edit' && (
               <Field label="Status">

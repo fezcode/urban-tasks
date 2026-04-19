@@ -6,3 +6,4 @@ export { Field } from './Field';
 export { Divider } from './Divider';
 export { SectionHeader } from './SectionHeader';
 export { DateField } from './DateField';
+export { Markdown } from './Markdown';

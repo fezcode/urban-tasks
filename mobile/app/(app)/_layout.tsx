@@ -1,7 +1,7 @@
 import React from 'react';
 import { Platform } from 'react-native';
 import { Tabs } from 'expo-router';
-import { CheckSquare, FolderKanban, User } from 'lucide-react-native';
+import { CheckSquare, FolderKanban, LayoutDashboard, User } from 'lucide-react-native';
 import { useTheme } from '@/theme/ThemeContext';
 
 export default function AppTabs() {
@@ -36,6 +36,15 @@ export default function AppTabs() {
         headerShadowVisible: false,
       }}
     >
+      <Tabs.Screen
+        name="dashboard"
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ color, focused }) => (
+            <LayoutDashboard color={color} size={22} strokeWidth={focused ? 2.2 : 1.8} />
+          ),
+        }}
+      />
       <Tabs.Screen
         name="tasks"
         options={{
