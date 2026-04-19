@@ -241,7 +241,7 @@ function ProjectModal({ editing, taskCount, onClose, onSaved, onDeleted }: Proje
           name: name.trim(),
           color,
         });
-        onSaved(updated, false);
+        if (updated) onSaved(updated, false);
       } else {
         const created = await api.createProject(name.trim(), color);
         onSaved(created, true);

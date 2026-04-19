@@ -1,5 +1,14 @@
 import Constants from 'expo-constants';
 import { getItem, removeItem, setItem } from '@/storage';
+import {
+  enqueue,
+  peekQueue,
+  remove as removeFromQueue,
+  emitChange,
+  queueSize,
+  onQueueChange,
+  type QueuedOp,
+} from '@/api/offlineQueue';
 
 const DEFAULT_BASE = 'http://localhost:8080';
 const BASE_URL =
@@ -58,6 +67,13 @@ async function tryRefresh(): Promise<boolean> {
   }
 }
 
+export class NetworkError extends Error {
+  constructor() {
+    super('Network unavailable');
+    this.name = 'NetworkError';
+  }
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   await hydrate();
   const doFetch = () =>
@@ -70,10 +86,19 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       },
     });
 
-  let res = await doFetch();
+  let res: Response;
+  try {
+    res = await doFetch();
+  } catch {
+    throw new NetworkError();
+  }
   if (res.status === 401 && refreshToken) {
     if (await tryRefresh()) {
-      res = await doFetch();
+      try {
+        res = await doFetch();
+      } catch {
+        throw new NetworkError();
+      }
     } else {
       await clearToken();
       throw new Error('Session expired');
@@ -121,6 +146,62 @@ export interface Project {
   color?: string;
 }
 
+async function queueOnNetwork<T>(
+  op: Omit<QueuedOp, 'id' | 'createdAt'>,
+  fn: () => Promise<T>,
+): Promise<T | undefined> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (err instanceof NetworkError) {
+      await enqueue(op);
+      await emitChange();
+      return undefined;
+    }
+    throw err;
+  }
+}
+
+export async function flushQueue(): Promise<{ flushed: number; failed: number }> {
+  const ops = await peekQueue();
+  let flushed = 0;
+  let failed = 0;
+  for (const op of ops) {
+    try {
+      if (op.kind === 'updateTask' && op.targetId) {
+        await request<Task>(`/tasks/${op.targetId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(op.payload),
+        });
+      } else if (op.kind === 'deleteTask' && op.targetId) {
+        await request<void>(`/tasks/${op.targetId}`, { method: 'DELETE' });
+      } else if (op.kind === 'updateProject' && op.targetId) {
+        await request<Project>(`/projects/${op.targetId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(op.payload),
+        });
+      } else if (op.kind === 'deleteProject' && op.targetId) {
+        await request<void>(`/projects/${op.targetId}`, { method: 'DELETE' });
+      } else if (op.kind === 'updateMe') {
+        await request<User>('/me', {
+          method: 'PATCH',
+          body: JSON.stringify(op.payload),
+        });
+      }
+      await removeFromQueue(op.id);
+      flushed++;
+    } catch (err) {
+      if (err instanceof NetworkError) break;
+      await removeFromQueue(op.id);
+      failed++;
+    }
+  }
+  await emitChange();
+  return { flushed, failed };
+}
+
+export { queueSize, onQueueChange };
+
 export const api = {
   login: (email: string, password: string) =>
     request<AuthResponse>('/auth/login', {
@@ -134,7 +215,10 @@ export const api = {
     }),
   me: () => request<User>('/me'),
   updateMe: (patch: { name?: string; avatarSeed?: string }) =>
-    request<User>('/me', { method: 'PATCH', body: JSON.stringify(patch) }),
+    queueOnNetwork(
+      { kind: 'updateMe', payload: patch },
+      () => request<User>('/me', { method: 'PATCH', body: JSON.stringify(patch) }),
+    ),
   deleteMe: () => request<void>('/me', { method: 'DELETE' }),
   listProjects: () => request<Project[]>('/projects'),
   createProject: (name: string, color: string) =>
@@ -143,12 +227,19 @@ export const api = {
       body: JSON.stringify({ name, color }),
     }),
   updateProject: (id: string, patch: Partial<Project>) =>
-    request<Project>(`/projects/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(patch),
-    }),
+    queueOnNetwork(
+      { kind: 'updateProject', targetId: id, payload: patch },
+      () =>
+        request<Project>(`/projects/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify(patch),
+        }),
+    ),
   deleteProject: (id: string) =>
-    request<void>(`/projects/${id}`, { method: 'DELETE' }),
+    queueOnNetwork(
+      { kind: 'deleteProject', targetId: id },
+      () => request<void>(`/projects/${id}`, { method: 'DELETE' }),
+    ),
   listTasks: (projectId?: string) =>
     request<Task[]>(`/tasks${projectId ? `?projectId=${projectId}` : ''}`),
   createTask: (input: {
@@ -158,6 +249,17 @@ export const api = {
     priority?: Task['priority'];
   }) => request<Task>('/tasks', { method: 'POST', body: JSON.stringify(input) }),
   updateTask: (id: string, patch: Partial<Task>) =>
-    request<Task>(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
-  deleteTask: (id: string) => request<void>(`/tasks/${id}`, { method: 'DELETE' }),
+    queueOnNetwork(
+      { kind: 'updateTask', targetId: id, payload: patch },
+      () =>
+        request<Task>(`/tasks/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify(patch),
+        }),
+    ),
+  deleteTask: (id: string) =>
+    queueOnNetwork(
+      { kind: 'deleteTask', targetId: id },
+      () => request<void>(`/tasks/${id}`, { method: 'DELETE' }),
+    ),
 };

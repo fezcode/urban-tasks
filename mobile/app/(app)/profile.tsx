@@ -415,7 +415,7 @@ function EditProfileModal({
         avatarSeed: seed.trim() || undefined,
       });
       haptic.success();
-      onSaved(updated);
+      if (updated) onSaved(updated);
     } catch (e) {
       haptic.warning();
       setErr(e instanceof Error ? e.message : 'Failed to save');

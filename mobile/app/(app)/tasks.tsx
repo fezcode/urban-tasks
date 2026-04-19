@@ -162,7 +162,9 @@ export default function TasksScreen() {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
     try {
       const updated = await api.updateTask(id, patch);
-      setTasks((prev) => prev.map((t) => (t.id === id ? updated : t)));
+      if (updated) {
+        setTasks((prev) => prev.map((t) => (t.id === id ? updated : t)));
+      }
       return updated;
     } catch (e) {
       load();

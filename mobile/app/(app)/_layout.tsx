@@ -1,12 +1,86 @@
-import React from 'react';
-import { Platform } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { AppState, Platform, Text, View } from 'react-native';
 import { Tabs } from 'expo-router';
-import { CalendarDays, CheckSquare, FolderKanban, LayoutDashboard, User } from 'lucide-react-native';
+import { CalendarDays, CheckSquare, CloudOff, FolderKanban, LayoutDashboard, User } from 'lucide-react-native';
 import { useTheme } from '@/theme/ThemeContext';
+import { flushQueue, onQueueChange } from '@/api/client';
+import { queueSize } from '@/api/offlineQueue';
+
+function OfflineBanner() {
+  const { palette, spacing, fontSize } = useTheme();
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    queueSize().then(setCount);
+    const off = onQueueChange(setCount);
+    return () => {
+      off();
+    };
+  }, []);
+
+  useEffect(() => {
+    const attempt = () => {
+      flushQueue().catch(() => {});
+    };
+    attempt();
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s === 'active') attempt();
+    });
+    const id = setInterval(attempt, 15000);
+    return () => {
+      sub.remove();
+      clearInterval(id);
+    };
+  }, []);
+
+  if (count <= 0) return null;
+  return (
+    <View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        bottom: Platform.OS === 'ios' ? 100 : 84,
+        left: spacing.md,
+        right: spacing.md,
+        backgroundColor: palette.surface,
+        borderWidth: 1,
+        borderColor: palette.borderLight,
+        borderRadius: 999,
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.sm,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        zIndex: 10,
+      }}
+    >
+      <CloudOff size={14} color={palette.textSecondary} />
+      <Text
+        style={{
+          color: palette.textSecondary,
+          fontFamily: 'Inter_500Medium',
+          fontSize: fontSize.sm,
+        }}
+      >
+        {count} pending {count === 1 ? 'change' : 'changes'} — will sync
+      </Text>
+    </View>
+  );
+}
 
 export default function AppTabs() {
   const { palette } = useTheme();
 
+  return (
+    <View style={{ flex: 1, backgroundColor: palette.bg }}>
+      <OfflineBanner />
+      <InnerTabs />
+    </View>
+  );
+}
+
+function InnerTabs() {
+  const { palette } = useTheme();
   return (
     <Tabs
       screenOptions={{
@@ -85,3 +159,5 @@ export default function AppTabs() {
     </Tabs>
   );
 }
+
+export { OfflineBanner };
