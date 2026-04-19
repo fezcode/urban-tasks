@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ChevronRight, Moon, Shuffle, Sun } from 'lucide-react-native';
+import { ChevronRight, Download, Moon, Shuffle, Sun, Upload } from 'lucide-react-native';
 import { useTheme } from '@/theme/ThemeContext';
 import { api, clearToken, User } from '@/api/client';
 import { haptic } from '@/haptics';
@@ -27,6 +27,10 @@ export default function Profile() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
+  const [dataOpen, setDataOpen] = useState<null | 'export' | 'import'>(null);
+  const [dataText, setDataText] = useState('');
+  const [dataBusy, setDataBusy] = useState(false);
+  const [dataMsg, setDataMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -69,6 +73,90 @@ export default function Profile() {
   };
 
   const initial = (user?.name || user?.email || '?').trim().charAt(0).toUpperCase();
+
+  const startExport = async () => {
+    setDataBusy(true);
+    setDataMsg(null);
+    setDataText('');
+    setDataOpen('export');
+    try {
+      const [projects, tasks] = await Promise.all([api.listProjects(), api.listTasks()]);
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        version: 1,
+        projects,
+        tasks,
+      };
+      const json = JSON.stringify(payload, null, 2);
+      setDataText(json);
+      if (Platform.OS === 'web') {
+        try {
+          // @ts-ignore navigator types vary
+          await navigator.clipboard?.writeText(json);
+          setDataMsg({ kind: 'ok', text: 'Copied to clipboard.' });
+        } catch {
+          setDataMsg({ kind: 'ok', text: 'Select and copy the JSON below.' });
+        }
+      } else {
+        setDataMsg({ kind: 'ok', text: 'Long-press to select and copy.' });
+      }
+    } catch (e) {
+      setDataMsg({ kind: 'err', text: e instanceof Error ? e.message : 'Export failed' });
+    } finally {
+      setDataBusy(false);
+    }
+  };
+
+  const startImport = () => {
+    setDataText('');
+    setDataMsg(null);
+    setDataOpen('import');
+  };
+
+  const runImport = async () => {
+    setDataBusy(true);
+    setDataMsg(null);
+    try {
+      const parsed = JSON.parse(dataText);
+      const projects: any[] = Array.isArray(parsed?.projects) ? parsed.projects : [];
+      const tasks: any[] = Array.isArray(parsed?.tasks) ? parsed.tasks : [];
+      const idMap = new Map<string, string>();
+      for (const p of projects) {
+        if (!p?.name) continue;
+        const created = await api.createProject(String(p.name), String(p.color ?? '#c96442'));
+        if (p.id) idMap.set(String(p.id), created.id);
+      }
+      let imported = 0;
+      for (const t of tasks) {
+        if (!t?.title || !t?.projectId) continue;
+        const pid = idMap.get(String(t.projectId));
+        if (!pid) continue;
+        const created = await api.createTask({
+          projectId: pid,
+          title: String(t.title),
+          body: t.body ? String(t.body) : undefined,
+          priority: t.priority,
+        });
+        const patch: any = {};
+        if (t.dueDate) patch.dueDate = String(t.dueDate).slice(0, 10);
+        if (t.startDate) patch.startDate = String(t.startDate).slice(0, 10);
+        if (Array.isArray(t.tags)) patch.tags = t.tags.map(String);
+        if (t.status && t.status !== 'todo') patch.status = t.status;
+        if (Object.keys(patch).length) await api.updateTask(created.id, patch);
+        imported++;
+      }
+      haptic.success();
+      setDataMsg({
+        kind: 'ok',
+        text: `Imported ${projects.length} projects and ${imported} tasks.`,
+      });
+    } catch (e) {
+      haptic.warning();
+      setDataMsg({ kind: 'err', text: e instanceof Error ? e.message : 'Invalid JSON' });
+    } finally {
+      setDataBusy(false);
+    }
+  };
 
   return (
     <SafeAreaView edges={['bottom']} style={[styles.flex, { backgroundColor: palette.bg }]}>
@@ -157,6 +245,20 @@ export default function Profile() {
         </View>
 
         <View style={{ gap: spacing.sm }}>
+          <SectionLabel>Data</SectionLabel>
+          <Row
+            label="Export"
+            icon={<Download size={16} color={palette.textSecondary} />}
+            onPress={startExport}
+          />
+          <Row
+            label="Import"
+            icon={<Upload size={16} color={palette.textSecondary} />}
+            onPress={startImport}
+          />
+        </View>
+
+        <View style={{ gap: spacing.sm }}>
           <SectionLabel>Account</SectionLabel>
           <Row label="Sign out" onPress={signOut} />
           <Row label="Delete account" destructive onPress={confirmDelete} />
@@ -182,6 +284,20 @@ export default function Profile() {
         onSaved={(u) => {
           setUser(u);
           setEditOpen(false);
+        }}
+      />
+
+      <DataModal
+        mode={dataOpen}
+        text={dataText}
+        onChangeText={setDataText}
+        busy={dataBusy}
+        message={dataMsg}
+        onConfirmImport={runImport}
+        onClose={() => {
+          setDataOpen(null);
+          setDataMsg(null);
+          setDataText('');
         }}
       />
     </SafeAreaView>
@@ -474,6 +590,157 @@ function EditProfileModal({
                 {err}
               </Text>
             )}
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+function DataModal({
+  mode,
+  text,
+  onChangeText,
+  busy,
+  message,
+  onConfirmImport,
+  onClose,
+}: {
+  mode: null | 'export' | 'import';
+  text: string;
+  onChangeText: (s: string) => void;
+  busy: boolean;
+  message: { kind: 'ok' | 'err'; text: string } | null;
+  onConfirmImport: () => void;
+  onClose: () => void;
+}) {
+  const { palette, radii, spacing, fontSize } = useTheme();
+  const isExport = mode === 'export';
+  const title = isExport ? 'Export data' : 'Import data';
+
+  return (
+    <Modal
+      visible={mode !== null}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.bg }}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{ flex: 1 }}
+        >
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingHorizontal: spacing.lg,
+              paddingVertical: spacing.md,
+              borderBottomColor: palette.borderLight,
+              borderBottomWidth: 1,
+            }}
+          >
+            <TouchableOpacity onPress={onClose} hitSlop={10}>
+              <Text
+                style={{
+                  color: palette.textSecondary,
+                  fontSize: 15,
+                  fontFamily: 'Inter_500Medium',
+                }}
+              >
+                Close
+              </Text>
+            </TouchableOpacity>
+            <Text
+              style={{
+                color: palette.textPrimary,
+                fontSize: 16,
+                fontFamily: 'Fraunces_600SemiBold',
+              }}
+            >
+              {title}
+            </Text>
+            {!isExport ? (
+              <TouchableOpacity
+                onPress={onConfirmImport}
+                disabled={busy || !text.trim()}
+                hitSlop={10}
+              >
+                <Text
+                  style={{
+                    color: !text.trim() ? palette.textTertiary : palette.accent,
+                    fontSize: 15,
+                    fontFamily: 'Inter_600SemiBold',
+                    opacity: busy ? 0.5 : 1,
+                  }}
+                >
+                  {busy ? 'Working…' : 'Import'}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={{ width: 48 }} />
+            )}
+          </View>
+
+          <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
+            <Text
+              style={{
+                color: palette.textSecondary,
+                fontFamily: 'Inter_400Regular',
+                fontSize: fontSize.sm,
+                lineHeight: 20,
+              }}
+            >
+              {isExport
+                ? 'A JSON snapshot of your projects and tasks. Save it somewhere safe — paste it into Import on any device to restore.'
+                : 'Paste a previously exported JSON payload. Existing data is kept; imported items are added alongside.'}
+            </Text>
+
+            {message && (
+              <View
+                style={{
+                  padding: spacing.md,
+                  borderRadius: radii.md,
+                  backgroundColor:
+                    message.kind === 'ok' ? palette.accentLight : palette.dangerBg,
+                }}
+              >
+                <Text
+                  style={{
+                    color: message.kind === 'ok' ? palette.accent : palette.danger,
+                    fontFamily: 'Inter_500Medium',
+                    fontSize: fontSize.sm,
+                  }}
+                >
+                  {message.text}
+                </Text>
+              </View>
+            )}
+
+            <TextInput
+              value={text}
+              onChangeText={onChangeText}
+              editable={!isExport && !busy}
+              multiline
+              placeholder={isExport ? '' : 'Paste JSON here…'}
+              placeholderTextColor={palette.textTertiary}
+              style={{
+                backgroundColor: palette.surface,
+                borderColor: palette.border,
+                borderWidth: 1,
+                borderRadius: radii.md,
+                padding: spacing.md,
+                fontSize: 12,
+                color: palette.textPrimary,
+                fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+                minHeight: 240,
+                textAlignVertical: 'top',
+              }}
+              autoCapitalize="none"
+              autoCorrect={false}
+              selectTextOnFocus={isExport}
+            />
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
