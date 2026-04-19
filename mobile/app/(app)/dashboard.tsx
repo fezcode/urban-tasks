@@ -361,6 +361,7 @@ function FocusList({
   onPress: () => void;
 }) {
   const { palette, radii, spacing, fontSize } = useTheme();
+  const router = useRouter();
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -400,8 +401,13 @@ function FocusList({
       </View>
       <View style={{ gap: 4 }}>
         {tasks.map((t) => (
-          <View
+          <TouchableOpacity
             key={t.id}
+            onPress={(e) => {
+              e?.stopPropagation?.();
+              router.push({ pathname: '/tasks', params: { open: t.id } } as any);
+            }}
+            activeOpacity={0.7}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 }}
           >
             {t.priority === 'high' && <Flag size={11} color={palette.danger} />}
@@ -430,7 +436,7 @@ function FocusList({
                 })}
               </Text>
             )}
-          </View>
+          </TouchableOpacity>
         ))}
       </View>
     </TouchableOpacity>

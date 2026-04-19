@@ -8,7 +8,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useTheme } from '@/theme/ThemeContext';
 import { api, Project, Task } from '@/api/client';
@@ -34,6 +34,7 @@ const sameDay = (a: Date, b: Date) =>
 
 export default function CalendarScreen() {
   const { palette, radii, spacing, fontSize } = useTheme();
+  const router = useRouter();
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -327,8 +328,12 @@ export default function CalendarScreen() {
                 const p = projById.get(t.projectId);
                 const done = t.status === 'done';
                 return (
-                  <View
+                  <TouchableOpacity
                     key={t.id}
+                    onPress={() =>
+                      router.push({ pathname: '/tasks', params: { open: t.id } } as any)
+                    }
+                    activeOpacity={0.7}
                     style={{
                       padding: spacing.md,
                       borderRadius: radii.md,
@@ -375,7 +380,7 @@ export default function CalendarScreen() {
                         </Text>
                       </View>
                     )}
-                  </View>
+                  </TouchableOpacity>
                 );
               })
             )}
