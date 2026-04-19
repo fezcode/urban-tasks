@@ -112,12 +112,22 @@ export default function TasksScreen() {
     }
   }, [params.open, tasks, router]);
 
+  const [todayOnly, setTodayOnly] = useState(false);
+
   const filtered = useMemo(() => {
     let list = filter === 'all' ? tasks : tasks.filter((t) => t.status === filter);
     if (tagFilter) list = list.filter((t) => t.tags?.includes(tagFilter));
     if (projectFilter) list = list.filter((t) => t.projectId === projectFilter);
+    if (todayOnly) {
+      const end = new Date();
+      end.setHours(23, 59, 59, 999);
+      list = list.filter((t) => {
+        if (!t.dueDate) return false;
+        return new Date(t.dueDate).getTime() <= end.getTime() && t.status !== 'done';
+      });
+    }
     return list;
-  }, [tasks, filter, tagFilter, projectFilter]);
+  }, [tasks, filter, tagFilter, projectFilter, todayOnly]);
 
   const activeProject = useMemo(
     () => projects.find((p) => p.id === projectFilter) ?? null,
@@ -240,6 +250,31 @@ export default function TasksScreen() {
               </TouchableOpacity>
             );
           })}
+          <TouchableOpacity
+            onPress={() => {
+              haptic.selection();
+              setTodayOnly((v) => !v);
+            }}
+            activeOpacity={0.7}
+            style={{
+              paddingHorizontal: spacing.md,
+              paddingVertical: spacing.sm,
+              borderRadius: radii.pill,
+              backgroundColor: todayOnly ? palette.statusWarning : palette.surface,
+              borderWidth: 1,
+              borderColor: todayOnly ? palette.statusWarning : palette.border,
+            }}
+          >
+            <Text
+              style={{
+                color: todayOnly ? '#000' : palette.textPrimary,
+                fontFamily: 'Inter_500Medium',
+                fontSize: 13,
+              }}
+            >
+              Today
+            </Text>
+          </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setGroupByPriority((v) => !v)}
             activeOpacity={0.7}
