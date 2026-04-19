@@ -72,6 +72,8 @@ export default function TasksScreen() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
   const [tagFilter, setTagFilter] = useState<string | null>(null);
+  const [projectFilter, setProjectFilter] = useState<string | null>(null);
+  const [projectSheetOpen, setProjectSheetOpen] = useState(false);
   const [groupByPriority, setGroupByPriority] = useState(false);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
@@ -103,8 +105,14 @@ export default function TasksScreen() {
   const filtered = useMemo(() => {
     let list = filter === 'all' ? tasks : tasks.filter((t) => t.status === filter);
     if (tagFilter) list = list.filter((t) => t.tags?.includes(tagFilter));
+    if (projectFilter) list = list.filter((t) => t.projectId === projectFilter);
     return list;
-  }, [tasks, filter, tagFilter]);
+  }, [tasks, filter, tagFilter, projectFilter]);
+
+  const activeProject = useMemo(
+    () => projects.find((p) => p.id === projectFilter) ?? null,
+    [projects, projectFilter],
+  );
 
   const counts = useMemo(
     () => ({
@@ -249,6 +257,41 @@ export default function TasksScreen() {
               }}
             >
               By priority
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setProjectSheetOpen(true)}
+            activeOpacity={0.7}
+            style={{
+              paddingHorizontal: spacing.md,
+              paddingVertical: spacing.sm,
+              borderRadius: radii.pill,
+              backgroundColor: activeProject ? palette.accent : palette.surface,
+              borderWidth: 1,
+              borderColor: activeProject ? palette.accent : palette.border,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            {activeProject && (
+              <View
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: activeProject.color ?? palette.textInverse,
+                }}
+              />
+            )}
+            <Text
+              style={{
+                color: activeProject ? palette.textInverse : palette.textPrimary,
+                fontFamily: 'Inter_500Medium',
+                fontSize: 13,
+              }}
+            >
+              {activeProject ? activeProject.name : 'All projects'}
             </Text>
           </TouchableOpacity>
           {tagFilter && (
@@ -444,6 +487,19 @@ export default function TasksScreen() {
       >
         <Plus color={palette.textInverse} size={26} strokeWidth={2.5} />
       </TouchableOpacity>
+
+      <ProjectSheet
+        visible={projectSheetOpen}
+        projects={projects}
+        tasks={tasks}
+        selected={projectFilter}
+        onClose={() => setProjectSheetOpen(false)}
+        onSelect={(id) => {
+          haptic.selection();
+          setProjectFilter(id);
+          setProjectSheetOpen(false);
+        }}
+      />
 
       <TaskFormModal
         visible={creating}
@@ -1195,6 +1251,153 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       </Text>
       {children}
     </View>
+  );
+}
+
+interface ProjectSheetProps {
+  visible: boolean;
+  projects: Project[];
+  tasks: Task[];
+  selected: string | null;
+  onClose: () => void;
+  onSelect: (id: string | null) => void;
+}
+
+function ProjectSheet({ visible, projects, tasks, selected, onClose, onSelect }: ProjectSheetProps) {
+  const { palette, radii, spacing, fontSize } = useTheme();
+  const insets = useSafeAreaInsets();
+  const openFor = (id: string) =>
+    tasks.filter((t) => t.projectId === id && t.status !== 'done').length;
+  const allOpen = tasks.filter((t) => t.status !== 'done').length;
+
+  const Row = ({
+    active,
+    onPress,
+    dot,
+    label,
+    count,
+  }: {
+    active: boolean;
+    onPress: () => void;
+    dot: string | null;
+    label: string;
+    count: number;
+  }) => (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.7}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.md,
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.md,
+        borderRadius: radii.md,
+        backgroundColor: active ? palette.accentLight : 'transparent',
+      }}
+    >
+      <View
+        style={{
+          width: 12,
+          height: 12,
+          borderRadius: 6,
+          backgroundColor: dot ?? palette.border,
+        }}
+      />
+      <Text
+        style={{
+          flex: 1,
+          color: active ? palette.accent : palette.textPrimary,
+          fontFamily: active ? 'Inter_600SemiBold' : 'Inter_500Medium',
+          fontSize: fontSize.base,
+        }}
+      >
+        {label}
+      </Text>
+      <Text
+        style={{
+          color: palette.textTertiary,
+          fontFamily: 'Inter_400Regular',
+          fontSize: fontSize.xs,
+        }}
+      >
+        {count}
+      </Text>
+    </TouchableOpacity>
+  );
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <TouchableOpacity
+        activeOpacity={1}
+        onPress={onClose}
+        style={{
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.4)',
+          justifyContent: 'flex-end',
+        }}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => {}}
+          style={{
+            backgroundColor: palette.bg,
+            borderTopLeftRadius: radii.xl,
+            borderTopRightRadius: radii.xl,
+            paddingBottom: insets.bottom + spacing.md,
+            paddingTop: spacing.sm,
+          }}
+        >
+          <View
+            style={{
+              alignSelf: 'center',
+              width: 38,
+              height: 4,
+              borderRadius: 2,
+              backgroundColor: palette.border,
+              marginBottom: spacing.md,
+            }}
+          />
+          <Text
+            style={{
+              paddingHorizontal: spacing.lg,
+              color: palette.textTertiary,
+              fontSize: 11,
+              letterSpacing: 1.5,
+              textTransform: 'uppercase',
+              fontFamily: 'Inter_500Medium',
+              marginBottom: spacing.sm,
+            }}
+          >
+            Filter by project
+          </Text>
+          <ScrollView style={{ maxHeight: 440 }} contentContainerStyle={{ paddingBottom: spacing.sm }}>
+            <Row
+              active={selected === null}
+              onPress={() => onSelect(null)}
+              dot={null}
+              label="All projects"
+              count={allOpen}
+            />
+            {projects.map((p) => (
+              <Row
+                key={p.id}
+                active={selected === p.id}
+                onPress={() => onSelect(p.id)}
+                dot={p.color ?? palette.accent}
+                label={p.name}
+                count={openFor(p.id)}
+              />
+            ))}
+          </ScrollView>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
   );
 }
 
