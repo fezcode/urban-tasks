@@ -942,15 +942,15 @@ function TaskFormModal({
                         borderWidth: 1,
                         alignItems: 'center',
                         backgroundColor: active
-                          ? priorityColor(p, palette) + '22'
+                          ? priorityColor(p, palette)
                           : palette.surface,
                         borderColor: active ? priorityColor(p, palette) : palette.border,
                       }}
                     >
                       <Text
                         style={{
-                          color: active ? priorityColor(p, palette) : palette.textPrimary,
-                          fontFamily: 'Inter_500Medium',
+                          color: active ? '#000' : palette.textPrimary,
+                          fontFamily: active ? 'Inter_600SemiBold' : 'Inter_500Medium',
                           fontSize: 13,
                           textTransform: 'capitalize',
                         }}
