@@ -109,3 +109,39 @@ export const typography = {
   sansFamilyMedium: 'Inter_500Medium',
   sansFamilySemi: 'Inter_600SemiBold',
 };
+
+export const fontSize = {
+  '2xs': 11,
+  xs: 12,
+  sm: 13,
+  base: 14,
+  md: 15,
+  lg: 17,
+  xl: 20,
+  '2xl': 24,
+  '3xl': 30,
+};
+
+export const shadow = {
+  sm: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  md: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  lg: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 15,
+    elevation: 6,
+  },
+};

@@ -15,6 +15,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CalendarClock, Check, Flag, Plus } from 'lucide-react-native';
 import { useTheme } from '@/theme/ThemeContext';
 import { api, Task, Project } from '@/api/client';
 
@@ -251,101 +252,14 @@ export default function TasksScreen() {
               )}
             </View>
           }
-          renderItem={({ item }) => {
-            const project = projects.find((p) => p.id === item.projectId);
-            const due = formatDue(item.dueDate, palette);
-            return (
-              <View
-                style={{
-                  backgroundColor: palette.surface,
-                  borderColor: palette.border,
-                  borderWidth: 1,
-                  borderRadius: radii.lg,
-                  flexDirection: 'row',
-                  alignItems: 'stretch',
-                  overflow: 'hidden',
-                }}
-              >
-                <TouchableOpacity
-                  onPress={() => cycleStatus(item)}
-                  activeOpacity={0.6}
-                  style={{
-                    paddingLeft: spacing.md,
-                    paddingRight: spacing.sm,
-                    paddingVertical: spacing.md,
-                    justifyContent: 'flex-start',
-                  }}
-                >
-                  <StatusIndicator status={item.status} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => setEditing(item)}
-                  activeOpacity={0.7}
-                  style={{
-                    flex: 1,
-                    paddingRight: spacing.md,
-                    paddingVertical: spacing.md,
-                  }}
-                >
-                  <Text
-                    style={{
-                      color:
-                        item.status === 'done'
-                          ? palette.textTertiary
-                          : palette.textPrimary,
-                      fontSize: 16,
-                      fontFamily: 'Inter_500Medium',
-                      textDecorationLine:
-                        item.status === 'done' ? 'line-through' : 'none',
-                    }}
-                  >
-                    {item.title}
-                  </Text>
-                  {item.body ? (
-                    <Text
-                      numberOfLines={2}
-                      style={{
-                        color: palette.textSecondary,
-                        fontSize: 13,
-                        marginTop: 2,
-                        fontFamily: 'Inter_400Regular',
-                      }}
-                    >
-                      {item.body}
-                    </Text>
-                  ) : null}
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      gap: 10,
-                      marginTop: 6,
-                      flexWrap: 'wrap',
-                    }}
-                  >
-                    <Meta color={palette.textTertiary}>
-                      {STATUS_LABEL[item.status]}
-                    </Meta>
-                    {item.priority && (
-                      <Meta color={priorityColor(item.priority, palette)}>
-                        {item.priority}
-                      </Meta>
-                    )}
-                    {due && <Meta color={due.color}>{due.label}</Meta>}
-                    {project && (
-                      <Meta color={project.color ?? palette.textTertiary}>
-                        {project.name}
-                      </Meta>
-                    )}
-                    {item.tags?.slice(0, 3).map((t) => (
-                      <Meta key={t} color={palette.textSecondary}>
-                        #{t}
-                      </Meta>
-                    ))}
-                  </View>
-                </TouchableOpacity>
-              </View>
-            );
-          }}
+          renderItem={({ item }) => (
+            <TaskRow
+              task={item}
+              projects={projects}
+              onPressStatus={() => cycleStatus(item)}
+              onPress={() => setEditing(item)}
+            />
+          )}
         />
       )}
 
@@ -360,9 +274,7 @@ export default function TasksScreen() {
           },
         ]}
       >
-        <Text style={{ color: palette.textInverse, fontSize: 30, marginTop: -2 }}>
-          +
-        </Text>
+        <Plus color={palette.textInverse} size={26} strokeWidth={2.5} />
       </TouchableOpacity>
 
       <TaskFormModal
@@ -395,7 +307,7 @@ export default function TasksScreen() {
 
 function StatusIndicator({ status }: { status: Task['status'] }) {
   const { palette } = useTheme();
-  const size = 24;
+  const size = 22;
   if (status === 'done') {
     return (
       <View
@@ -404,15 +316,13 @@ function StatusIndicator({ status }: { status: Task['status'] }) {
           height: size,
           borderRadius: size / 2,
           backgroundColor: palette.statusActive,
+          borderWidth: 2,
+          borderColor: palette.statusActive,
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <Text
-          style={{ color: palette.textInverse, fontSize: 13, fontWeight: '700' }}
-        >
-          ✓
-        </Text>
+        <Check color="#fff" size={12} strokeWidth={3} />
       </View>
     );
   }
@@ -424,17 +334,18 @@ function StatusIndicator({ status }: { status: Task['status'] }) {
           height: size,
           borderRadius: size / 2,
           borderWidth: 2,
-          borderColor: palette.statusWarning,
+          borderColor: palette.accent,
+          backgroundColor: palette.accentLight,
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
         <View
           style={{
-            width: 10,
-            height: 10,
-            borderRadius: 5,
-            backgroundColor: palette.statusWarning,
+            width: 8,
+            height: 8,
+            borderRadius: 4,
+            backgroundColor: palette.accent,
           }}
         />
       </View>
@@ -446,26 +357,162 @@ function StatusIndicator({ status }: { status: Task['status'] }) {
         width: size,
         height: size,
         borderRadius: size / 2,
-        borderWidth: 1.5,
+        borderWidth: 2,
         borderColor: palette.border,
       }}
     />
   );
 }
 
-function Meta({ children, color }: { children: React.ReactNode; color: string }) {
+interface TaskRowProps {
+  task: Task;
+  projects: Project[];
+  onPressStatus: () => void;
+  onPress: () => void;
+}
+
+function TaskRow({ task, projects, onPressStatus, onPress }: TaskRowProps) {
+  const { palette, radii, spacing, fontSize } = useTheme();
+  const project = projects.find((p) => p.id === task.projectId);
+  const due = formatDue(task.dueDate, palette);
+  const pri = task.priority;
+  const priMeta: Record<NonNullable<Task['priority']>, { label: string; color: string }> = {
+    low: { label: 'Low', color: palette.textTertiary },
+    medium: { label: 'Med', color: palette.statusWarning },
+    high: { label: 'High', color: palette.danger },
+  };
+  const isDone = task.status === 'done';
+
   return (
-    <Text
+    <View
       style={{
-        color,
-        fontSize: 11,
-        letterSpacing: 1.2,
-        textTransform: 'uppercase',
-        fontFamily: 'Inter_500Medium',
+        backgroundColor: palette.surface,
+        borderColor: palette.border,
+        borderWidth: 1,
+        borderRadius: radii.lg,
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.md,
+        gap: spacing.md,
+        opacity: isDone ? 0.6 : 1,
       }}
     >
-      {children}
-    </Text>
+      <TouchableOpacity
+        onPress={onPressStatus}
+        activeOpacity={0.6}
+        hitSlop={8}
+        style={{ paddingTop: 2 }}
+      >
+        <StatusIndicator status={task.status} />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={{ flex: 1 }}>
+        <Text
+          style={{
+            color: isDone ? palette.textTertiary : palette.textPrimary,
+            fontSize: fontSize.base,
+            lineHeight: 20,
+            fontFamily: 'Inter_500Medium',
+            textDecorationLine: isDone ? 'line-through' : 'none',
+          }}
+        >
+          {task.title}
+        </Text>
+        {task.body ? (
+          <Text
+            numberOfLines={1}
+            style={{
+              color: palette.textTertiary,
+              fontSize: fontSize.xs,
+              marginTop: 2,
+              fontFamily: 'Inter_400Regular',
+            }}
+          >
+            {task.body.split('\n')[0]}
+          </Text>
+        ) : null}
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+            marginTop: 6,
+            flexWrap: 'wrap',
+          }}
+        >
+          {task.tags?.slice(0, 4).map((tag) => (
+            <View
+              key={tag}
+              style={{
+                paddingHorizontal: 7,
+                paddingVertical: 2,
+                borderRadius: 999,
+                backgroundColor: palette.accentLight,
+              }}
+            >
+              <Text
+                style={{
+                  color: palette.accent,
+                  fontSize: fontSize['2xs'],
+                  fontFamily: 'Inter_500Medium',
+                }}
+              >
+                @{tag}
+              </Text>
+            </View>
+          ))}
+          {pri && priMeta[pri] && !isDone && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+              <Flag size={11} color={priMeta[pri].color} />
+              <Text
+                style={{
+                  color: priMeta[pri].color,
+                  fontSize: fontSize['2xs'],
+                  fontFamily: 'Inter_500Medium',
+                }}
+              >
+                {priMeta[pri].label}
+              </Text>
+            </View>
+          )}
+          {due && !isDone && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+              <CalendarClock size={11} color={due.color} />
+              <Text
+                style={{
+                  color: due.color,
+                  fontSize: fontSize['2xs'],
+                  fontFamily: 'Inter_500Medium',
+                }}
+              >
+                {due.label}
+              </Text>
+            </View>
+          )}
+          {project && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+              <View
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: project.color ?? palette.textTertiary,
+                }}
+              />
+              <Text
+                style={{
+                  color: palette.textTertiary,
+                  fontSize: fontSize['2xs'],
+                  fontFamily: 'Inter_400Regular',
+                }}
+              >
+                {project.name}
+              </Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    </View>
   );
 }
 

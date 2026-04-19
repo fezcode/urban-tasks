@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import { Tabs } from 'expo-router';
+import { CheckSquare, FolderKanban, User } from 'lucide-react-native';
 import { useTheme } from '@/theme/ThemeContext';
 
 export default function AppTabs() {
@@ -25,13 +26,8 @@ export default function AppTabs() {
           letterSpacing: 0.3,
           marginTop: 4,
         },
-        tabBarItemStyle: {
-          paddingVertical: 4,
-        },
-        headerStyle: {
-          backgroundColor: palette.bg,
-          borderBottomWidth: 0,
-        },
+        tabBarItemStyle: { paddingVertical: 4 },
+        headerStyle: { backgroundColor: palette.bg, borderBottomWidth: 0 },
         headerTitleStyle: {
           color: palette.textPrimary,
           fontFamily: 'Fraunces_600SemiBold',
@@ -45,7 +41,7 @@ export default function AppTabs() {
         options={{
           title: 'Tasks',
           tabBarIcon: ({ color, focused }) => (
-            <ChecklistIcon color={color} focused={focused} />
+            <CheckSquare color={color} size={22} strokeWidth={focused ? 2.2 : 1.8} />
           ),
         }}
       />
@@ -54,7 +50,7 @@ export default function AppTabs() {
         options={{
           title: 'Projects',
           tabBarIcon: ({ color, focused }) => (
-            <FolderIcon color={color} focused={focused} />
+            <FolderKanban color={color} size={22} strokeWidth={focused ? 2.2 : 1.8} />
           ),
         }}
       />
@@ -63,147 +59,10 @@ export default function AppTabs() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, focused }) => (
-            <PersonIcon color={color} focused={focused} />
+            <User color={color} size={22} strokeWidth={focused ? 2.2 : 1.8} />
           ),
         }}
       />
     </Tabs>
-  );
-}
-
-function ChecklistIcon({ color, focused }: { color: string; focused: boolean }) {
-  const stroke = focused ? 2.2 : 1.8;
-  return (
-    <View
-      style={{
-        width: 24,
-        height: 24,
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <View
-        style={{
-          width: 18,
-          height: 20,
-          borderRadius: 4,
-          borderWidth: stroke,
-          borderColor: color,
-          padding: 3,
-          justifyContent: 'space-between',
-        }}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-          <View
-            style={{
-              width: 3,
-              height: 3,
-              borderRadius: 1,
-              backgroundColor: color,
-            }}
-          />
-          <View
-            style={{
-              flex: 1,
-              height: 2,
-              backgroundColor: color,
-              borderRadius: 1,
-            }}
-          />
-        </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-          <View
-            style={{
-              width: 3,
-              height: 3,
-              borderRadius: 1,
-              backgroundColor: color,
-            }}
-          />
-          <View
-            style={{
-              flex: 1,
-              height: 2,
-              backgroundColor: color,
-              borderRadius: 1,
-            }}
-          />
-        </View>
-      </View>
-    </View>
-  );
-}
-
-function FolderIcon({ color, focused }: { color: string; focused: boolean }) {
-  const stroke = focused ? 2.2 : 1.8;
-  return (
-    <View
-      style={{
-        width: 24,
-        height: 24,
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <View
-        style={{
-          width: 20,
-          height: 16,
-          borderRadius: 3,
-          borderWidth: stroke,
-          borderColor: color,
-          marginTop: 2,
-        }}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          top: 3,
-          left: 2,
-          width: 8,
-          height: 3,
-          borderTopLeftRadius: 2,
-          borderTopRightRadius: 2,
-          backgroundColor: color,
-        }}
-      />
-    </View>
-  );
-}
-
-function PersonIcon({ color, focused }: { color: string; focused: boolean }) {
-  const stroke = focused ? 2.2 : 1.8;
-  return (
-    <View
-      style={{
-        width: 24,
-        height: 24,
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-      }}
-    >
-      <View
-        style={{
-          width: 10,
-          height: 10,
-          borderRadius: 5,
-          borderWidth: stroke,
-          borderColor: color,
-          position: 'absolute',
-          top: 1,
-        }}
-      />
-      <View
-        style={{
-          width: 20,
-          height: 11,
-          borderTopLeftRadius: 10,
-          borderTopRightRadius: 10,
-          borderWidth: stroke,
-          borderBottomWidth: 0,
-          borderColor: color,
-        }}
-      />
-    </View>
   );
 }

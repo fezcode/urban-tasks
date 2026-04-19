@@ -1,7 +1,17 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Appearance, useColorScheme } from 'react-native';
 import { getItem, setItem } from '@/storage';
-import { darkPalette, lightPalette, Palette, ThemeMode, radii, spacing, typography } from './tokens';
+import {
+  darkPalette,
+  fontSize,
+  lightPalette,
+  Palette,
+  radii,
+  shadow,
+  spacing,
+  ThemeMode,
+  typography,
+} from './tokens';
 
 interface ThemeValue {
   mode: ThemeMode;
@@ -9,6 +19,8 @@ interface ThemeValue {
   radii: typeof radii;
   spacing: typeof spacing;
   typography: typeof typography;
+  fontSize: typeof fontSize;
+  shadow: typeof shadow;
   toggle: () => void;
   setMode: (m: ThemeMode) => void;
 }
@@ -38,7 +50,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const palette = mode === 'dark' ? darkPalette : lightPalette;
 
   return (
-    <ThemeContext.Provider value={{ mode, palette, radii, spacing, typography, toggle, setMode }}>
+    <ThemeContext.Provider
+      value={{ mode, palette, radii, spacing, typography, fontSize, shadow, toggle, setMode }}
+    >
       {children}
     </ThemeContext.Provider>
   );
