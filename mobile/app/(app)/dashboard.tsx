@@ -15,11 +15,13 @@ import {
   CheckCircle2,
   Flag,
   Flame,
+  Sparkles,
   Target,
   Zap,
 } from 'lucide-react-native';
 import { useTheme } from '@/theme/ThemeContext';
 import { api, Task } from '@/api/client';
+import { EmptyState } from '@/components/ui';
 
 function startOfDay(d: Date) {
   const x = new Date(d);
@@ -331,42 +333,14 @@ export default function DashboardScreen() {
         )}
 
         {stats.total === 0 && (
-          <View
-            style={{
-              alignItems: 'center',
-              paddingVertical: 48,
-              gap: spacing.sm,
-            }}
-          >
-            <Text
-              style={{
-                color: palette.textSecondary,
-                fontFamily: 'Fraunces_400Regular',
-                fontSize: 20,
-              }}
-            >
-              No tasks yet.
-            </Text>
-            <TouchableOpacity
-              onPress={() => router.push('/(app)/tasks')}
-              activeOpacity={0.85}
-              style={{
-                paddingHorizontal: spacing.lg,
-                paddingVertical: spacing.sm + 2,
-                borderRadius: radii.pill,
-                backgroundColor: palette.accent,
-              }}
-            >
-              <Text
-                style={{
-                  color: palette.textInverse,
-                  fontFamily: 'Inter_500Medium',
-                }}
-              >
-                Add your first task
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <EmptyState
+            icon={Sparkles}
+            tone="accent"
+            title="A blank slate"
+            description="Your dashboard lights up as you add tasks. Set a few to see what's due, what's hot, and what's done."
+            actionLabel="Add your first task"
+            onAction={() => router.push('/(app)/tasks')}
+          />
         )}
       </ScrollView>
     </SafeAreaView>

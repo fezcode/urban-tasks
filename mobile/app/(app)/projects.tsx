@@ -16,9 +16,10 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
-import { Plus } from 'lucide-react-native';
+import { FolderKanban, Plus } from 'lucide-react-native';
 import { useTheme } from '@/theme/ThemeContext';
 import { api, Project, Task } from '@/api/client';
+import { EmptyState } from '@/components/ui';
 import { haptic } from '@/haptics';
 
 const COLORS = [
@@ -110,26 +111,18 @@ export default function ProjectsScreen() {
             />
           }
           ListEmptyComponent={
-            <View style={{ alignItems: 'center', paddingTop: 64, gap: spacing.sm }}>
-              <Text
-                style={{
-                  color: palette.textSecondary,
-                  fontFamily: 'Fraunces_400Regular',
-                  fontSize: 20,
-                }}
-              >
-                {error ?? 'No projects yet.'}
-              </Text>
-              <Text
-                style={{
-                  color: palette.textTertiary,
-                  fontFamily: 'Inter_400Regular',
-                  fontSize: 13,
-                }}
-              >
-                Tap + to organize tasks into projects.
-              </Text>
-            </View>
+            error ? (
+              <EmptyState title={error} />
+            ) : (
+              <EmptyState
+                icon={FolderKanban}
+                tone="accent"
+                title="No projects yet"
+                description="Group related tasks together — by client, area of life, or whatever matters to you."
+                actionLabel="New project"
+                onAction={() => setEditing({ kind: 'create' })}
+              />
+            )
           }
           renderItem={({ item }) => (
             <TouchableOpacity

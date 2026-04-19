@@ -17,10 +17,10 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CalendarClock, Check, Flag, Plus } from 'lucide-react-native';
+import { CalendarClock, Check, Flag, Inbox, Plus, SearchX } from 'lucide-react-native';
 import { useTheme } from '@/theme/ThemeContext';
 import { api, Task, Project } from '@/api/client';
-import { DateField, Markdown } from '@/components/ui';
+import { DateField, EmptyState, Markdown } from '@/components/ui';
 import { haptic } from '@/haptics';
 
 type Filter = 'all' | 'todo' | 'in-progress' | 'done';
@@ -350,17 +350,11 @@ export default function TasksScreen() {
             </View>
           )}
           ListEmptyComponent={
-            <View style={{ alignItems: 'center', paddingTop: 64, gap: spacing.sm }}>
-              <Text
-                style={{
-                  color: palette.textSecondary,
-                  fontFamily: 'Fraunces_400Regular',
-                  fontSize: 20,
-                }}
-              >
-                {error ?? 'No tasks match.'}
-              </Text>
-            </View>
+            <EmptyState
+              icon={SearchX}
+              title={error ?? 'No tasks match'}
+              description={error ? undefined : 'Try clearing filters or tags to see more.'}
+            />
           }
         />
       ) : (
@@ -384,28 +378,24 @@ export default function TasksScreen() {
             />
           }
           ListEmptyComponent={
-            <View style={{ alignItems: 'center', paddingTop: 64, gap: spacing.sm }}>
-              <Text
-                style={{
-                  color: palette.textSecondary,
-                  fontFamily: 'Fraunces_400Regular',
-                  fontSize: 20,
-                }}
-              >
-                {error ?? (filter === 'all' ? 'Nothing here yet.' : 'No tasks match.')}
-              </Text>
-              {!error && filter === 'all' && (
-                <Text
-                  style={{
-                    color: palette.textTertiary,
-                    fontFamily: 'Inter_400Regular',
-                    fontSize: 13,
-                  }}
-                >
-                  Tap + to add your first task.
-                </Text>
-              )}
-            </View>
+            error ? (
+              <EmptyState title={error} />
+            ) : filter === 'all' && !tagFilter ? (
+              <EmptyState
+                icon={Inbox}
+                tone="accent"
+                title="Nothing here yet"
+                description="Capture what's on your mind — tasks, ideas, errands. They'll live here."
+                actionLabel="Add your first task"
+                onAction={() => setCreating(true)}
+              />
+            ) : (
+              <EmptyState
+                icon={SearchX}
+                title="No tasks match"
+                description="Try a different filter or clear the active tag."
+              />
+            )
           }
           renderItem={({ item }) => (
             <TaskRow
