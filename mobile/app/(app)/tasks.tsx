@@ -20,6 +20,7 @@ import { CalendarClock, Check, Flag, Plus } from 'lucide-react-native';
 import { useTheme } from '@/theme/ThemeContext';
 import { api, Task, Project } from '@/api/client';
 import { DateField } from '@/components/ui';
+import { haptic } from '@/haptics';
 
 type Filter = 'all' | 'todo' | 'in-progress' | 'done';
 
@@ -68,6 +69,7 @@ export default function TasksScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [groupByPriority, setGroupByPriority] = useState(false);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
@@ -90,10 +92,11 @@ export default function TasksScreen() {
     load();
   }, [load]);
 
-  const filtered = useMemo(
-    () => (filter === 'all' ? tasks : tasks.filter((t) => t.status === filter)),
-    [tasks, filter],
-  );
+  const filtered = useMemo(() => {
+    let list = filter === 'all' ? tasks : tasks.filter((t) => t.status === filter);
+    if (tagFilter) list = list.filter((t) => t.tags?.includes(tagFilter));
+    return list;
+  }, [tasks, filter, tagFilter]);
 
   const counts = useMemo(
     () => ({
@@ -107,6 +110,8 @@ export default function TasksScreen() {
 
   const cycleStatus = async (task: Task) => {
     const next = nextStatus(task.status);
+    if (next === 'done') haptic.success();
+    else haptic.selection();
     setTasks((prev) =>
       prev.map((t) => (t.id === task.id ? { ...t, status: next } : t)),
     );
@@ -130,6 +135,7 @@ export default function TasksScreen() {
   };
 
   const deleteTask = async (id: string) => {
+    haptic.warning();
     setTasks((prev) => prev.filter((t) => t.id !== id));
     try {
       await api.deleteTask(id);
@@ -233,6 +239,34 @@ export default function TasksScreen() {
               By priority
             </Text>
           </TouchableOpacity>
+          {tagFilter && (
+            <TouchableOpacity
+              onPress={() => setTagFilter(null)}
+              activeOpacity={0.7}
+              style={{
+                paddingHorizontal: spacing.md,
+                paddingVertical: spacing.sm,
+                borderRadius: radii.pill,
+                backgroundColor: palette.accent,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              <Text
+                style={{
+                  color: palette.textInverse,
+                  fontFamily: 'Inter_500Medium',
+                  fontSize: 13,
+                }}
+              >
+                @{tagFilter}
+              </Text>
+              <Text style={{ color: palette.textInverse, fontSize: 15, marginTop: -2 }}>
+                ×
+              </Text>
+            </TouchableOpacity>
+          )}
         </ScrollView>
       </View>
 
@@ -372,6 +406,7 @@ export default function TasksScreen() {
               projects={projects}
               onPressStatus={() => cycleStatus(item)}
               onPress={() => setEditing(item)}
+              onTagPress={(tag) => setTagFilter((cur) => (cur === tag ? null : tag))}
             />
           )}
         />
@@ -483,9 +518,10 @@ interface TaskRowProps {
   projects: Project[];
   onPressStatus: () => void;
   onPress: () => void;
+  onTagPress?: (tag: string) => void;
 }
 
-function TaskRow({ task, projects, onPressStatus, onPress }: TaskRowProps) {
+function TaskRow({ task, projects, onPressStatus, onPress, onTagPress }: TaskRowProps) {
   const { palette, radii, spacing, fontSize } = useTheme();
   const project = projects.find((p) => p.id === task.projectId);
   const due = formatDue(task.dueDate, palette);
@@ -555,8 +591,11 @@ function TaskRow({ task, projects, onPressStatus, onPress }: TaskRowProps) {
           }}
         >
           {task.tags?.slice(0, 4).map((tag) => (
-            <View
+            <TouchableOpacity
               key={tag}
+              activeOpacity={0.6}
+              disabled={!onTagPress}
+              onPress={() => onTagPress?.(tag)}
               style={{
                 paddingHorizontal: 7,
                 paddingVertical: 2,
@@ -573,7 +612,7 @@ function TaskRow({ task, projects, onPressStatus, onPress }: TaskRowProps) {
               >
                 @{tag}
               </Text>
-            </View>
+            </TouchableOpacity>
           ))}
           {pri && priMeta[pri] && !isDone && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
