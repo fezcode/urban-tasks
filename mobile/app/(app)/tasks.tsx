@@ -43,6 +43,62 @@ const nextStatus = (s: Task['status']): Task['status'] =>
 
 const isoDate = (s?: string) => (s ? s.slice(0, 10) : '');
 
+type Repeat = 'daily' | 'weekly' | 'monthly';
+const REPEAT_RE = /\{\{repeat:(daily|weekly|monthly)\}\}/i;
+
+function parseRepeat(body: string): Repeat | null {
+  const m = body.match(REPEAT_RE);
+  return m ? (m[1].toLowerCase() as Repeat) : null;
+}
+
+function setRepeat(body: string, r: Repeat | null): string {
+  const stripped = body.replace(REPEAT_RE, '').replace(/\n{3,}/g, '\n\n').trim();
+  if (!r) return stripped;
+  return stripped ? `${stripped}\n\n{{repeat:${r}}}` : `{{repeat:${r}}}`;
+}
+
+function advanceDate(iso: string, r: Repeat): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  if (r === 'daily') d.setDate(d.getDate() + 1);
+  else if (r === 'weekly') d.setDate(d.getDate() + 7);
+  else d.setMonth(d.getMonth() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+interface ChecklistItem {
+  lineIdx: number;
+  checked: boolean;
+  text: string;
+}
+
+function parseChecklist(body: string): ChecklistItem[] {
+  const lines = body.split('\n');
+  const items: ChecklistItem[] = [];
+  lines.forEach((line, i) => {
+    const m = line.match(/^(\s*)[-*]\s+\[( |x|X)\]\s+(.*)$/);
+    if (m) {
+      items.push({
+        lineIdx: i,
+        checked: m[2].toLowerCase() === 'x',
+        text: m[3],
+      });
+    }
+  });
+  return items;
+}
+
+function toggleChecklistLine(body: string, lineIdx: number): string {
+  const lines = body.split('\n');
+  const line = lines[lineIdx];
+  if (!line) return body;
+  lines[lineIdx] = line.replace(
+    /^(\s*[-*]\s+\[)( |x|X)(\]\s+.*)$/,
+    (_m, a, c, b) => `${a}${c === ' ' ? 'x' : ' '}${b}`,
+  );
+  return lines.join('\n');
+}
+
 function formatDue(due: string | undefined, palette: any): { label: string; color: string } | null {
   if (!due) return null;
   const today = new Date();
@@ -148,6 +204,21 @@ export default function TasksScreen() {
     const next = nextStatus(task.status);
     if (next === 'done') haptic.success();
     else haptic.selection();
+    const repeat = task.body ? parseRepeat(task.body) : null;
+    if (next === 'done' && repeat && task.dueDate) {
+      const nextDue = advanceDate(task.dueDate, repeat);
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === task.id ? { ...t, status: 'todo', dueDate: nextDue } : t,
+        ),
+      );
+      try {
+        await api.updateTask(task.id, { status: 'todo', dueDate: nextDue });
+      } catch {
+        load();
+      }
+      return;
+    }
     setTasks((prev) =>
       prev.map((t) => (t.id === task.id ? { ...t, status: next } : t)),
     );
@@ -1063,12 +1134,49 @@ function TaskFormModal({
                 <StyledInput
                   value={body}
                   onChangeText={setBody}
-                  placeholder="Add details — markdown supported"
+                  placeholder={'Add details — markdown supported\n- [ ] a subtask'}
                   multiline
                   minHeight={90}
                 />
               )}
             </View>
+
+            <SubtaskList body={body} onChange={setBody} />
+
+            <Field label="Repeat">
+              <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
+                {(['none', 'daily', 'weekly', 'monthly'] as const).map((r) => {
+                  const current = parseRepeat(body) ?? 'none';
+                  const active = current === r;
+                  return (
+                    <TouchableOpacity
+                      key={r}
+                      onPress={() => setBody(setRepeat(body, r === 'none' ? null : r))}
+                      activeOpacity={0.7}
+                      style={{
+                        paddingVertical: spacing.sm,
+                        paddingHorizontal: spacing.md,
+                        borderRadius: radii.pill,
+                        borderWidth: 1,
+                        backgroundColor: active ? palette.accent : palette.surface,
+                        borderColor: active ? palette.accent : palette.border,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: active ? palette.textInverse : palette.textPrimary,
+                          fontFamily: 'Inter_500Medium',
+                          fontSize: 13,
+                          textTransform: 'capitalize',
+                        }}
+                      >
+                        {r}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </Field>
 
             {mode === 'edit' && (
               <Field label="Status">
@@ -1284,6 +1392,137 @@ function StyledInput({
           : {}),
       }}
     />
+  );
+}
+
+function SubtaskList({ body, onChange }: { body: string; onChange: (next: string) => void }) {
+  const { palette, radii, spacing } = useTheme();
+  const items = parseChecklist(body);
+  const [draft, setDraft] = useState('');
+  if (items.length === 0 && !body.includes('- [')) {
+    return (
+      <View style={{ gap: spacing.sm }}>
+        <Text
+          style={{
+            color: palette.textTertiary,
+            fontSize: 11,
+            letterSpacing: 1.5,
+            textTransform: 'uppercase',
+            fontFamily: 'Inter_500Medium',
+          }}
+        >
+          Subtasks
+        </Text>
+        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+          <View style={{ flex: 1 }}>
+            <StyledInput
+              value={draft}
+              onChangeText={setDraft}
+              placeholder="Add a subtask"
+              onSubmitEditing={() => {
+                const t = draft.trim();
+                if (!t) return;
+                const next = body ? `${body}\n- [ ] ${t}` : `- [ ] ${t}`;
+                onChange(next);
+                setDraft('');
+              }}
+              returnKeyType="done"
+            />
+          </View>
+        </View>
+      </View>
+    );
+  }
+  const done = items.filter((i) => i.checked).length;
+  return (
+    <View style={{ gap: spacing.sm }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Text
+          style={{
+            color: palette.textTertiary,
+            fontSize: 11,
+            letterSpacing: 1.5,
+            textTransform: 'uppercase',
+            fontFamily: 'Inter_500Medium',
+          }}
+        >
+          Subtasks
+        </Text>
+        <Text
+          style={{
+            color: palette.textTertiary,
+            fontSize: 12,
+            fontFamily: 'Inter_500Medium',
+          }}
+        >
+          {done}/{items.length}
+        </Text>
+      </View>
+      <View
+        style={{
+          backgroundColor: palette.surface,
+          borderWidth: 1,
+          borderColor: palette.border,
+          borderRadius: radii.md,
+          overflow: 'hidden',
+        }}
+      >
+        {items.map((item, idx) => (
+          <TouchableOpacity
+            key={item.lineIdx}
+            onPress={() => onChange(toggleChecklistLine(body, item.lineIdx))}
+            activeOpacity={0.7}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: spacing.sm,
+              paddingHorizontal: spacing.md,
+              paddingVertical: spacing.sm + 2,
+              borderTopWidth: idx === 0 ? 0 : 1,
+              borderTopColor: palette.borderLight,
+            }}
+          >
+            <View
+              style={{
+                width: 18,
+                height: 18,
+                borderRadius: 4,
+                borderWidth: 1.5,
+                borderColor: item.checked ? palette.statusActive : palette.border,
+                backgroundColor: item.checked ? palette.statusActive : 'transparent',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {item.checked && <Check color="#fff" size={12} strokeWidth={3} />}
+            </View>
+            <Text
+              style={{
+                flex: 1,
+                color: item.checked ? palette.textTertiary : palette.textPrimary,
+                fontFamily: 'Inter_400Regular',
+                fontSize: 14,
+                textDecorationLine: item.checked ? 'line-through' : 'none',
+              }}
+            >
+              {item.text}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      <StyledInput
+        value={draft}
+        onChangeText={setDraft}
+        placeholder="Add a subtask"
+        onSubmitEditing={() => {
+          const t = draft.trim();
+          if (!t) return;
+          onChange(`${body}\n- [ ] ${t}`);
+          setDraft('');
+        }}
+        returnKeyType="done"
+      />
+    </View>
   );
 }
 
