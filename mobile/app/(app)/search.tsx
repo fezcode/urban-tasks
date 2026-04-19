@@ -81,10 +81,7 @@ export default function SearchScreen() {
 
   const onPickTag = (tag: string) => setQuery('@' + tag);
   const onPickTask = (task: Task) => {
-    router.back();
-    // Defer so the tasks screen is focused before we emit a deep link (future work).
-    // For now just return — user sees the task in the refreshed list.
-    void task;
+    router.replace({ pathname: '/tasks', params: { open: task.id } } as any);
   };
 
   return (

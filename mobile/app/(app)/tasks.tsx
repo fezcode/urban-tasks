@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import {
   View,
   Text,
@@ -65,6 +65,7 @@ export default function TasksScreen() {
   const { palette, radii, spacing } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const params = useLocalSearchParams<{ open?: string }>();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -101,6 +102,15 @@ export default function TasksScreen() {
       load();
     }, [load]),
   );
+
+  useEffect(() => {
+    if (!params.open || tasks.length === 0) return;
+    const t = tasks.find((x) => x.id === params.open);
+    if (t) {
+      setEditing(t);
+      router.setParams({ open: undefined } as any);
+    }
+  }, [params.open, tasks, router]);
 
   const filtered = useMemo(() => {
     let list = filter === 'all' ? tasks : tasks.filter((t) => t.status === filter);
