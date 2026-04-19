@@ -3,27 +3,37 @@ import {
   View,
   Text,
   StyleSheet,
-  Pressable,
+  TouchableOpacity,
   ActivityIndicator,
   ScrollView,
+  TextInput,
+  Alert,
+  Platform,
+  KeyboardAvoidingView,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { ChevronRight, Moon, Shuffle, Sun } from 'lucide-react-native';
 import { useTheme } from '@/theme/ThemeContext';
 import { api, clearToken, User } from '@/api/client';
+import { haptic } from '@/haptics';
+
+const AVATAR_SEEDS = ['atlas', 'ember', 'felix', 'ivy', 'june', 'kai', 'lumen', 'nico', 'orin', 'piper'];
 
 export default function Profile() {
-  const { palette, radii, spacing, mode, toggle } = useTheme();
+  const { palette, radii, spacing, fontSize, mode, toggle } = useTheme();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
       try {
         setUser(await api.me());
       } catch {
-        // ignore — could be offline
+        /* ignore */
       } finally {
         setLoading(false);
       }
@@ -35,22 +45,40 @@ export default function Profile() {
     router.replace('/');
   };
 
+  const confirmDelete = () => {
+    const run = async () => {
+      try {
+        await api.deleteMe();
+        await clearToken();
+        haptic.warning();
+        router.replace('/');
+      } catch (e) {
+        Alert.alert('Error', e instanceof Error ? e.message : 'Failed to delete account');
+      }
+    };
+    const message = 'This permanently deletes your account and all data. This cannot be undone.';
+    if (Platform.OS === 'web') {
+      // @ts-ignore
+      if (window.confirm(message)) run();
+      return;
+    }
+    Alert.alert('Delete account', message, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: run },
+    ]);
+  };
+
   const initial = (user?.name || user?.email || '?').trim().charAt(0).toUpperCase();
 
   return (
-    <SafeAreaView
-      edges={['bottom']}
-      style={[styles.flex, { backgroundColor: palette.bg }]}
-    >
-      <ScrollView
-        contentContainerStyle={{ padding: spacing.xl, gap: spacing.lg }}
-      >
+    <SafeAreaView edges={['bottom']} style={[styles.flex, { backgroundColor: palette.bg }]}>
+      <ScrollView contentContainerStyle={{ padding: spacing.xl, gap: spacing.lg }}>
         <View style={{ alignItems: 'center', gap: spacing.md, marginBottom: spacing.md }}>
           <View
             style={{
-              width: 80,
-              height: 80,
-              borderRadius: 40,
+              width: 88,
+              height: 88,
+              borderRadius: 44,
               backgroundColor: palette.accent,
               alignItems: 'center',
               justifyContent: 'center',
@@ -59,7 +87,7 @@ export default function Profile() {
             <Text
               style={{
                 color: palette.textInverse,
-                fontSize: 32,
+                fontSize: 34,
                 fontFamily: 'Fraunces_600SemiBold',
               }}
             >
@@ -73,8 +101,9 @@ export default function Profile() {
               <Text
                 style={{
                   color: palette.textPrimary,
-                  fontSize: 20,
+                  fontSize: 22,
                   fontFamily: 'Fraunces_600SemiBold',
+                  letterSpacing: -0.3,
                 }}
               >
                 {user?.name || 'Signed in'}
@@ -83,7 +112,7 @@ export default function Profile() {
                 <Text
                   style={{
                     color: palette.textSecondary,
-                    fontSize: 14,
+                    fontSize: fontSize.sm,
                     fontFamily: 'Inter_400Regular',
                     marginTop: -spacing.sm,
                   }}
@@ -91,13 +120,46 @@ export default function Profile() {
                   {user.email}
                 </Text>
               )}
+              <TouchableOpacity
+                onPress={() => setEditOpen(true)}
+                activeOpacity={0.8}
+                style={{
+                  marginTop: spacing.xs,
+                  paddingHorizontal: spacing.lg,
+                  paddingVertical: spacing.sm,
+                  borderRadius: radii.pill,
+                  borderWidth: 1,
+                  borderColor: palette.border,
+                }}
+              >
+                <Text
+                  style={{
+                    color: palette.textPrimary,
+                    fontFamily: 'Inter_500Medium',
+                    fontSize: fontSize.sm,
+                  }}
+                >
+                  Edit profile
+                </Text>
+              </TouchableOpacity>
             </>
           )}
         </View>
 
         <View style={{ gap: spacing.sm }}>
-          <Row label="Theme" value={mode === 'dark' ? 'Dark' : 'Light'} onPress={toggle} />
-          <Row label="Sign out" value="" destructive onPress={signOut} />
+          <SectionLabel>Preferences</SectionLabel>
+          <Row
+            label="Theme"
+            value={mode === 'dark' ? 'Dark' : 'Light'}
+            icon={mode === 'dark' ? <Moon size={16} color={palette.textSecondary} /> : <Sun size={16} color={palette.textSecondary} />}
+            onPress={toggle}
+          />
+        </View>
+
+        <View style={{ gap: spacing.sm }}>
+          <SectionLabel>Account</SectionLabel>
+          <Row label="Sign out" onPress={signOut} />
+          <Row label="Delete account" destructive onPress={confirmDelete} />
         </View>
       </ScrollView>
 
@@ -106,63 +168,316 @@ export default function Profile() {
           textAlign: 'center',
           color: palette.textTertiary,
           fontFamily: 'Fraunces_400Regular',
-          fontSize: 13,
+          fontSize: fontSize.sm,
           paddingBottom: spacing.xl,
         }}
       >
         urban tasks · mobile
       </Text>
+
+      <EditProfileModal
+        visible={editOpen}
+        user={user}
+        onClose={() => setEditOpen(false)}
+        onSaved={(u) => {
+          setUser(u);
+          setEditOpen(false);
+        }}
+      />
     </SafeAreaView>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  const { palette, fontSize } = useTheme();
+  return (
+    <Text
+      style={{
+        color: palette.textTertiary,
+        fontSize: fontSize['2xs'],
+        letterSpacing: 2,
+        textTransform: 'uppercase',
+        fontFamily: 'Inter_500Medium',
+        marginLeft: 4,
+      }}
+    >
+      {children}
+    </Text>
   );
 }
 
 function Row({
   label,
   value,
+  icon,
   onPress,
   destructive,
 }: {
   label: string;
-  value: string;
+  value?: string;
+  icon?: React.ReactNode;
   onPress?: () => void;
   destructive?: boolean;
 }) {
-  const { palette, radii, spacing } = useTheme();
+  const { palette, radii, spacing, fontSize } = useTheme();
   return (
-    <Pressable
+    <TouchableOpacity
       onPress={onPress}
-      style={({ pressed }) => [
-        {
-          backgroundColor: palette.surface,
-          borderColor: palette.border,
-          borderWidth: 1,
-          borderRadius: radii.lg,
-          paddingHorizontal: spacing.lg,
-          paddingVertical: spacing.md,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          opacity: pressed ? 0.85 : 1,
-        },
-      ]}
+      activeOpacity={0.85}
+      style={{
+        backgroundColor: palette.surface,
+        borderColor: palette.border,
+        borderWidth: 1,
+        borderRadius: radii.lg,
+        paddingHorizontal: spacing.lg,
+        paddingVertical: spacing.md,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.md,
+      }}
     >
+      {icon}
       <Text
         style={{
+          flex: 1,
           color: destructive ? palette.danger : palette.textPrimary,
-          fontSize: 15,
+          fontSize: fontSize.base,
           fontFamily: 'Inter_500Medium',
         }}
       >
         {label}
       </Text>
-      {value ? (
+      {value && (
         <Text
-          style={{ color: palette.textSecondary, fontFamily: 'Inter_400Regular' }}
+          style={{
+            color: palette.textTertiary,
+            fontFamily: 'Inter_400Regular',
+            fontSize: fontSize.sm,
+          }}
         >
           {value}
         </Text>
-      ) : null}
-    </Pressable>
+      )}
+      {onPress && !destructive && (
+        <ChevronRight size={16} color={palette.textTertiary} />
+      )}
+    </TouchableOpacity>
+  );
+}
+
+function EditProfileModal({
+  visible,
+  user,
+  onClose,
+  onSaved,
+}: {
+  visible: boolean;
+  user: User | null;
+  onClose: () => void;
+  onSaved: (u: User) => void;
+}) {
+  const { palette, radii, spacing, fontSize } = useTheme();
+  const [name, setName] = useState('');
+  const [seed, setSeed] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!visible || !user) return;
+    setName(user.name ?? '');
+    setSeed(user.avatarSeed ?? '');
+    setErr(null);
+  }, [visible, user]);
+
+  const save = async () => {
+    if (!name.trim()) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const updated = await api.updateMe({
+        name: name.trim(),
+        avatarSeed: seed.trim() || undefined,
+      });
+      haptic.success();
+      onSaved(updated);
+    } catch (e) {
+      haptic.warning();
+      setErr(e instanceof Error ? e.message : 'Failed to save');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const randomSeed = () => {
+    const next = AVATAR_SEEDS[Math.floor(Math.random() * AVATAR_SEEDS.length)];
+    setSeed(next);
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.bg }}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{ flex: 1 }}
+        >
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingHorizontal: spacing.lg,
+              paddingVertical: spacing.md,
+              borderBottomColor: palette.borderLight,
+              borderBottomWidth: 1,
+            }}
+          >
+            <TouchableOpacity onPress={onClose} hitSlop={10}>
+              <Text
+                style={{
+                  color: palette.textSecondary,
+                  fontSize: 15,
+                  fontFamily: 'Inter_500Medium',
+                }}
+              >
+                Cancel
+              </Text>
+            </TouchableOpacity>
+            <Text
+              style={{
+                color: palette.textPrimary,
+                fontSize: 16,
+                fontFamily: 'Fraunces_600SemiBold',
+              }}
+            >
+              Edit profile
+            </Text>
+            <TouchableOpacity onPress={save} disabled={busy || !name.trim()} hitSlop={10}>
+              <Text
+                style={{
+                  color: !name.trim() ? palette.textTertiary : palette.accent,
+                  fontSize: 15,
+                  fontFamily: 'Inter_600SemiBold',
+                  opacity: busy ? 0.5 : 1,
+                }}
+              >
+                {busy ? 'Saving…' : 'Save'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
+            <View style={{ gap: spacing.sm }}>
+              <Text
+                style={{
+                  color: palette.textTertiary,
+                  fontSize: 11,
+                  letterSpacing: 1.5,
+                  textTransform: 'uppercase',
+                  fontFamily: 'Inter_500Medium',
+                }}
+              >
+                Name
+              </Text>
+              <TextInput
+                value={name}
+                onChangeText={setName}
+                placeholder="Your name"
+                placeholderTextColor={palette.textTertiary}
+                autoFocus
+                style={{
+                  backgroundColor: palette.surface,
+                  borderColor: palette.border,
+                  borderWidth: 1,
+                  borderRadius: radii.md,
+                  paddingHorizontal: spacing.md,
+                  paddingVertical: spacing.md,
+                  fontSize: 15,
+                  color: palette.textPrimary,
+                  fontFamily: 'Inter_400Regular',
+                }}
+              />
+            </View>
+
+            <View style={{ gap: spacing.sm }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <Text
+                  style={{
+                    color: palette.textTertiary,
+                    fontSize: 11,
+                    letterSpacing: 1.5,
+                    textTransform: 'uppercase',
+                    fontFamily: 'Inter_500Medium',
+                  }}
+                >
+                  Avatar seed
+                </Text>
+                <TouchableOpacity
+                  onPress={randomSeed}
+                  hitSlop={8}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                >
+                  <Shuffle size={12} color={palette.accent} />
+                  <Text
+                    style={{
+                      color: palette.accent,
+                      fontSize: 12,
+                      fontFamily: 'Inter_500Medium',
+                    }}
+                  >
+                    Random
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <TextInput
+                value={seed}
+                onChangeText={setSeed}
+                placeholder="A word that shapes your avatar"
+                placeholderTextColor={palette.textTertiary}
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={{
+                  backgroundColor: palette.surface,
+                  borderColor: palette.border,
+                  borderWidth: 1,
+                  borderRadius: radii.md,
+                  paddingHorizontal: spacing.md,
+                  paddingVertical: spacing.md,
+                  fontSize: 15,
+                  color: palette.textPrimary,
+                  fontFamily: 'Inter_400Regular',
+                }}
+              />
+              <Text
+                style={{
+                  color: palette.textTertiary,
+                  fontSize: fontSize.xs,
+                  fontFamily: 'Inter_400Regular',
+                }}
+              >
+                A short word that (eventually) deterministically generates your avatar.
+              </Text>
+            </View>
+
+            {err && (
+              <Text style={{ color: palette.danger, fontFamily: 'Inter_400Regular' }}>
+                {err}
+              </Text>
+            )}
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </Modal>
   );
 }
 

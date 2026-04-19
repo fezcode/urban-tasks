@@ -133,12 +133,22 @@ export const api = {
       body: JSON.stringify({ email, name, password }),
     }),
   me: () => request<User>('/me'),
+  updateMe: (patch: { name?: string; avatarSeed?: string }) =>
+    request<User>('/me', { method: 'PATCH', body: JSON.stringify(patch) }),
+  deleteMe: () => request<void>('/me', { method: 'DELETE' }),
   listProjects: () => request<Project[]>('/projects'),
   createProject: (name: string, color: string) =>
     request<Project>('/projects', {
       method: 'POST',
       body: JSON.stringify({ name, color }),
     }),
+  updateProject: (id: string, patch: Partial<Project>) =>
+    request<Project>(`/projects/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    }),
+  deleteProject: (id: string) =>
+    request<void>(`/projects/${id}`, { method: 'DELETE' }),
   listTasks: (projectId?: string) =>
     request<Task[]>(`/tasks${projectId ? `?projectId=${projectId}` : ''}`),
   createTask: (input: {
