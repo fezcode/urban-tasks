@@ -1,7 +1,7 @@
 import React from 'react';
 import { Platform } from 'react-native';
 import { Tabs } from 'expo-router';
-import { CheckSquare, FolderKanban, LayoutDashboard, User } from 'lucide-react-native';
+import { CalendarDays, CheckSquare, FolderKanban, LayoutDashboard, User } from 'lucide-react-native';
 import { useTheme } from '@/theme/ThemeContext';
 
 export default function AppTabs() {
@@ -51,6 +51,15 @@ export default function AppTabs() {
           title: 'Tasks',
           tabBarIcon: ({ color, focused }) => (
             <CheckSquare color={color} size={22} strokeWidth={focused ? 2.2 : 1.8} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="calendar"
+        options={{
+          title: 'Calendar',
+          tabBarIcon: ({ color, focused }) => (
+            <CalendarDays color={color} size={22} strokeWidth={focused ? 2.2 : 1.8} />
           ),
         }}
       />
