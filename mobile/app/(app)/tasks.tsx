@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   FlatList,
+  SectionList,
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
@@ -18,6 +19,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { CalendarClock, Check, Flag, Plus } from 'lucide-react-native';
 import { useTheme } from '@/theme/ThemeContext';
 import { api, Task, Project } from '@/api/client';
+import { DateField } from '@/components/ui';
 
 type Filter = 'all' | 'todo' | 'in-progress' | 'done';
 
@@ -66,6 +68,7 @@ export default function TasksScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
+  const [groupByPriority, setGroupByPriority] = useState(false);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
 
@@ -201,6 +204,35 @@ export default function TasksScreen() {
               </TouchableOpacity>
             );
           })}
+          <TouchableOpacity
+            onPress={() => setGroupByPriority((v) => !v)}
+            activeOpacity={0.7}
+            style={{
+              paddingHorizontal: spacing.md,
+              paddingVertical: spacing.sm,
+              borderRadius: radii.pill,
+              backgroundColor: groupByPriority ? palette.accentLight : palette.surface,
+              borderWidth: 1,
+              borderColor: groupByPriority ? palette.accent : palette.border,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            <Flag
+              size={12}
+              color={groupByPriority ? palette.accent : palette.textTertiary}
+            />
+            <Text
+              style={{
+                color: groupByPriority ? palette.accent : palette.textPrimary,
+                fontFamily: 'Inter_500Medium',
+                fontSize: 13,
+              }}
+            >
+              By priority
+            </Text>
+          </TouchableOpacity>
         </ScrollView>
       </View>
 
@@ -208,6 +240,88 @@ export default function TasksScreen() {
         <View style={styles.center}>
           <ActivityIndicator color={palette.accent} />
         </View>
+      ) : groupByPriority ? (
+        <SectionList
+          sections={[
+            { title: 'High', color: palette.danger, data: filtered.filter((t) => t.priority === 'high') },
+            { title: 'Medium', color: palette.statusWarning, data: filtered.filter((t) => t.priority === 'medium') },
+            { title: 'Low', color: palette.statusActive, data: filtered.filter((t) => t.priority === 'low') },
+            { title: 'No priority', color: palette.textTertiary, data: filtered.filter((t) => !t.priority) },
+          ].filter((s) => s.data.length > 0)}
+          keyExtractor={(t) => t.id}
+          contentContainerStyle={{
+            padding: spacing.lg,
+            paddingTop: spacing.sm,
+            paddingBottom: 120,
+          }}
+          stickySectionHeadersEnabled={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => {
+                setRefreshing(true);
+                load();
+              }}
+              tintColor={palette.accent}
+            />
+          }
+          renderSectionHeader={({ section }) => (
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+                paddingTop: spacing.md,
+                paddingBottom: spacing.sm,
+              }}
+            >
+              <Flag size={14} color={section.color} />
+              <Text
+                style={{
+                  color: section.color,
+                  fontSize: 12,
+                  letterSpacing: 1.5,
+                  textTransform: 'uppercase',
+                  fontFamily: 'Inter_600SemiBold',
+                }}
+              >
+                {section.title}
+              </Text>
+              <Text
+                style={{
+                  color: palette.textTertiary,
+                  fontSize: 12,
+                  fontFamily: 'Inter_400Regular',
+                }}
+              >
+                {section.data.length}
+              </Text>
+            </View>
+          )}
+          renderItem={({ item }) => (
+            <View style={{ marginBottom: spacing.sm }}>
+              <TaskRow
+                task={item}
+                projects={projects}
+                onPressStatus={() => cycleStatus(item)}
+                onPress={() => setEditing(item)}
+              />
+            </View>
+          )}
+          ListEmptyComponent={
+            <View style={{ alignItems: 'center', paddingTop: 64, gap: spacing.sm }}>
+              <Text
+                style={{
+                  color: palette.textSecondary,
+                  fontFamily: 'Fraunces_400Regular',
+                  fontSize: 20,
+                }}
+              >
+                {error ?? 'No tasks match.'}
+              </Text>
+            </View>
+          }
+        />
       ) : (
         <FlatList
           data={filtered}
@@ -543,7 +657,8 @@ function TaskFormModal({
   const [priority, setPriority] = useState<'low' | 'medium' | 'high' | null>(null);
   const [status, setStatus] = useState<Task['status']>('todo');
   const [projectId, setProjectId] = useState<string | null>(null);
-  const [dueDate, setDueDate] = useState('');
+  const [dueDate, setDueDate] = useState<string | undefined>(undefined);
+  const [startDate, setStartDate] = useState<string | undefined>(undefined);
   const [tags, setTags] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -556,7 +671,8 @@ function TaskFormModal({
       setPriority(task.priority ?? null);
       setStatus(task.status);
       setProjectId(task.projectId);
-      setDueDate(isoDate(task.dueDate));
+      setDueDate(task.dueDate ? isoDate(task.dueDate) : undefined);
+      setStartDate(task.startDate ? isoDate(task.startDate) : undefined);
       setTags((task.tags ?? []).join(', '));
     } else {
       setTitle('');
@@ -564,7 +680,8 @@ function TaskFormModal({
       setPriority(null);
       setStatus('todo');
       setProjectId(projects[0]?.id ?? null);
-      setDueDate('');
+      setDueDate(undefined);
+      setStartDate(undefined);
       setTags('');
     }
     setErr(null);
@@ -579,7 +696,8 @@ function TaskFormModal({
         .split(',')
         .map((t) => t.trim())
         .filter(Boolean);
-      const normalizedDue = dueDate.trim() || undefined;
+      const normalizedDue = dueDate && dueDate.trim() ? dueDate.trim() : undefined;
+      const normalizedStart = startDate && startDate.trim() ? startDate.trim() : undefined;
 
       if (mode === 'create') {
         let pid = projectId;
@@ -595,9 +713,10 @@ function TaskFormModal({
           priority: priority ?? undefined,
         });
         // dueDate/tags via follow-up patch (createTask supports limited fields here)
-        if (normalizedDue || parsedTags.length) {
+        if (normalizedDue || normalizedStart || parsedTags.length) {
           await api.updateTask(t.id, {
             ...(normalizedDue ? { dueDate: normalizedDue } : {}),
+            ...(normalizedStart ? { startDate: normalizedStart } : {}),
             ...(parsedTags.length ? { tags: parsedTags } : {}),
           });
         }
@@ -605,6 +724,7 @@ function TaskFormModal({
           {
             ...t,
             ...(normalizedDue ? { dueDate: normalizedDue } : {}),
+            ...(normalizedStart ? { startDate: normalizedStart } : {}),
             ...(parsedTags.length ? { tags: parsedTags } : {}),
           },
           created,
@@ -617,6 +737,7 @@ function TaskFormModal({
           status,
           projectId: projectId ?? undefined,
           dueDate: normalizedDue,
+          startDate: normalizedStart,
           tags: parsedTags,
         });
       }
@@ -803,13 +924,12 @@ function TaskFormModal({
               </View>
             </Field>
 
-            <Field label="Due date (YYYY-MM-DD)">
-              <StyledInput
-                value={dueDate}
-                onChangeText={setDueDate}
-                placeholder="2026-05-01"
-                autoCapitalize="none"
-              />
+            <Field label="Start date">
+              <DateField value={startDate} onChange={setStartDate} placeholder="Pick a start date" />
+            </Field>
+
+            <Field label="Due date">
+              <DateField value={dueDate} onChange={setDueDate} placeholder="Pick a due date" />
             </Field>
 
             <Field label="Tags (comma-separated)">
