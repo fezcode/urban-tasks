@@ -32,6 +32,10 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "runtimeVersion": { "policy": "appVersion" },
+    "updates": {
+      "url": "https://u.expo.dev/PLACEHOLDER_PROJECT_ID"
     }
   }
 }
