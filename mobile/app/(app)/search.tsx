@@ -103,7 +103,12 @@ export default function SearchScreen() {
           borderBottomWidth: 1,
         }}
       >
-        <TouchableOpacity onPress={() => router.back()} hitSlop={10}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+        >
           <ArrowLeft size={22} color={palette.textPrimary} />
         </TouchableOpacity>
         <View

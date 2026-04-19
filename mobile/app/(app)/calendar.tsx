@@ -119,6 +119,8 @@ export default function CalendarScreen() {
           <TouchableOpacity
             onPress={() => shiftMonth(-1)}
             hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Previous month"
             style={{ padding: 6 }}
           >
             <ChevronLeft size={20} color={palette.textSecondary} />
@@ -151,6 +153,8 @@ export default function CalendarScreen() {
           <TouchableOpacity
             onPress={() => shiftMonth(1)}
             hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Next month"
             style={{ padding: 6 }}
           >
             <ChevronRight size={20} color={palette.textSecondary} />

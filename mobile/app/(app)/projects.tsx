@@ -186,6 +186,8 @@ export default function ProjectsScreen() {
       <TouchableOpacity
         onPress={() => setEditing({ kind: 'create' })}
         activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel="New project"
         style={[styles.fab, { backgroundColor: palette.accent, bottom: insets.bottom + 80 }]}
       >
         <Plus color={palette.textInverse} size={26} strokeWidth={2.5} />

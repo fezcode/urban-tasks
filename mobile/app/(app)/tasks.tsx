@@ -327,6 +327,8 @@ export default function TasksScreen() {
           onPress={() => router.push('/search' as any)}
           activeOpacity={0.7}
           hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Search"
           style={{
             width: 38,
             height: 38,
@@ -477,6 +479,8 @@ export default function TasksScreen() {
       <TouchableOpacity
         onPress={() => setCreating(true)}
         activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel="New task"
         style={[
           styles.fab,
           {
@@ -627,6 +631,8 @@ function TaskRow({ task, projects, onPressStatus, onPress, onTagPress }: TaskRow
         onPress={onPressStatus}
         activeOpacity={0.6}
         hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel={`Task status: ${task.status}. Tap to advance.`}
         style={{ paddingTop: 2 }}
       >
         <StatusIndicator status={task.status} />
