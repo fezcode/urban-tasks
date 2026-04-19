@@ -72,6 +72,7 @@ export default function AppTabs() {
           ),
         }}
       />
+      <Tabs.Screen name="search" options={{ href: null }} />
     </Tabs>
   );
 }

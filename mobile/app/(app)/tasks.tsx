@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import {
   View,
   Text,
@@ -17,7 +17,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CalendarClock, Check, Flag, Inbox, Plus, SearchX } from 'lucide-react-native';
+import { CalendarClock, Check, Flag, Inbox, Plus, Search, SearchX } from 'lucide-react-native';
 import { useTheme } from '@/theme/ThemeContext';
 import { api, Task, Project } from '@/api/client';
 import { DateField, EmptyState, Markdown } from '@/components/ui';
@@ -64,6 +64,7 @@ function formatDue(due: string | undefined, palette: any): { label: string; colo
 export default function TasksScreen() {
   const { palette, radii, spacing } = useTheme();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -166,15 +167,19 @@ export default function TasksScreen() {
     >
       <View
         style={{
+          flexDirection: 'row',
+          alignItems: 'center',
           paddingHorizontal: spacing.lg,
           paddingTop: spacing.sm,
           paddingBottom: spacing.sm,
+          gap: spacing.sm,
         }}
       >
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: spacing.sm, paddingRight: spacing.lg }}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ gap: spacing.sm, paddingRight: spacing.sm }}
         >
           {FILTERS.map((f) => {
             const active = filter === f.key;
@@ -275,6 +280,23 @@ export default function TasksScreen() {
             </TouchableOpacity>
           )}
         </ScrollView>
+        <TouchableOpacity
+          onPress={() => router.push('/search' as any)}
+          activeOpacity={0.7}
+          hitSlop={8}
+          style={{
+            width: 38,
+            height: 38,
+            borderRadius: 19,
+            borderWidth: 1,
+            borderColor: palette.border,
+            backgroundColor: palette.surface,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Search size={16} color={palette.textSecondary} />
+        </TouchableOpacity>
       </View>
 
       {loading ? (
