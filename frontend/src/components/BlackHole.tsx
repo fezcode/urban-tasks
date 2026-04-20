@@ -152,16 +152,17 @@ const BlackHole: React.FC<Props> = ({ startDate, dueDate }) => {
           — Causality violation detected —
         </div>
         <h2
-          className="font-display font-light text-white leading-none"
+          className="font-display font-light text-white leading-[1.05] max-w-full"
           style={{
-            fontSize: 'clamp(28px, 9cqmin, 84px)',
-            letterSpacing: '0.28em',
+            fontSize: 'clamp(22px, 7.5cqw, 84px)',
+            letterSpacing: 'clamp(0.08em, 1cqw, 0.28em)',
             textShadow:
               '0 0 22px rgba(255,180,120,0.6), 0 0 48px rgba(255,120,60,0.4)',
             animation: 'bh-title-in 1.8s cubic-bezier(.2,.8,.2,1) backwards',
+            whiteSpace: 'nowrap',
           }}
         >
-          TIME&nbsp;TRAVELLER
+          TIME TRAVELLER
         </h2>
         <div
           className="mt-6 font-mono text-[12px] text-white/65 tracking-wider"
