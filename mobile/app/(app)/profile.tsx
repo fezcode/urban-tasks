@@ -18,8 +18,7 @@ import { ChevronRight, Download, Moon, Shuffle, Sun, Upload } from 'lucide-react
 import { useTheme } from '@/theme/ThemeContext';
 import { api, clearToken, User } from '@/api/client';
 import { haptic } from '@/haptics';
-
-const AVATAR_SEEDS = ['atlas', 'ember', 'felix', 'ivy', 'june', 'kai', 'lumen', 'nico', 'orin', 'piper'];
+import Avatar, { randomAvatarSeed } from '@/components/Avatar';
 
 export default function Profile() {
   const { palette, radii, spacing, fontSize, mode, toggle } = useTheme();
@@ -71,8 +70,6 @@ export default function Profile() {
       { text: 'Delete', style: 'destructive', onPress: run },
     ]);
   };
-
-  const initial = (user?.name || user?.email || '?').trim().charAt(0).toUpperCase();
 
   const startExport = async () => {
     setDataBusy(true);
@@ -162,26 +159,7 @@ export default function Profile() {
     <SafeAreaView edges={['bottom']} style={[styles.flex, { backgroundColor: palette.bg }]}>
       <ScrollView contentContainerStyle={{ padding: spacing.xl, gap: spacing.lg }}>
         <View style={{ alignItems: 'center', gap: spacing.md, marginBottom: spacing.md }}>
-          <View
-            style={{
-              width: 88,
-              height: 88,
-              borderRadius: 44,
-              backgroundColor: palette.accent,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Text
-              style={{
-                color: palette.textInverse,
-                fontSize: 34,
-                fontFamily: 'Fraunces_600SemiBold',
-              }}
-            >
-              {initial}
-            </Text>
-          </View>
+          <Avatar seed={user?.avatarSeed ?? user?.id} name={user?.name} size={88} />
           {loading ? (
             <ActivityIndicator color={palette.accent} />
           ) : (
@@ -425,8 +403,7 @@ function EditProfileModal({
   };
 
   const randomSeed = () => {
-    const next = AVATAR_SEEDS[Math.floor(Math.random() * AVATAR_SEEDS.length)];
-    setSeed(next);
+    setSeed(randomAvatarSeed());
   };
 
   return (
@@ -487,6 +464,9 @@ function EditProfileModal({
           </View>
 
           <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
+            <View style={{ alignItems: 'center', paddingVertical: spacing.sm }}>
+              <Avatar seed={seed || user?.id} name={name || user?.name} size={96} />
+            </View>
             <View style={{ gap: spacing.sm }}>
               <Text
                 style={{

@@ -75,7 +75,9 @@ export default function Landing() {
 
   const next = () => {
     if (index < SLIDES.length - 1) {
-      listRef.current?.scrollToIndex({ index: index + 1, animated: true });
+      const target = index + 1;
+      listRef.current?.scrollToOffset({ offset: target * width, animated: true });
+      setIndex(target);
     } else {
       router.push('/login');
     }
@@ -117,8 +119,9 @@ export default function Landing() {
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
-          onScroll={onScroll}
-          scrollEventThrottle={16}
+          onMomentumScrollEnd={onScroll}
+          onScrollEndDrag={onScroll}
+          getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
           renderItem={({ item }) => (
             <View style={{ width, paddingHorizontal: spacing.xl, flex: 1, justifyContent: 'center' }}>
               <View
