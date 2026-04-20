@@ -30,6 +30,9 @@ export interface Task {
   position?: number;
   createdAt: string;
   completedAt?: string;
+  createdBy?: string;
+  updatedBy?: string;
+  updatedAt?: string;
 }
 
 export interface Project {

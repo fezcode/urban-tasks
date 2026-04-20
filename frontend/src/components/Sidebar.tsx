@@ -26,14 +26,19 @@ import {
   Upload,
   LogOut,
   UserCog,
+  Mail,
+  Users,
 } from 'lucide-react';
 import { format, differenceInDays, startOfDay } from 'date-fns';
 import ProjectIcon from './ProjectIcon';
 import ConfirmDialog from './ConfirmDialog';
 import * as api from '../api/client';
 import { useToast } from '../context/ToastContext';
+import { useInbox } from '../hooks/useInbox';
 
 const ProfilePage = lazy(() => import('./ProfilePage'));
+const InboxPanel = lazy(() => import('./InboxPanel'));
+const MembersPanel = lazy(() => import('./MembersPanel'));
 
 export type View = 'tasks' | 'dashboard' | 'calendar';
 
@@ -102,6 +107,9 @@ const Sidebar: React.FC<Props> = ({
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [profileMenuOpen]);
+  const [inboxOpen, setInboxOpen] = useState(false);
+  const [membersProjectId, setMembersProjectId] = useState<string | null>(null);
+  const { badge: inboxBadge, refresh: refreshInbox } = useInbox();
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -364,6 +372,18 @@ const Sidebar: React.FC<Props> = ({
             <span className="ml-auto text-2xs text-text-tertiary tabular-nums">{archiveCount}</span>
           )}
         </button>
+        <button
+          onClick={() => setInboxOpen(true)}
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-base relative"
+        >
+          <Mail size={18} />
+          <span>Inbox</span>
+          {inboxBadge > 0 && (
+            <span className="ml-auto text-[10px] font-semibold text-text-inverse bg-accent rounded-full px-1.5 py-0.5 tabular-nums min-w-[18px] text-center">
+              {inboxBadge > 99 ? '99+' : inboxBadge}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* Divider */}
@@ -529,6 +549,16 @@ const Sidebar: React.FC<Props> = ({
                     >
                       <Sparkles size={13} />
                       Shuffle Style
+                    </button>
+                    <button
+                      onClick={() => {
+                        setMembersProjectId(project.id);
+                        setMenuOpenId(null);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-1.5 text-[13px] text-text-secondary hover:bg-bg-secondary transition-base"
+                    >
+                      <Users size={13} />
+                      Members
                     </button>
                     <button
                       onClick={() => requestDelete(project.id)}
@@ -740,6 +770,27 @@ const Sidebar: React.FC<Props> = ({
       {profileOpen && (
         <Suspense fallback={null}>
           <ProfilePage onClose={() => setProfileOpen(false)} />
+        </Suspense>
+      )}
+
+      {inboxOpen && (
+        <Suspense fallback={null}>
+          <InboxPanel
+            onClose={() => {
+              setInboxOpen(false);
+              refreshInbox();
+            }}
+            onChanged={refreshInbox}
+          />
+        </Suspense>
+      )}
+
+      {membersProjectId && (
+        <Suspense fallback={null}>
+          <MembersPanel
+            projectId={membersProjectId}
+            onClose={() => setMembersProjectId(null)}
+          />
         </Suspense>
       )}
     </aside>

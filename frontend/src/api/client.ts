@@ -174,6 +174,78 @@ export const data = {
     }),
 };
 
+// --- Members ---
+
+export interface Member {
+  projectId: string;
+  userId: string;
+  role: 'admin' | 'member';
+  name: string;
+  email: string;
+  avatarSeed?: string;
+  joinedAt: string;
+}
+
+export interface Invitation {
+  id: string;
+  projectId: string;
+  projectName?: string;
+  projectColor?: string;
+  inviterId: string;
+  inviterName?: string;
+  inviteeEmail: string;
+  inviteeId?: string;
+  status: 'pending' | 'accepted' | 'rejected' | 'expired' | 'revoked';
+  expiresAt: string;
+  createdAt: string;
+  respondedAt?: string;
+}
+
+export const members = {
+  list: (projectId: string) => request<Member[]>(`/projects/${projectId}/members`),
+  remove: (projectId: string, userId: string) =>
+    request<void>(`/projects/${projectId}/members/${userId}`, { method: 'DELETE' }),
+  listInvitations: (projectId: string) =>
+    request<Invitation[]>(`/projects/${projectId}/invitations`),
+  invite: (projectId: string, email: string) =>
+    request<Invitation>(`/projects/${projectId}/invitations`, {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+};
+
+export const invitations = {
+  listMine: () => request<Invitation[]>('/invitations'),
+  accept: (id: string) =>
+    request<Invitation>(`/invitations/${id}/accept`, { method: 'POST' }),
+  reject: (id: string) =>
+    request<Invitation>(`/invitations/${id}/reject`, { method: 'POST' }),
+};
+
+// --- Notifications ---
+
+export interface Notification {
+  id: string;
+  userId: string;
+  kind: string;
+  payload: Record<string, any>;
+  readAt?: string;
+  createdAt: string;
+}
+
+export interface NotificationList {
+  items: Notification[];
+  unread: number;
+}
+
+export const notifications = {
+  list: () => request<NotificationList>('/notifications'),
+  markRead: (id: string) =>
+    request<void>(`/notifications/${id}/read`, { method: 'POST' }),
+  markAllRead: () =>
+    request<void>('/notifications/read-all', { method: 'POST' }),
+};
+
 export const tasks = {
   list: (projectId?: string) =>
     request<Task[]>(`/tasks${projectId ? `?projectId=${projectId}` : ''}`),
