@@ -1,0 +1,5 @@
+ALTER TABLE tasks DROP COLUMN IF EXISTS updated_by;
+ALTER TABLE tasks DROP COLUMN IF EXISTS created_by;
+DROP TABLE IF EXISTS notifications;
+DROP TABLE IF EXISTS invitations;
+DROP TABLE IF EXISTS project_members;

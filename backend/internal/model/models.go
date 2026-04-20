@@ -58,6 +58,48 @@ type Task struct {
 	CreatedAt   time.Time  `json:"createdAt"`
 	UpdatedAt   time.Time  `json:"updatedAt"`
 	CompletedAt *time.Time `json:"completedAt,omitempty"`
+	CreatedBy   *string    `json:"createdBy,omitempty"`
+	UpdatedBy   *string    `json:"updatedBy,omitempty"`
+}
+
+// --- Multi-user: membership, invitations, notifications ---
+
+type ProjectMember struct {
+	ProjectID  string    `json:"projectId"`
+	UserID     string    `json:"userId"`
+	Role       string    `json:"role"`
+	Name       string    `json:"name"`
+	Email      string    `json:"email"`
+	AvatarSeed *string   `json:"avatarSeed,omitempty"`
+	JoinedAt   time.Time `json:"joinedAt"`
+}
+
+type Invitation struct {
+	ID           string     `json:"id"`
+	ProjectID    string     `json:"projectId"`
+	ProjectName  string     `json:"projectName,omitempty"`
+	ProjectColor string     `json:"projectColor,omitempty"`
+	InviterID    string     `json:"inviterId"`
+	InviterName  string     `json:"inviterName,omitempty"`
+	InviteeEmail string     `json:"inviteeEmail"`
+	InviteeID    *string    `json:"inviteeId,omitempty"`
+	Status       string     `json:"status"`
+	ExpiresAt    time.Time  `json:"expiresAt"`
+	CreatedAt    time.Time  `json:"createdAt"`
+	RespondedAt  *time.Time `json:"respondedAt,omitempty"`
+}
+
+type Notification struct {
+	ID        string         `json:"id"`
+	UserID    string         `json:"userId"`
+	Kind      string         `json:"kind"`
+	Payload   map[string]any `json:"payload"`
+	ReadAt    *time.Time     `json:"readAt,omitempty"`
+	CreatedAt time.Time      `json:"createdAt"`
+}
+
+type CreateInvitationRequest struct {
+	Email string `json:"email"`
 }
 
 // --- Request / Response DTOs ---

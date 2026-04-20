@@ -21,18 +21,20 @@ var (
 )
 
 type AuthService struct {
-	users      *repository.UserRepo
-	jwtSecret  []byte
-	accessTTL  time.Duration
-	refreshTTL time.Duration
+	users       *repository.UserRepo
+	invitations *repository.InvitationRepo
+	jwtSecret   []byte
+	accessTTL   time.Duration
+	refreshTTL  time.Duration
 }
 
-func NewAuthService(users *repository.UserRepo, jwtSecret string, accessTTL, refreshTTL time.Duration) *AuthService {
+func NewAuthService(users *repository.UserRepo, invitations *repository.InvitationRepo, jwtSecret string, accessTTL, refreshTTL time.Duration) *AuthService {
 	return &AuthService{
-		users:      users,
-		jwtSecret:  []byte(jwtSecret),
-		accessTTL:  accessTTL,
-		refreshTTL: refreshTTL,
+		users:       users,
+		invitations: invitations,
+		jwtSecret:   []byte(jwtSecret),
+		accessTTL:   accessTTL,
+		refreshTTL:  refreshTTL,
 	}
 }
 
@@ -62,6 +64,11 @@ func (s *AuthService) Register(ctx context.Context, req model.RegisterRequest) (
 
 	if err := s.users.Create(ctx, user); err != nil {
 		return nil, fmt.Errorf("creating user: %w", err)
+	}
+
+	// Backfill invitee_id on any pending invitations for this email.
+	if s.invitations != nil {
+		_ = s.invitations.AttachInviteeID(ctx, user.Email, user.ID)
 	}
 
 	return s.issueTokens(user)

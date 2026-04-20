@@ -98,7 +98,7 @@ func (s *TaskService) Create(ctx context.Context, userID string, req model.Creat
 		return nil, ErrProjectNotFound
 	}
 
-	pos, err := s.tasks.NextPosition(ctx, req.ProjectID, userID)
+	pos, err := s.tasks.NextPosition(ctx, req.ProjectID)
 	if err != nil {
 		return nil, err
 	}
@@ -146,6 +146,8 @@ func (s *TaskService) Create(ctx context.Context, userID string, req model.Creat
 		Position:  pos,
 		CreatedAt: now,
 		UpdatedAt: now,
+		CreatedBy: &userID,
+		UpdatedBy: &userID,
 	}
 
 	if err := s.tasks.Create(ctx, t); err != nil {
@@ -233,6 +235,8 @@ func (s *TaskService) Update(ctx context.Context, id, userID string, req model.U
 		t.Position = *req.Position
 	}
 	t.UpdatedAt = time.Now().UTC()
+	uid := userID
+	t.UpdatedBy = &uid
 
 	if err := s.tasks.Update(ctx, t); err != nil {
 		return nil, err
@@ -248,5 +252,5 @@ func (s *TaskService) Delete(ctx context.Context, id, userID string) error {
 	if t == nil {
 		return ErrTaskNotFound
 	}
-	return s.tasks.Delete(ctx, id, userID)
+	return s.tasks.Delete(ctx, id)
 }

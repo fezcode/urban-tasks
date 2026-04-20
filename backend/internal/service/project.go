@@ -12,7 +12,11 @@ import (
 	"urban-tasks/internal/repository"
 )
 
-var ErrProjectNotFound = errors.New("project not found")
+var (
+	ErrProjectNotFound = errors.New("project not found")
+	ErrNotAdmin        = errors.New("admin role required")
+	ErrLastAdmin       = errors.New("cannot remove the last admin")
+)
 
 type ProjectService struct {
 	projects *repository.ProjectRepo
@@ -59,6 +63,19 @@ func (s *ProjectService) Create(ctx context.Context, userID string, req model.Cr
 }
 
 func (s *ProjectService) Update(ctx context.Context, id, userID string, req model.UpdateProjectRequest) (*model.Project, error) {
+	role, err := s.projects.GetRole(ctx, id, userID)
+	if err != nil {
+		return nil, err
+	}
+	if role == "" {
+		return nil, ErrProjectNotFound
+	}
+	// Position changes are personal-ish but treated as project-wide here; any member can reorder.
+	// Name/color/icon changes require admin.
+	if role != "admin" && (req.Name != nil || req.Color != nil || req.IconSeed != nil) {
+		return nil, ErrNotAdmin
+	}
+
 	p, err := s.projects.GetByID(ctx, id, userID)
 	if err != nil {
 		return nil, err
@@ -88,16 +105,70 @@ func (s *ProjectService) Update(ctx context.Context, id, userID string, req mode
 }
 
 func (s *ProjectService) Delete(ctx context.Context, id, userID string) error {
-	p, err := s.projects.GetByID(ctx, id, userID)
+	role, err := s.projects.GetRole(ctx, id, userID)
 	if err != nil {
 		return err
 	}
-	if p == nil {
+	if role == "" {
 		return ErrProjectNotFound
 	}
+	if role != "admin" {
+		return ErrNotAdmin
+	}
 
-	if err := s.tasks.DeleteByProject(ctx, id, userID); err != nil {
+	if err := s.tasks.DeleteByProject(ctx, id); err != nil {
 		return fmt.Errorf("deleting project tasks: %w", err)
 	}
-	return s.projects.Delete(ctx, id, userID)
+	return s.projects.Delete(ctx, id)
+}
+
+// --- members ---
+
+func (s *ProjectService) ListMembers(ctx context.Context, projectID, userID string) ([]model.ProjectMember, error) {
+	role, err := s.projects.GetRole(ctx, projectID, userID)
+	if err != nil {
+		return nil, err
+	}
+	if role == "" {
+		return nil, ErrProjectNotFound
+	}
+	members, err := s.projects.ListMembers(ctx, projectID)
+	if err != nil {
+		return nil, err
+	}
+	if members == nil {
+		members = []model.ProjectMember{}
+	}
+	return members, nil
+}
+
+func (s *ProjectService) RemoveMember(ctx context.Context, projectID, actorID, targetID string) error {
+	role, err := s.projects.GetRole(ctx, projectID, actorID)
+	if err != nil {
+		return err
+	}
+	if role == "" {
+		return ErrProjectNotFound
+	}
+	// Anyone can remove themselves; only admins can remove others.
+	if targetID != actorID && role != "admin" {
+		return ErrNotAdmin
+	}
+	targetRole, err := s.projects.GetRole(ctx, projectID, targetID)
+	if err != nil {
+		return err
+	}
+	if targetRole == "" {
+		return nil // idempotent
+	}
+	if targetRole == "admin" {
+		n, err := s.projects.AdminCount(ctx, projectID)
+		if err != nil {
+			return err
+		}
+		if n <= 1 {
+			return ErrLastAdmin
+		}
+	}
+	return s.projects.RemoveMember(ctx, projectID, targetID)
 }

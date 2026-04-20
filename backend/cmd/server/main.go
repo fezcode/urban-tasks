@@ -57,17 +57,24 @@ func main() {
 	userRepo := repository.NewUserRepo(pool)
 	projectRepo := repository.NewProjectRepo(pool)
 	taskRepo := repository.NewTaskRepo(pool)
+	invitationRepo := repository.NewInvitationRepo(pool)
+	notificationRepo := repository.NewNotificationRepo(pool)
 
 	// Services
-	authSvc := service.NewAuthService(userRepo, cfg.JWTSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL)
+	authSvc := service.NewAuthService(userRepo, invitationRepo, cfg.JWTSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL)
 	projectSvc := service.NewProjectService(projectRepo, taskRepo)
 	taskSvc := service.NewTaskService(taskRepo, projectRepo)
+	notificationSvc := service.NewNotificationService(notificationRepo)
+	invitationSvc := service.NewInvitationService(invitationRepo, projectRepo, userRepo, notificationSvc)
 
 	// Handlers
 	authH := handler.NewAuthHandler(authSvc)
 	projectH := handler.NewProjectHandler(projectSvc)
 	taskH := handler.NewTaskHandler(taskSvc)
 	dataH := handler.NewDataHandler(projectSvc, taskSvc)
+	memberH := handler.NewMemberHandler(projectSvc, invitationSvc)
+	invitationH := handler.NewInvitationHandler(invitationSvc)
+	notificationH := handler.NewNotificationHandler(notificationSvc)
 
 	// Router
 	r := chi.NewRouter()
@@ -142,6 +149,22 @@ func main() {
 			protected.Get("/me", authH.GetMe)
 			protected.Patch("/me", authH.UpdateMe)
 			protected.Delete("/me", authH.DeleteMe)
+
+			// Project members + invitations
+			protected.Get("/projects/{id}/members", memberH.List)
+			protected.Delete("/projects/{id}/members/{uid}", memberH.Remove)
+			protected.Get("/projects/{id}/invitations", memberH.ListInvitations)
+			protected.Post("/projects/{id}/invitations", memberH.CreateInvitation)
+
+			// My invitations
+			protected.Get("/invitations", invitationH.ListMine)
+			protected.Post("/invitations/{id}/accept", invitationH.Accept)
+			protected.Post("/invitations/{id}/reject", invitationH.Reject)
+
+			// Notifications (inbox)
+			protected.Get("/notifications", notificationH.List)
+			protected.Post("/notifications/{id}/read", notificationH.MarkRead)
+			protected.Post("/notifications/read-all", notificationH.MarkAllRead)
 		})
 	})
 
