@@ -16,9 +16,10 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
-import { FolderKanban, Plus } from 'lucide-react-native';
+import { FolderKanban, Plus, Shield, UserMinus, UserPlus, Users } from 'lucide-react-native';
 import { useTheme } from '@/theme/ThemeContext';
-import { api, Project, Task } from '@/api/client';
+import Avatar from '@/components/Avatar';
+import { api, Invitation, Member, Project, Task } from '@/api/client';
 import { EmptyState } from '@/components/ui';
 import { haptic } from '@/haptics';
 
@@ -415,6 +416,8 @@ function ProjectModal({ editing, taskCount, onClose, onSaved, onDeleted }: Proje
               </View>
             </View>
 
+            {isEdit && editing && <MembersSection projectId={editing.project.id} />}
+
             {isEdit && editing && (
               <>
                 <View
@@ -470,6 +473,208 @@ function ProjectModal({ editing, taskCount, onClose, onSaved, onDeleted }: Proje
         </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
+  );
+}
+
+function MembersSection({ projectId }: { projectId: string }) {
+  const { palette, radii, spacing, fontSize } = useTheme();
+  const [members, setMembers] = useState<Member[]>([]);
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [email, setEmail] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [me, setMe] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const [m, i, u] = await Promise.all([
+        api.listMembers(projectId),
+        api.listProjectInvitations(projectId),
+        api.me(),
+      ]);
+      setMembers(m);
+      setInvitations(i.filter((x) => x.status === 'pending'));
+      setMe(u.id);
+    } catch {
+      // ignore
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const isAdmin = members.some((m) => m.userId === me && m.role === 'admin');
+
+  const invite = async () => {
+    const trimmed = email.trim();
+    if (!trimmed) return;
+    setBusy(true);
+    try {
+      const inv = await api.invite(projectId, trimmed);
+      setInvitations((xs) => [inv, ...xs]);
+      setEmail('');
+      haptic.success();
+    } catch (e: any) {
+      Alert.alert('Invite', e?.message ?? 'Failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeMember = (m: Member) => {
+    const isSelf = m.userId === me;
+    const run = async () => {
+      try {
+        await api.removeMember(projectId, m.userId);
+        setMembers((xs) => xs.filter((x) => x.userId !== m.userId));
+      } catch (e: any) {
+        Alert.alert('Remove', e?.message ?? 'Failed');
+      }
+    };
+    Alert.alert(
+      isSelf ? 'Leave project' : `Remove ${m.name}`,
+      isSelf ? 'You will lose access to this project.' : `Remove ${m.name} from this project?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: isSelf ? 'Leave' : 'Remove', style: 'destructive', onPress: run },
+      ],
+    );
+  };
+
+  return (
+    <View style={{ gap: spacing.sm }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+        <Users size={14} color={palette.textTertiary} />
+        <Text
+          style={{
+            color: palette.textTertiary,
+            fontSize: 11,
+            letterSpacing: 1.5,
+            textTransform: 'uppercase',
+            fontFamily: 'Inter_500Medium',
+          }}
+        >
+          Members
+        </Text>
+      </View>
+
+      {isAdmin && (
+        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+          <TextInput
+            value={email}
+            onChangeText={setEmail}
+            placeholder="email to invite"
+            placeholderTextColor={palette.textTertiary}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            style={{
+              flex: 1,
+              backgroundColor: palette.surface,
+              borderColor: palette.border,
+              borderWidth: 1,
+              borderRadius: radii.md,
+              paddingHorizontal: spacing.md,
+              paddingVertical: spacing.sm + 2,
+              fontSize: 14,
+              color: palette.textPrimary,
+              fontFamily: 'Inter_400Regular',
+            }}
+          />
+          <TouchableOpacity
+            onPress={invite}
+            disabled={busy || !email.trim()}
+            activeOpacity={0.85}
+            style={{
+              backgroundColor: palette.accent,
+              borderRadius: radii.md,
+              paddingHorizontal: spacing.md,
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: !email.trim() ? 0.5 : 1,
+              flexDirection: 'row',
+              gap: 6,
+            }}
+          >
+            <UserPlus size={14} color={palette.textInverse} />
+            <Text style={{ color: palette.textInverse, fontFamily: 'Inter_600SemiBold', fontSize: 13 }}>
+              Invite
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {members.map((m) => (
+        <View
+          key={m.userId}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: spacing.sm,
+            paddingVertical: spacing.sm,
+          }}
+        >
+          <Avatar seed={m.avatarSeed ?? m.userId} name={m.name} size={36} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: palette.textPrimary, fontFamily: 'Inter_500Medium', fontSize: 14 }}>
+              {m.name}
+              {m.userId === me ? (
+                <Text style={{ color: palette.textTertiary, fontSize: 11 }}>  (you)</Text>
+              ) : null}
+            </Text>
+            <Text style={{ color: palette.textTertiary, fontFamily: 'Inter_400Regular', fontSize: 11 }}>
+              {m.email}
+            </Text>
+          </View>
+          {m.role === 'admin' && (
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+                paddingHorizontal: 8,
+                paddingVertical: 2,
+                borderRadius: 999,
+                backgroundColor: palette.accentLight ?? palette.surface,
+              }}
+            >
+              <Shield size={10} color={palette.accent} />
+              <Text style={{ color: palette.accent, fontFamily: 'Inter_500Medium', fontSize: 10 }}>
+                admin
+              </Text>
+            </View>
+          )}
+          {(isAdmin || m.userId === me) && (
+            <TouchableOpacity onPress={() => removeMember(m)} hitSlop={8} style={{ padding: 6 }}>
+              <UserMinus size={16} color={palette.textTertiary} />
+            </TouchableOpacity>
+          )}
+        </View>
+      ))}
+
+      {invitations.length > 0 && (
+        <View style={{ marginTop: spacing.sm, gap: 6 }}>
+          <Text
+            style={{
+              color: palette.textTertiary,
+              fontFamily: 'Inter_500Medium',
+              fontSize: 11,
+              letterSpacing: 1.5,
+              textTransform: 'uppercase',
+            }}
+          >
+            Pending
+          </Text>
+          {invitations.map((inv) => (
+            <Text
+              key={inv.id}
+              style={{ color: palette.textSecondary, fontFamily: 'Inter_400Regular', fontSize: 13 }}
+            >
+              {inv.inviteeEmail} — expires {new Date(inv.expiresAt).toLocaleDateString()}
+            </Text>
+          ))}
+        </View>
+      )}
+    </View>
   );
 }
 

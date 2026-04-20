@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { AppState, Platform, Text, View } from 'react-native';
 import { Tabs } from 'expo-router';
-import { CalendarDays, CheckSquare, CloudOff, FolderKanban, LayoutDashboard, User } from 'lucide-react-native';
+import { CalendarDays, CheckSquare, CloudOff, FolderKanban, LayoutDashboard, Mail, User } from 'lucide-react-native';
 import { useTheme } from '@/theme/ThemeContext';
-import { flushQueue, onQueueChange } from '@/api/client';
+import { api, flushQueue, onQueueChange } from '@/api/client';
 import { queueSize } from '@/api/offlineQueue';
 
 function OfflineBanner() {
@@ -81,6 +81,31 @@ export default function AppTabs() {
 
 function InnerTabs() {
   const { palette } = useTheme();
+  const [inboxBadge, setInboxBadge] = useState(0);
+
+  useEffect(() => {
+    const refresh = async () => {
+      try {
+        const [n, invs] = await Promise.all([
+          api.listNotifications().catch(() => ({ items: [], unread: 0 })),
+          api.listMyInvitations().catch(() => []),
+        ]);
+        setInboxBadge(n.unread + invs.length);
+      } catch {
+        // ignore
+      }
+    };
+    refresh();
+    const id = setInterval(refresh, 30000);
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s === 'active') refresh();
+    });
+    return () => {
+      clearInterval(id);
+      sub.remove();
+    };
+  }, []);
+
   return (
     <Tabs
       screenOptions={{
@@ -144,6 +169,24 @@ function InnerTabs() {
           tabBarIcon: ({ color, focused }) => (
             <FolderKanban color={color} size={22} strokeWidth={focused ? 2.2 : 1.8} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="inbox"
+        options={{
+          title: 'Inbox',
+          tabBarIcon: ({ color, focused }) => (
+            <Mail color={color} size={22} strokeWidth={focused ? 2.2 : 1.8} />
+          ),
+          tabBarBadge: inboxBadge > 0 ? (inboxBadge > 99 ? '99+' : inboxBadge) : undefined,
+          tabBarBadgeStyle: {
+            backgroundColor: palette.accent,
+            color: palette.bg,
+            fontSize: 10,
+            minWidth: 18,
+            height: 18,
+            lineHeight: 14,
+          },
         }}
       />
       <Tabs.Screen
