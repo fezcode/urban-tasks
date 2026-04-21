@@ -60,29 +60,63 @@ export default function TaskForm({ client, projectId, initial, onDone }: Props) 
 
   const isEnum = (f: Field) => f === 'priority' || f === 'status' || f === 'recurrence';
 
+  const moveFocus = (delta: number) => {
+    const i = fieldOrder.indexOf(focus);
+    setFocus(fieldOrder[(i + delta + fieldOrder.length) % fieldOrder.length]!);
+  };
+
   useInput((input, key) => {
     if (busy) return;
     if (key.escape) {
       onDone(null);
       return;
     }
-    if (key.tab) {
-      const i = fieldOrder.indexOf(focus);
-      const delta = key.shift ? -1 : 1;
-      setFocus(fieldOrder[(i + delta + fieldOrder.length) % fieldOrder.length]!);
-      return;
-    }
-    // enum cycling
-    if (isEnum(focus) && (key.leftArrow || key.rightArrow || input === 'h' || input === 'l')) {
-      const dir: 1 | -1 = key.leftArrow || input === 'h' ? -1 : 1;
-      if (focus === 'priority') setPriority((v) => cycle(PRIORITIES, v, dir));
-      if (focus === 'status') setStatus((v) => cycle(STATUSES, v, dir));
-      if (focus === 'recurrence') setRecurrence((v) => cycle(RECURRENCES, v, dir));
-      return;
-    }
-    // Ctrl+S submit anywhere
     if (key.ctrl && input === 's') {
       submit();
+      return;
+    }
+    if (key.tab) {
+      moveFocus(key.shift ? -1 : 1);
+      return;
+    }
+    // enum field: arrows cycle value; up/down move fields
+    if (isEnum(focus)) {
+      if (key.leftArrow || input === 'h') {
+        if (focus === 'priority') setPriority((v) => cycle(PRIORITIES, v, -1));
+        if (focus === 'status') setStatus((v) => cycle(STATUSES, v, -1));
+        if (focus === 'recurrence') setRecurrence((v) => cycle(RECURRENCES, v, -1));
+        return;
+      }
+      if (key.rightArrow || input === 'l') {
+        if (focus === 'priority') setPriority((v) => cycle(PRIORITIES, v, 1));
+        if (focus === 'status') setStatus((v) => cycle(STATUSES, v, 1));
+        if (focus === 'recurrence') setRecurrence((v) => cycle(RECURRENCES, v, 1));
+        return;
+      }
+      if (key.upArrow || input === 'k') {
+        moveFocus(-1);
+        return;
+      }
+      if (key.downArrow || input === 'j') {
+        moveFocus(1);
+        return;
+      }
+      if (key.return) {
+        const i = fieldOrder.indexOf(focus);
+        if (i === fieldOrder.length - 1) submit();
+        else moveFocus(1);
+        return;
+      }
+    } else {
+      // text field: up/down move between fields (TextInput ignores them)
+      if (key.upArrow) {
+        moveFocus(-1);
+        return;
+      }
+      if (key.downArrow) {
+        moveFocus(1);
+        return;
+      }
     }
   });
 
@@ -192,7 +226,7 @@ export default function TaskForm({ client, projectId, initial, onDone }: Props) 
           {editing ? 'Edit task' : 'New task'}
         </Text>
         <Text dimColor>
-          Tab: next · ◂ ▸ / h l: cycle options · Enter: advance/submit · Ctrl+S: save · Esc: cancel
+          Tab / ↑↓: move · ←→ or h/l: cycle options · Enter: next/submit · Ctrl+S: save · Esc: cancel
         </Text>
       </Box>
       <Box
