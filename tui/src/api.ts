@@ -114,7 +114,15 @@ export function createClient(
         auth?.onUnauthorized?.();
       }
     }
-    const body = r.text ? (JSON.parse(r.text) as { data?: unknown; error?: string }) : null;
+    let body: { data?: unknown; error?: string } | null = null;
+    if (r.text) {
+      try {
+        body = JSON.parse(r.text) as { data?: unknown; error?: string };
+      } catch {
+        // non-JSON (rate limiter, proxy errors, etc.)
+        body = { error: r.text.trim() || `HTTP ${r.status}` };
+      }
+    }
     if (r.status < 200 || r.status >= 300) {
       const msg = body?.error ? String(body.error) : `HTTP ${r.status}`;
       throw new ApiError(r.status, msg);
