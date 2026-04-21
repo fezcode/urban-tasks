@@ -60,7 +60,7 @@
 - [~] **TUI** — terminal UI under `tui/`, built with React + Ink (same stack Claude Code uses). Login, project list, task list, task detail, full create/edit form, search, filters. Pending:
   - [x] **Task detail view** — body, priority, due/start, tags, links, subtasks, recurrence
   - [x] **Edit fields inline** — full form screen for title/body/priority/status/dates/tags/recurrence (used for both create and edit)
-  - [~] **Subtask view** — toggle implemented; add/remove pending
+  - [x] **Subtask view** — toggle, add (`a`), delete (`D`) inside the detail screen
   - [x] **Filters** — `f`/`F` cycles status chip, `p`/`P` cycles priority chip
   - [x] **Search** — `/` filters on title, body, tags
   - [x] **Inbox screen** — invitations (accept/reject) + notifications (mark read / mark all read)

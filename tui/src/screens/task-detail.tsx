@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Text, useInput } from 'ink';
+import TextInput from 'ink-text-input';
 import Spinner from 'ink-spinner';
 import type { Client, Subtask, Task } from '../api.js';
 
@@ -34,12 +35,18 @@ function formatDate(iso?: string | null): string {
   }
 }
 
+function makeSubtaskId(): string {
+  return `s-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 export default function TaskDetail({ client, taskId, onBack, onEdit }: Props) {
   const [task, setTask] = useState<Task | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cursor, setCursor] = useState(0); // subtask index
   const [busy, setBusy] = useState(false);
   const [changed, setChanged] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState('');
 
   const load = () =>
     client
@@ -52,8 +59,22 @@ export default function TaskDetail({ client, taskId, onBack, onEdit }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskId]);
 
+  const saveSubtasks = async (nextSubs: Subtask[]) => {
+    if (!task) return;
+    setBusy(true);
+    try {
+      const updated = await client.updateTask(task.id, { subtasks: nextSubs });
+      setTask(updated);
+      setChanged(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Subtask update failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   useInput(async (input, key) => {
-    if (busy || !task) return;
+    if (adding || busy || !task) return;
     if (key.escape || input === 'b') {
       onBack(changed);
       return;
@@ -64,6 +85,11 @@ export default function TaskDetail({ client, taskId, onBack, onEdit }: Props) {
     }
     if (input === 'e') {
       onEdit(task);
+      return;
+    }
+    if (input === 'a') {
+      setDraft('');
+      setAdding(true);
       return;
     }
     const setStatus = async (next: string) => {
@@ -105,22 +131,42 @@ export default function TaskDetail({ client, taskId, onBack, onEdit }: Props) {
       if (input === 't') {
         const current = task.subtasks[cursor];
         if (!current) return;
-        const nextSubs: Subtask[] = task.subtasks.map((s) =>
-          s.id === current.id ? { ...s, done: !s.done } : s,
+        await saveSubtasks(
+          task.subtasks.map((s) => (s.id === current.id ? { ...s, done: !s.done } : s)),
         );
-        setBusy(true);
-        try {
-          const updated = await client.updateTask(task.id, { subtasks: nextSubs });
-          setTask(updated);
-          setChanged(true);
-        } catch (e) {
-          setError(e instanceof Error ? e.message : 'Subtask update failed');
-        } finally {
-          setBusy(false);
-        }
+        return;
+      }
+      if (input === 'D') {
+        const current = task.subtasks[cursor];
+        if (!current) return;
+        await saveSubtasks(task.subtasks.filter((s) => s.id !== current.id));
+        return;
       }
     }
   });
+
+  useInput((_input, key) => {
+    if (!adding) return;
+    if (key.escape) {
+      setAdding(false);
+      setDraft('');
+    }
+  });
+
+  const submitNewSubtask = async () => {
+    const title = draft.trim();
+    if (!title || !task) {
+      setAdding(false);
+      return;
+    }
+    const next: Subtask[] = [
+      ...task.subtasks,
+      { id: makeSubtaskId(), title, done: false },
+    ];
+    setAdding(false);
+    setDraft('');
+    await saveSubtasks(next);
+  };
 
   if (error) {
     return (
@@ -222,38 +268,51 @@ export default function TaskDetail({ client, taskId, onBack, onEdit }: Props) {
         </Box>
       )}
 
-      {task.subtasks.length > 0 && (
-        <Box
-          borderStyle="round"
-          borderColor="magenta"
-          paddingX={1}
-          marginTop={1}
-          flexDirection="column"
-        >
-          <Text bold color="magenta">
-            Subtasks{' '}
-            <Text dimColor>
-              ({doneCount}/{task.subtasks.length})
-            </Text>
+      <Box
+        borderStyle="round"
+        borderColor="magenta"
+        paddingX={1}
+        marginTop={1}
+        flexDirection="column"
+      >
+        <Text bold color="magenta">
+          Subtasks{' '}
+          <Text dimColor>
+            ({doneCount}/{task.subtasks.length})
           </Text>
-          {task.subtasks.map((s, i) => {
-            const selected = i === cursor;
-            return (
-              <Box key={s.id}>
-                <Text color={selected ? 'green' : undefined}>{selected ? '▶ ' : '  '}</Text>
-                <Text color={s.done ? 'gray' : undefined} strikethrough={s.done}>
-                  {s.done ? '✔' : '○'} {s.title}
-                </Text>
-              </Box>
-            );
-          })}
-        </Box>
-      )}
+        </Text>
+        {task.subtasks.length === 0 && !adding && (
+          <Text dimColor>No subtasks. Press a to add.</Text>
+        )}
+        {task.subtasks.map((s, i) => {
+          const selected = i === cursor && !adding;
+          return (
+            <Box key={s.id}>
+              <Text color={selected ? 'green' : undefined}>{selected ? '▶ ' : '  '}</Text>
+              <Text color={s.done ? 'gray' : undefined} strikethrough={s.done}>
+                {s.done ? '✔' : '○'} {s.title}
+              </Text>
+            </Box>
+          );
+        })}
+        {adding && (
+          <Box>
+            <Text color="green">+ </Text>
+            <TextInput
+              value={draft}
+              onChange={setDraft}
+              onSubmit={submitNewSubtask}
+              focus
+              placeholder="subtask title (Enter to add, Esc cancels)"
+            />
+          </Box>
+        )}
+      </Box>
 
       <Box marginTop={1} paddingX={1}>
         <Text dimColor>
-          space: done · i: in-progress · s: cycle status · e: edit ·{' '}
-          {task.subtasks.length > 0 ? 'j/k: subtask · t: toggle subtask · ' : ''}
+          space: done · i: in-progress · s: cycle · e: edit · a: add subtask ·{' '}
+          {task.subtasks.length > 0 ? 'j/k: move · t: toggle · D: delete subtask · ' : ''}
           r: reload · b/esc: back
         </Text>
       </Box>
