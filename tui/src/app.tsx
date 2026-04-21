@@ -29,7 +29,17 @@ export default function App({ apiUrl }: Props) {
   const [inboxOpen, setInboxOpen] = useState(false);
   const [projectCache, setProjectCache] = useState<Project[]>([]);
 
-  const client = session ? clientFromSession(session) : null;
+  const client = session
+    ? clientFromSession(session, {
+        onExpired: () => {
+          setProject(null);
+          setOpenTaskId(null);
+          setForm(null);
+          setInboxOpen(false);
+          setSession(null);
+        },
+      })
+    : null;
 
   useEffect(() => {
     if (!client || !project) return;

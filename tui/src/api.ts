@@ -1,4 +1,4 @@
-import type { Session } from './storage.js';
+import { saveSession, clearSession, type Session } from './storage.js';
 
 export interface User {
   id: string;
@@ -58,20 +58,66 @@ export class ApiError extends Error {
   }
 }
 
-export function createClient(apiUrl: string, token?: string) {
-  async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+export function createClient(
+  apiUrl: string,
+  auth?: {
+    accessToken: string;
+    refreshToken: string;
+    onRefreshed?: (accessToken: string, refreshToken: string) => void;
+    onUnauthorized?: () => void;
+  },
+) {
+  let tokens = auth
+    ? { accessToken: auth.accessToken, refreshToken: auth.refreshToken }
+    : null;
+
+  async function rawRequest(
+    path: string,
+    init: RequestInit,
+    accessToken?: string,
+  ): Promise<{ status: number; text: string }> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...((init.headers as Record<string, string>) ?? {}),
     };
-    if (token) headers.Authorization = `Bearer ${token}`;
-
+    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
     const res = await fetch(`${apiUrl}${path}`, { ...init, headers });
-    const text = await res.text();
-    const body = text ? (JSON.parse(text) as { data?: unknown; error?: string }) : null;
-    if (!res.ok) {
-      const msg = body?.error ? String(body.error) : res.statusText;
-      throw new ApiError(res.status, msg);
+    return { status: res.status, text: await res.text() };
+  }
+
+  async function refresh(): Promise<boolean> {
+    if (!tokens) return false;
+    try {
+      const r = await rawRequest('/api/v1/auth/refresh', {
+        method: 'POST',
+        body: JSON.stringify({ refreshToken: tokens.refreshToken }),
+      });
+      if (r.status !== 200) return false;
+      const body = JSON.parse(r.text) as { data?: { accessToken: string; refreshToken: string } };
+      const d = body.data;
+      if (!d?.accessToken || !d?.refreshToken) return false;
+      tokens = { accessToken: d.accessToken, refreshToken: d.refreshToken };
+      auth?.onRefreshed?.(d.accessToken, d.refreshToken);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+    let r = await rawRequest(path, init, tokens?.accessToken);
+    if (r.status === 401 && tokens) {
+      const ok = await refresh();
+      if (ok) {
+        r = await rawRequest(path, init, tokens.accessToken);
+      } else {
+        auth?.onUnauthorized?.();
+      }
+    }
+    const body = r.text ? (JSON.parse(r.text) as { data?: unknown; error?: string }) : null;
+    if (r.status < 200 || r.status >= 300) {
+      const msg = body?.error ? String(body.error) : `HTTP ${r.status}`;
+      throw new ApiError(r.status, msg);
     }
     return (body?.data ?? body) as T;
   }
@@ -185,6 +231,19 @@ export interface Notification {
 
 export type Client = ReturnType<typeof createClient>;
 
-export function clientFromSession(s: Session): Client {
-  return createClient(s.apiUrl, s.accessToken);
+export function clientFromSession(
+  s: Session,
+  opts?: { onExpired?: () => void },
+): Client {
+  return createClient(s.apiUrl, {
+    accessToken: s.accessToken,
+    refreshToken: s.refreshToken,
+    onRefreshed: (accessToken, refreshToken) => {
+      saveSession({ ...s, accessToken, refreshToken });
+    },
+    onUnauthorized: () => {
+      clearSession();
+      opts?.onExpired?.();
+    },
+  });
 }

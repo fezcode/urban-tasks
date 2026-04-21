@@ -40,7 +40,7 @@ export default function Login({ apiUrl, onLoggedIn }: Props) {
     setError(null);
     setSubmitting(true);
     try {
-      const api = createClient(apiUrl);
+      const api = createClient(apiUrl, undefined);
       const resp =
         mode === 'login'
           ? await api.login(email, password)
