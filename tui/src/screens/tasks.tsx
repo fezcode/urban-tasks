@@ -13,11 +13,11 @@ interface Props {
 
 type Mode = 'list' | 'create';
 
-const STATUS_ORDER = ['todo', 'inProgress', 'done'] as const;
+const STATUS_ORDER = ['todo', 'in-progress', 'done'] as const;
 
 function statusIcon(s: string): string {
   if (s === 'done') return '✔';
-  if (s === 'inProgress') return '◐';
+  if (s === 'in-progress') return '◐';
   return '○';
 }
 
@@ -182,7 +182,7 @@ export default function Tasks({ client, project, onBack, onOpenTask }: Props) {
         {tasks.map((t, i) => {
           const selected = i === cursor;
           const done = t.status === 'done';
-          const inProgress = t.status === 'inProgress';
+          const inProgress = t.status === 'in-progress';
           const iconColor = done ? 'gray' : inProgress ? 'yellow' : undefined;
           return (
             <Box key={t.id}>

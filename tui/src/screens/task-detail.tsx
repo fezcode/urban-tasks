@@ -18,7 +18,7 @@ function priorityColor(p: string): string | undefined {
 
 function statusLabel(s: string): string {
   if (s === 'done') return '✔ done';
-  if (s === 'inProgress') return '◐ in progress';
+  if (s === 'in-progress') return '◐ in progress';
   return '○ todo';
 }
 
@@ -79,11 +79,11 @@ export default function TaskDetail({ client, taskId, onBack }: Props) {
       return;
     }
     if (input === 'i') {
-      await setStatus(task.status === 'inProgress' ? 'todo' : 'inProgress');
+      await setStatus(task.status === 'in-progress' ? 'todo' : 'in-progress');
       return;
     }
     if (input === 's') {
-      const order = ['todo', 'inProgress', 'done'];
+      const order = ['todo', 'in-progress', 'done'];
       const next = order[(order.indexOf(task.status) + 1) % order.length] ?? 'todo';
       await setStatus(next);
       return;
@@ -139,7 +139,7 @@ export default function TaskDetail({ client, taskId, onBack }: Props) {
   const doneCount = task.subtasks.filter((s) => s.done).length;
 
   const statusColor =
-    task.status === 'done' ? 'green' : task.status === 'inProgress' ? 'yellow' : undefined;
+    task.status === 'done' ? 'green' : task.status === 'in-progress' ? 'yellow' : undefined;
 
   return (
     <Box flexDirection="column" padding={1}>
