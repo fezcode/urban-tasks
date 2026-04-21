@@ -33,6 +33,7 @@ export interface Task {
   createdBy?: string;
   updatedBy?: string;
   updatedAt?: string;
+  assigneeId?: string | null;
 }
 
 export interface Project {

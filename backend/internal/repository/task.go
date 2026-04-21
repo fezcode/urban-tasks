@@ -41,13 +41,13 @@ func NewTaskRepo(pool *pgxpool.Pool) *TaskRepo {
 	return &TaskRepo{pool: pool}
 }
 
-const taskColumns = `t.id, t.user_id, t.project_id, t.title, t.body, t.status, t.priority, t.tags, t.links, t.subtasks, t.start_date, t.due_date, t.recurrence, t.position, t.created_at, t.updated_at, t.completed_at, t.created_by, t.updated_by`
+const taskColumns = `t.id, t.user_id, t.project_id, t.title, t.body, t.status, t.priority, t.tags, t.links, t.subtasks, t.start_date, t.due_date, t.recurrence, t.position, t.created_at, t.updated_at, t.completed_at, t.created_by, t.updated_by, t.assignee_id`
 
 func (r *TaskRepo) Create(ctx context.Context, t *model.Task) error {
 	_, err := r.pool.Exec(ctx,
-		`INSERT INTO tasks (id, user_id, project_id, title, body, status, priority, tags, links, subtasks, start_date, due_date, recurrence, position, created_at, updated_at, completed_at, created_by, updated_by)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)`,
-		t.ID, t.UserID, t.ProjectID, t.Title, t.Body, t.Status, t.Priority, t.Tags, t.Links, t.Subtasks, dateTo(t.StartDate), dateTo(t.DueDate), t.Recurrence, t.Position, t.CreatedAt, t.UpdatedAt, t.CompletedAt, t.CreatedBy, t.UpdatedBy,
+		`INSERT INTO tasks (id, user_id, project_id, title, body, status, priority, tags, links, subtasks, start_date, due_date, recurrence, position, created_at, updated_at, completed_at, created_by, updated_by, assignee_id)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
+		t.ID, t.UserID, t.ProjectID, t.Title, t.Body, t.Status, t.Priority, t.Tags, t.Links, t.Subtasks, dateTo(t.StartDate), dateTo(t.DueDate), t.Recurrence, t.Position, t.CreatedAt, t.UpdatedAt, t.CompletedAt, t.CreatedBy, t.UpdatedBy, t.AssigneeID,
 	)
 	if err != nil {
 		return fmt.Errorf("creating task: %w", err)
@@ -99,7 +99,7 @@ func (r *TaskRepo) GetByID(ctx context.Context, id, userID string) (*model.Task,
 		 FROM tasks t
 		 JOIN project_members m ON m.project_id = t.project_id
 		 WHERE t.id = $1 AND m.user_id = $2`, id, userID,
-	).Scan(&t.ID, &t.UserID, &t.ProjectID, &t.Title, &t.Body, &t.Status, &t.Priority, &t.Tags, &t.Links, &t.Subtasks, &start, &due, &t.Recurrence, &t.Position, &t.CreatedAt, &t.UpdatedAt, &t.CompletedAt, &t.CreatedBy, &t.UpdatedBy)
+	).Scan(&t.ID, &t.UserID, &t.ProjectID, &t.Title, &t.Body, &t.Status, &t.Priority, &t.Tags, &t.Links, &t.Subtasks, &start, &due, &t.Recurrence, &t.Position, &t.CreatedAt, &t.UpdatedAt, &t.CompletedAt, &t.CreatedBy, &t.UpdatedBy, &t.AssigneeID)
 	if err == pgx.ErrNoRows {
 		return nil, nil
 	}
@@ -114,9 +114,9 @@ func (r *TaskRepo) GetByID(ctx context.Context, id, userID string) (*model.Task,
 func (r *TaskRepo) Update(ctx context.Context, t *model.Task) error {
 	_, err := r.pool.Exec(ctx,
 		`UPDATE tasks SET project_id = $1, title = $2, body = $3, status = $4, priority = $5, tags = $6, links = $7, subtasks = $8,
-		 start_date = $9, due_date = $10, recurrence = $11, position = $12, updated_at = $13, completed_at = $14, updated_by = $15
-		 WHERE id = $16`,
-		t.ProjectID, t.Title, t.Body, t.Status, t.Priority, t.Tags, t.Links, t.Subtasks, dateTo(t.StartDate), dateTo(t.DueDate), t.Recurrence, t.Position, t.UpdatedAt, t.CompletedAt, t.UpdatedBy, t.ID,
+		 start_date = $9, due_date = $10, recurrence = $11, position = $12, updated_at = $13, completed_at = $14, updated_by = $15, assignee_id = $16
+		 WHERE id = $17`,
+		t.ProjectID, t.Title, t.Body, t.Status, t.Priority, t.Tags, t.Links, t.Subtasks, dateTo(t.StartDate), dateTo(t.DueDate), t.Recurrence, t.Position, t.UpdatedAt, t.CompletedAt, t.UpdatedBy, t.AssigneeID, t.ID,
 	)
 	if err != nil {
 		return fmt.Errorf("updating task: %w", err)
@@ -162,7 +162,7 @@ func scanTasks(rows pgx.Rows) ([]model.Task, error) {
 		var start, due pgtype.Date
 		if err := rows.Scan(
 			&t.ID, &t.UserID, &t.ProjectID, &t.Title, &t.Body, &t.Status, &t.Priority,
-			&t.Tags, &t.Links, &t.Subtasks, &start, &due, &t.Recurrence, &t.Position, &t.CreatedAt, &t.UpdatedAt, &t.CompletedAt, &t.CreatedBy, &t.UpdatedBy,
+			&t.Tags, &t.Links, &t.Subtasks, &start, &due, &t.Recurrence, &t.Position, &t.CreatedAt, &t.UpdatedAt, &t.CompletedAt, &t.CreatedBy, &t.UpdatedBy, &t.AssigneeID,
 		); err != nil {
 			return nil, fmt.Errorf("scanning task: %w", err)
 		}

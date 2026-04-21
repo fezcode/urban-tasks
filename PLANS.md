@@ -9,7 +9,7 @@
 - [x] **Subtasks / checklists** — break tasks into steps
 - [x] **Task priorities** — high / medium / low with visual indicators
 - [x] **Recurring tasks** — daily, weekly, biweekly, monthly repeat
-- [ ] **Assignees / multi-user** — collaboration support
+- [x] **Assignees / multi-user** — project membership, invitations, per-task assignee with notification on assign
 - [x] **Drag-and-drop reordering** — manual sort within projects and sidebar
 - [x] **Attachments and links** — files or URLs on tasks
 

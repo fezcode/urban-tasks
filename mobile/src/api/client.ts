@@ -138,6 +138,7 @@ export interface Task {
   startDate?: string;
   dueDate?: string;
   createdAt: string;
+  assigneeId?: string | null;
 }
 
 export interface Project {
@@ -286,6 +287,7 @@ export const api = {
     title: string;
     body?: string;
     priority?: Task['priority'];
+    assigneeId?: string | null;
   }) => request<Task>('/tasks', { method: 'POST', body: JSON.stringify(input) }),
   updateTask: (id: string, patch: Partial<Task>) =>
     queueOnNetwork(

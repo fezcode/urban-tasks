@@ -3,6 +3,7 @@ import { useAppState } from '../context/AppState';
 import type { Task, TaskStatus, TaskPriority } from '../context/types';
 import { Trash2, Play, RotateCcw, Check, CalendarClock, Flag, Link2, ListChecks, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow, differenceInDays, startOfDay, format } from 'date-fns';
+import Avatar from './Avatar';
 
 interface Props {
   task: Task;
@@ -181,6 +182,16 @@ const TaskItem: React.FC<Props> = ({ task, showProject, isSelected, onClick, onT
             <span className="inline-flex items-center gap-1 text-2xs text-text-tertiary">
               <ListChecks size={11} className="text-accent" />
               {task.subtasks.filter((s) => s.done).length}/{task.subtasks.length}
+            </span>
+          )}
+
+          {task.assigneeId && (
+            <span
+              className="inline-flex items-center"
+              title="Assignee"
+              aria-label="Assignee"
+            >
+              <Avatar seed={task.assigneeId} name="" size={16} className="rounded-full" />
             </span>
           )}
 

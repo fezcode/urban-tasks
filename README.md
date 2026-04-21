@@ -11,6 +11,7 @@ React 19 + TypeScript + Vite frontend.
 - Subtasks, tags, attachments/links, recurring schedules (daily / weekly / biweekly / monthly)
 - Drag-and-drop reordering within a project, manual sidebar order
 - Undo / redo for task edits (Ctrl+Z / Ctrl+Shift+Z)
+- Assignees: pick any project member; the assignee gets a notification when assigned
 
 ### Views
 - **Tasks** — grouped by project or flat single-project view
@@ -24,6 +25,11 @@ React 19 + TypeScript + Vite frontend.
 - Command palette (Ctrl/⌘+K), keyboard shortcuts, onboarding flow
 - PWA: installable, service-worker cached, offline-capable
 - Accessible: ARIA labels, skip link, dialog roles, keyboard-first task list
+
+### Collaboration
+- Shared projects with admin/member roles
+- Email invitations (accept / reject), in-app invitation inbox
+- Notifications: invitation events, task assignments
 
 ### Data
 - JWT auth (access + refresh)

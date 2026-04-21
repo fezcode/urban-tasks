@@ -21,11 +21,15 @@ import {
   CheckSquare,
   RefreshCw,
   Share2,
+  UserCircle2,
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { format, differenceInDays, startOfDay } from 'date-fns';
 import ProjectIcon from './ProjectIcon';
 import DatePicker from './DatePicker';
+import Avatar from './Avatar';
+import * as api from '../api/client';
+import type { Member } from '../api/client';
 
 interface Props {
   taskId: string;
@@ -64,6 +68,7 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
   const [newLinkTitle, setNewLinkTitle] = useState('');
   const [newLinkUrl, setNewLinkUrl] = useState('');
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
+  const [members, setMembers] = useState<Member[]>([]);
   const titleRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const tagRef = useRef<HTMLInputElement>(null);
@@ -72,6 +77,22 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
   useEffect(() => {
     if (!task && state.tasks.length > 0) onClose();
   }, [task, state.tasks.length, onClose]);
+
+  useEffect(() => {
+    if (!task?.projectId) return;
+    let cancelled = false;
+    api.members
+      .list(task.projectId)
+      .then((m) => {
+        if (!cancelled) setMembers(m);
+      })
+      .catch(() => {
+        if (!cancelled) setMembers([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [task?.projectId]);
 
   useEffect(() => {
     if (isEditingTitle) titleRef.current?.focus();
@@ -236,6 +257,14 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
 
   const setPriority = (priority: TaskPriority) => {
     syncDispatch({ type: 'UPDATE_TASK', id: task.id, updates: { priority } });
+  };
+
+  const setAssignee = (assigneeId: string | null) => {
+    syncDispatch({
+      type: 'UPDATE_TASK',
+      id: task.id,
+      updates: { assigneeId: assigneeId ?? '' },
+    });
   };
 
   const setRecurrence = (recurrence: TaskRecurrence | null) => {
@@ -504,6 +533,49 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
               Set a due date to activate recurring behavior.
             </p>
           )}
+        </div>
+
+        {/* Assignee */}
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <UserCircle2 size={14} className="text-text-tertiary" />
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
+              Assignee
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button
+              onClick={() => setAssignee(null)}
+              className={`px-2.5 py-1 rounded-full text-[12px] font-medium transition-base ${
+                !task.assigneeId
+                  ? 'bg-surface-hover text-text-primary'
+                  : 'text-text-tertiary hover:bg-surface-hover'
+              }`}
+            >
+              Unassigned
+            </button>
+            {members.map((m) => {
+              const active = task.assigneeId === m.userId;
+              return (
+                <button
+                  key={m.userId}
+                  onClick={() => setAssignee(active ? null : m.userId)}
+                  className={`flex items-center gap-1.5 pl-1 pr-2.5 py-0.5 rounded-full text-[12px] font-medium transition-base ${
+                    active
+                      ? 'bg-accent text-text-inverse'
+                      : 'text-text-secondary hover:bg-surface-hover'
+                  }`}
+                  title={m.email}
+                >
+                  <Avatar seed={m.avatarSeed ?? m.userId} name={m.name} size={20} className="rounded-full" />
+                  <span className="truncate max-w-[120px]">{m.name}</span>
+                </button>
+              );
+            })}
+            {members.length === 0 && (
+              <span className="text-2xs text-text-tertiary italic">Loading members…</span>
+            )}
+          </div>
         </div>
 
         {/* Tags */}

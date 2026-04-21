@@ -63,8 +63,8 @@ func main() {
 	// Services
 	authSvc := service.NewAuthService(userRepo, invitationRepo, cfg.JWTSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL)
 	projectSvc := service.NewProjectService(projectRepo, taskRepo)
-	taskSvc := service.NewTaskService(taskRepo, projectRepo)
 	notificationSvc := service.NewNotificationService(notificationRepo)
+	taskSvc := service.NewTaskService(taskRepo, projectRepo, notificationSvc)
 	invitationSvc := service.NewInvitationService(invitationRepo, projectRepo, userRepo, notificationSvc)
 
 	// Handlers

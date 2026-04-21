@@ -20,7 +20,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CalendarClock, Check, Flag, Inbox, Pencil, Plus, Search, SearchX, Share2, X } from 'lucide-react-native';
 import { useTheme } from '@/theme/ThemeContext';
-import { api, Task, Project } from '@/api/client';
+import { api, Task, Project, Member } from '@/api/client';
 import { DateField, EmptyState, Markdown } from '@/components/ui';
 import { haptic } from '@/haptics';
 
@@ -1149,6 +1149,8 @@ function TaskFormModal({
   const [dueDate, setDueDate] = useState<string | undefined>(undefined);
   const [startDate, setStartDate] = useState<string | undefined>(undefined);
   const [tags, setTags] = useState('');
+  const [assigneeId, setAssigneeId] = useState<string | null>(null);
+  const [members, setMembers] = useState<Member[]>([]);
   const [busy, setBusy] = useState(false);
   const [notesPreview, setNotesPreview] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -1164,6 +1166,7 @@ function TaskFormModal({
       setDueDate(task.dueDate ? isoDate(task.dueDate) : undefined);
       setStartDate(task.startDate ? isoDate(task.startDate) : undefined);
       setTags((task.tags ?? []).join(', '));
+      setAssigneeId(task.assigneeId ?? null);
     } else {
       setTitle('');
       setBody('');
@@ -1173,9 +1176,29 @@ function TaskFormModal({
       setDueDate(undefined);
       setStartDate(undefined);
       setTags('');
+      setAssigneeId(null);
     }
     setErr(null);
   }, [visible, mode, task, projects]);
+
+  useEffect(() => {
+    if (!visible || !projectId) {
+      setMembers([]);
+      return;
+    }
+    let cancelled = false;
+    api
+      .listMembers(projectId)
+      .then((m) => {
+        if (!cancelled) setMembers(m);
+      })
+      .catch(() => {
+        if (!cancelled) setMembers([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, projectId]);
 
   const submit = async () => {
     if (!title.trim()) return;
@@ -1201,6 +1224,7 @@ function TaskFormModal({
           title: title.trim(),
           body: body.trim() || undefined,
           priority: priority ?? undefined,
+          assigneeId: assigneeId ?? undefined,
         });
         // dueDate/tags via follow-up patch (createTask supports limited fields here)
         if (normalizedDue || normalizedStart || parsedTags.length) {
@@ -1229,6 +1253,7 @@ function TaskFormModal({
           dueDate: normalizedDue,
           startDate: normalizedStart,
           tags: parsedTags,
+          assigneeId: assigneeId ?? '',
         });
       }
       onClose();
@@ -1495,6 +1520,61 @@ function TaskFormModal({
                         }}
                       >
                         {p}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </Field>
+
+            <Field label="Assignee">
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
+                <TouchableOpacity
+                  onPress={() => setAssigneeId(null)}
+                  activeOpacity={0.7}
+                  style={{
+                    paddingHorizontal: spacing.md,
+                    paddingVertical: spacing.sm,
+                    borderRadius: radii.md,
+                    borderWidth: 1,
+                    backgroundColor: !assigneeId ? palette.surfaceHover : palette.surface,
+                    borderColor: !assigneeId ? palette.border : palette.border,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: palette.textPrimary,
+                      fontFamily: !assigneeId ? 'Inter_600SemiBold' : 'Inter_500Medium',
+                      fontSize: 13,
+                    }}
+                  >
+                    Unassigned
+                  </Text>
+                </TouchableOpacity>
+                {members.map((m) => {
+                  const active = assigneeId === m.userId;
+                  return (
+                    <TouchableOpacity
+                      key={m.userId}
+                      onPress={() => setAssigneeId(active ? null : m.userId)}
+                      activeOpacity={0.7}
+                      style={{
+                        paddingHorizontal: spacing.md,
+                        paddingVertical: spacing.sm,
+                        borderRadius: radii.md,
+                        borderWidth: 1,
+                        backgroundColor: active ? palette.accent : palette.surface,
+                        borderColor: active ? palette.accent : palette.border,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: active ? '#000' : palette.textPrimary,
+                          fontFamily: active ? 'Inter_600SemiBold' : 'Inter_500Medium',
+                          fontSize: 13,
+                        }}
+                      >
+                        {m.name}
                       </Text>
                     </TouchableOpacity>
                   );

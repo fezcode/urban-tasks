@@ -184,6 +184,7 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               startDate: action.task.startDate,
               dueDate: action.task.dueDate,
               priority: action.task.priority,
+              assigneeId: action.task.assigneeId ?? undefined,
             });
             // Reload to get server-assigned ID
             await reload();

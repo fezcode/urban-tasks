@@ -51,13 +51,36 @@ func advanceDueDate(dueDate string, recurrence string) string {
 }
 
 type TaskService struct {
-	tasks    *repository.TaskRepo
-	projects *repository.ProjectRepo
+	tasks         *repository.TaskRepo
+	projects      *repository.ProjectRepo
+	notifications *NotificationService
 }
 
-func NewTaskService(tasks *repository.TaskRepo, projects *repository.ProjectRepo) *TaskService {
-	return &TaskService{tasks: tasks, projects: projects}
+func NewTaskService(tasks *repository.TaskRepo, projects *repository.ProjectRepo, notifications *NotificationService) *TaskService {
+	return &TaskService{tasks: tasks, projects: projects, notifications: notifications}
 }
+
+// resolveAssignee normalizes a requested assignee value and validates membership.
+// Returns (assigneeID, cleared, error): cleared=true when caller sent "" to unassign.
+func (s *TaskService) resolveAssignee(ctx context.Context, projectID string, req *string) (*string, bool, error) {
+	if req == nil {
+		return nil, false, nil
+	}
+	if *req == "" {
+		return nil, true, nil
+	}
+	role, err := s.projects.GetRole(ctx, projectID, *req)
+	if err != nil {
+		return nil, false, err
+	}
+	if role == "" {
+		return nil, false, ErrAssigneeNotMember
+	}
+	v := *req
+	return &v, false, nil
+}
+
+var ErrAssigneeNotMember = errors.New("assignee is not a project member")
 
 func (s *TaskService) List(ctx context.Context, userID, projectID string) ([]model.Task, error) {
 	var tasks []model.Task
@@ -123,6 +146,11 @@ func (s *TaskService) Create(ctx context.Context, userID string, req model.Creat
 		priority = *req.Priority
 	}
 
+	assignee, _, err := s.resolveAssignee(ctx, req.ProjectID, req.AssigneeID)
+	if err != nil {
+		return nil, err
+	}
+
 	now := time.Now().UTC()
 	t := &model.Task{
 		ID:        uuid.New().String(),
@@ -143,17 +171,34 @@ func (s *TaskService) Create(ctx context.Context, userID string, req model.Creat
 			}
 			return nil
 		}(),
-		Position:  pos,
-		CreatedAt: now,
-		UpdatedAt: now,
-		CreatedBy: &userID,
-		UpdatedBy: &userID,
+		Position:   pos,
+		CreatedAt:  now,
+		UpdatedAt:  now,
+		CreatedBy:  &userID,
+		UpdatedBy:  &userID,
+		AssigneeID: assignee,
 	}
 
 	if err := s.tasks.Create(ctx, t); err != nil {
 		return nil, err
 	}
+
+	if assignee != nil && *assignee != userID {
+		s.notifyAssigned(ctx, t, userID)
+	}
 	return t, nil
+}
+
+func (s *TaskService) notifyAssigned(ctx context.Context, t *model.Task, assignerID string) {
+	if s.notifications == nil || t.AssigneeID == nil {
+		return
+	}
+	_ = s.notifications.Push(ctx, *t.AssigneeID, "task_assigned", map[string]any{
+		"taskId":     t.ID,
+		"taskTitle":  t.Title,
+		"projectId":  t.ProjectID,
+		"assignerId": assignerID,
+	})
 }
 
 func (s *TaskService) Update(ctx context.Context, id, userID string, req model.UpdateTaskRequest) (*model.Task, error) {
@@ -234,6 +279,22 @@ func (s *TaskService) Update(ctx context.Context, id, userID string, req model.U
 	if req.Position != nil {
 		t.Position = *req.Position
 	}
+
+	prevAssignee := t.AssigneeID
+	assigneeChanged := false
+	if req.AssigneeID != nil {
+		resolved, cleared, err := s.resolveAssignee(ctx, t.ProjectID, req.AssigneeID)
+		if err != nil {
+			return nil, err
+		}
+		if cleared {
+			t.AssigneeID = nil
+		} else {
+			t.AssigneeID = resolved
+		}
+		assigneeChanged = !samePtr(prevAssignee, t.AssigneeID)
+	}
+
 	t.UpdatedAt = time.Now().UTC()
 	uid := userID
 	t.UpdatedBy = &uid
@@ -241,7 +302,21 @@ func (s *TaskService) Update(ctx context.Context, id, userID string, req model.U
 	if err := s.tasks.Update(ctx, t); err != nil {
 		return nil, err
 	}
+
+	if assigneeChanged && t.AssigneeID != nil && *t.AssigneeID != userID {
+		s.notifyAssigned(ctx, t, userID)
+	}
 	return t, nil
+}
+
+func samePtr(a, b *string) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return *a == *b
 }
 
 func (s *TaskService) Delete(ctx context.Context, id, userID string) error {
