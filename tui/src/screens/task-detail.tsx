@@ -61,8 +61,7 @@ export default function TaskDetail({ client, taskId, onBack }: Props) {
       load();
       return;
     }
-    if (input === ' ' || input === 'x') {
-      const next = task.status === 'done' ? 'todo' : 'done';
+    const setStatus = async (next: string) => {
       setBusy(true);
       try {
         const updated = await client.updateTask(task.id, { status: next });
@@ -73,6 +72,20 @@ export default function TaskDetail({ client, taskId, onBack }: Props) {
       } finally {
         setBusy(false);
       }
+    };
+
+    if (input === ' ' || input === 'x') {
+      await setStatus(task.status === 'done' ? 'todo' : 'done');
+      return;
+    }
+    if (input === 'i') {
+      await setStatus(task.status === 'inProgress' ? 'todo' : 'inProgress');
+      return;
+    }
+    if (input === 's') {
+      const order = ['todo', 'inProgress', 'done'];
+      const next = order[(order.indexOf(task.status) + 1) % order.length] ?? 'todo';
+      await setStatus(next);
       return;
     }
     if (task.subtasks.length > 0) {
@@ -125,44 +138,77 @@ export default function TaskDetail({ client, taskId, onBack }: Props) {
 
   const doneCount = task.subtasks.filter((s) => s.done).length;
 
+  const statusColor =
+    task.status === 'done' ? 'green' : task.status === 'inProgress' ? 'yellow' : undefined;
+
   return (
     <Box flexDirection="column" padding={1}>
-      <Box>
+      <Box
+        borderStyle="round"
+        borderColor="cyan"
+        paddingX={1}
+        flexDirection="column"
+      >
         <Text bold color="cyan">
           {task.title}
         </Text>
-      </Box>
-      <Box marginTop={1}>
-        <Text>{statusLabel(task.status)}  </Text>
-        <Text color={priorityColor(task.priority)}>priority: {task.priority}</Text>
-        <Text>  due: {formatDate(task.dueDate)}</Text>
-        {task.recurrence && <Text dimColor>  ↻ {task.recurrence}</Text>}
-      </Box>
-      {task.startDate && (
-        <Box>
-          <Text dimColor>start: {formatDate(task.startDate)}</Text>
-        </Box>
-      )}
-      {task.tags.length > 0 && (
         <Box marginTop={1}>
-          <Text dimColor>tags: </Text>
-          <Text>{task.tags.map((t) => `#${t}`).join(' ')}</Text>
+          <Text color={statusColor}>{statusLabel(task.status)}</Text>
+          <Text dimColor>  │  </Text>
+          <Text color={priorityColor(task.priority)}>priority: {task.priority}</Text>
+          <Text dimColor>  │  </Text>
+          <Text>due: {formatDate(task.dueDate)}</Text>
+          {task.recurrence && (
+            <>
+              <Text dimColor>  │  </Text>
+              <Text dimColor>↻ {task.recurrence}</Text>
+            </>
+          )}
         </Box>
-      )}
-      {task.assigneeId && (
-        <Box>
-          <Text dimColor>assignee: {task.assigneeId}</Text>
-        </Box>
-      )}
+        {task.startDate && (
+          <Box>
+            <Text dimColor>start: {formatDate(task.startDate)}</Text>
+          </Box>
+        )}
+        {task.tags.length > 0 && (
+          <Box marginTop={1}>
+            <Text dimColor>tags: </Text>
+            <Text>{task.tags.map((t) => `#${t}`).join(' ')}</Text>
+          </Box>
+        )}
+        {task.assigneeId && (
+          <Box>
+            <Text dimColor>assignee: {task.assigneeId}</Text>
+          </Box>
+        )}
+      </Box>
+
       {task.body && (
-        <Box marginTop={1} flexDirection="column">
-          <Text dimColor>── description ──</Text>
+        <Box
+          borderStyle="round"
+          borderColor="gray"
+          paddingX={1}
+          marginTop={1}
+          flexDirection="column"
+        >
+          <Text bold dimColor>
+            Description
+          </Text>
           <Text>{task.body}</Text>
         </Box>
       )}
+
       {task.links.length > 0 && (
-        <Box marginTop={1} flexDirection="column">
-          <Text dimColor>── links ──</Text>
+        <Box
+          borderStyle="round"
+          borderColor="gray"
+          paddingX={1}
+          marginTop={1}
+          flexDirection="column"
+        >
+          <Text bold dimColor>
+            Links
+          </Text>
           {task.links.map((l) => (
             <Text key={l.id}>
               • {l.title || l.url} <Text dimColor>({l.url})</Text>
@@ -170,10 +216,20 @@ export default function TaskDetail({ client, taskId, onBack }: Props) {
           ))}
         </Box>
       )}
+
       {task.subtasks.length > 0 && (
-        <Box marginTop={1} flexDirection="column">
-          <Text dimColor>
-            ── subtasks ({doneCount}/{task.subtasks.length}) ──
+        <Box
+          borderStyle="round"
+          borderColor="magenta"
+          paddingX={1}
+          marginTop={1}
+          flexDirection="column"
+        >
+          <Text bold color="magenta">
+            Subtasks{' '}
+            <Text dimColor>
+              ({doneCount}/{task.subtasks.length})
+            </Text>
           </Text>
           {task.subtasks.map((s, i) => {
             const selected = i === cursor;
@@ -188,14 +244,16 @@ export default function TaskDetail({ client, taskId, onBack }: Props) {
           })}
         </Box>
       )}
-      <Box marginTop={1}>
+
+      <Box marginTop={1} paddingX={1}>
         <Text dimColor>
-          space: toggle · {task.subtasks.length > 0 ? 'j/k: subtask · t: toggle subtask · ' : ''}
+          space: done · i: in-progress · s: cycle status ·{' '}
+          {task.subtasks.length > 0 ? 'j/k: subtask · t: toggle subtask · ' : ''}
           r: reload · b/esc: back
         </Text>
       </Box>
       {busy && (
-        <Box marginTop={1}>
+        <Box paddingX={1}>
           <Text color="yellow">
             <Spinner type="dots" /> working…
           </Text>

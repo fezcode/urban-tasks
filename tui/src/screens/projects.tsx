@@ -56,11 +56,23 @@ export default function Projects({ client, onPick, onLogout }: Props) {
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Text bold color="cyan">
-        Projects
-      </Text>
-      <Text dimColor>Enter: open · l: logout · q: quit</Text>
-      <Box marginTop={1}>
+      <Box
+        borderStyle="round"
+        borderColor="cyan"
+        paddingX={1}
+        flexDirection="column"
+      >
+        <Text bold color="cyan">
+          Projects
+        </Text>
+        <Text dimColor>Enter: open · l: logout · q: quit</Text>
+      </Box>
+      <Box
+        borderStyle="round"
+        borderColor="gray"
+        paddingX={1}
+        marginTop={1}
+      >
         <SelectInput
           items={projects.map((p) => ({
             key: p.id,

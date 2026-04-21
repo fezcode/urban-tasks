@@ -151,41 +151,60 @@ export default function Tasks({ client, project, onBack, onOpenTask }: Props) {
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Box>
-        <Text bold color="cyan">
-          {project.name}
+      <Box
+        borderStyle="round"
+        borderColor="cyan"
+        paddingX={1}
+        flexDirection="column"
+      >
+        <Box>
+          <Text bold color="cyan">
+            {project.name}
+          </Text>
+          <Text dimColor>
+            {' '}
+            — {tasks.length} task{tasks.length === 1 ? '' : 's'}
+          </Text>
+        </Box>
+        <Text dimColor>
+          j/k: move · enter: open · space: toggle done · n: new · d: delete · r: reload · b/esc: back
         </Text>
-        <Text dimColor> — {tasks.length} task{tasks.length === 1 ? '' : 's'}</Text>
       </Box>
-      <Text dimColor>
-        j/k: move · enter: open · space: toggle done · n: new · d: delete · r: reload · b/esc: back
-      </Text>
-      <Box marginTop={1} flexDirection="column">
+
+      <Box
+        borderStyle="round"
+        borderColor="gray"
+        paddingX={1}
+        marginTop={1}
+        flexDirection="column"
+      >
         {tasks.length === 0 && <Text dimColor>No tasks. Press n to create one.</Text>}
         {tasks.map((t, i) => {
           const selected = i === cursor;
           const done = t.status === 'done';
+          const inProgress = t.status === 'inProgress';
+          const iconColor = done ? 'gray' : inProgress ? 'yellow' : undefined;
           return (
             <Box key={t.id}>
               <Text color={selected ? 'green' : undefined}>{selected ? '▶ ' : '  '}</Text>
-              <Text color={done ? 'gray' : undefined}>
+              <Text color={iconColor}>
                 {statusIcon(t.status)} {priorityMark(t.priority)}{' '}
               </Text>
-              <Text
-                color={done ? 'gray' : undefined}
-                strikethrough={done}
-              >
+              <Text color={done ? 'gray' : undefined} strikethrough={done}>
                 {t.title}
               </Text>
-              {t.dueDate && (
-                <Text dimColor> · due {t.dueDate}</Text>
-              )}
+              {t.dueDate && <Text dimColor> · due {t.dueDate}</Text>}
             </Box>
           );
         })}
       </Box>
       {mode === 'create' && (
-        <Box marginTop={1}>
+        <Box
+          borderStyle="round"
+          borderColor="green"
+          paddingX={1}
+          marginTop={1}
+        >
           <Text color="green">new: </Text>
           <TextInput
             value={draft}
@@ -196,7 +215,7 @@ export default function Tasks({ client, project, onBack, onOpenTask }: Props) {
         </Box>
       )}
       {busy && (
-        <Box marginTop={1}>
+        <Box marginTop={1} paddingX={1}>
           <Text color="yellow">
             <Spinner type="dots" /> working…
           </Text>

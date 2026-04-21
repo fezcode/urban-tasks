@@ -63,13 +63,27 @@ export default function Login({ apiUrl, onLoggedIn }: Props) {
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Text bold color="cyan">
-        Urban Tasks — {mode === 'login' ? 'Sign in' : 'Create account'}
-      </Text>
-      <Text dimColor>
-        Tab: next field · Enter: submit · Ctrl+R: {mode === 'login' ? 'register' : 'sign in'} instead
-      </Text>
-      <Box marginTop={1} flexDirection="column">
+      <Box
+        borderStyle="round"
+        borderColor="cyan"
+        paddingX={1}
+        flexDirection="column"
+      >
+        <Text bold color="cyan">
+          Urban Tasks — {mode === 'login' ? 'Sign in' : 'Create account'}
+        </Text>
+        <Text dimColor>
+          Tab: next field · Enter: submit · Ctrl+R:{' '}
+          {mode === 'login' ? 'register' : 'sign in'} instead
+        </Text>
+      </Box>
+      <Box
+        borderStyle="round"
+        borderColor="gray"
+        paddingX={1}
+        marginTop={1}
+        flexDirection="column"
+      >
         <Box>
           <Text color={focus === 'email' ? 'green' : undefined}>email    </Text>
           <TextInput
