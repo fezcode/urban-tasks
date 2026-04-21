@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Box, Text, useInput } from 'ink';
-import TextInput from 'ink-text-input';
 import Spinner from 'ink-spinner';
 import type { Client, Project, Task } from '../api.js';
 
@@ -9,9 +8,9 @@ interface Props {
   project: Project;
   onBack: () => void;
   onOpenTask: (task: Task) => void;
+  onCreate: () => void;
+  onEdit: (task: Task) => void;
 }
-
-type Mode = 'list' | 'create';
 
 const STATUS_ORDER = ['todo', 'in-progress', 'done'] as const;
 
@@ -27,12 +26,10 @@ function priorityMark(p: string): string {
   return ' ';
 }
 
-export default function Tasks({ client, project, onBack, onOpenTask }: Props) {
+export default function Tasks({ client, project, onBack, onOpenTask, onCreate, onEdit }: Props) {
   const [tasks, setTasks] = useState<Task[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cursor, setCursor] = useState(0);
-  const [mode, setMode] = useState<Mode>('list');
-  const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
@@ -56,7 +53,7 @@ export default function Tasks({ client, project, onBack, onOpenTask }: Props) {
   }, [load]);
 
   useInput(async (input, key) => {
-    if (mode === 'create' || busy || !tasks) return;
+    if (busy || !tasks) return;
     if (key.escape || input === 'b') {
       onBack();
       return;
@@ -70,8 +67,7 @@ export default function Tasks({ client, project, onBack, onOpenTask }: Props) {
       return;
     }
     if (input === 'n') {
-      setDraft('');
-      setMode('create');
+      onCreate();
       return;
     }
     if (input === 'r') {
@@ -83,6 +79,11 @@ export default function Tasks({ client, project, onBack, onOpenTask }: Props) {
 
     if (key.return) {
       onOpenTask(current);
+      return;
+    }
+
+    if (input === 'e') {
+      onEdit(current);
       return;
     }
 
@@ -111,25 +112,6 @@ export default function Tasks({ client, project, onBack, onOpenTask }: Props) {
       }
     }
   });
-
-  const submitCreate = async () => {
-    const title = draft.trim();
-    if (!title) {
-      setMode('list');
-      return;
-    }
-    setBusy(true);
-    try {
-      await client.createTask(project.id, title);
-      setDraft('');
-      setMode('list');
-      load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Create failed');
-    } finally {
-      setBusy(false);
-    }
-  };
 
   if (error) {
     return (
@@ -167,7 +149,7 @@ export default function Tasks({ client, project, onBack, onOpenTask }: Props) {
           </Text>
         </Box>
         <Text dimColor>
-          j/k: move · enter: open · space: toggle done · n: new · d: delete · r: reload · b/esc: back
+          j/k: move · enter: open · e: edit · space: done · n: new · d: delete · r: reload · b/esc: back
         </Text>
       </Box>
 
@@ -198,22 +180,6 @@ export default function Tasks({ client, project, onBack, onOpenTask }: Props) {
           );
         })}
       </Box>
-      {mode === 'create' && (
-        <Box
-          borderStyle="round"
-          borderColor="green"
-          paddingX={1}
-          marginTop={1}
-        >
-          <Text color="green">new: </Text>
-          <TextInput
-            value={draft}
-            onChange={setDraft}
-            onSubmit={submitCreate}
-            focus
-          />
-        </Box>
-      )}
       {busy && (
         <Box marginTop={1} paddingX={1}>
           <Text color="yellow">

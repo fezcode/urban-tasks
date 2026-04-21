@@ -7,6 +7,7 @@ interface Props {
   client: Client;
   taskId: string;
   onBack: (changed: boolean) => void;
+  onEdit: (task: Task) => void;
 }
 
 function priorityColor(p: string): string | undefined {
@@ -33,7 +34,7 @@ function formatDate(iso?: string | null): string {
   }
 }
 
-export default function TaskDetail({ client, taskId, onBack }: Props) {
+export default function TaskDetail({ client, taskId, onBack, onEdit }: Props) {
   const [task, setTask] = useState<Task | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cursor, setCursor] = useState(0); // subtask index
@@ -59,6 +60,10 @@ export default function TaskDetail({ client, taskId, onBack }: Props) {
     }
     if (input === 'r') {
       load();
+      return;
+    }
+    if (input === 'e') {
+      onEdit(task);
       return;
     }
     const setStatus = async (next: string) => {
@@ -247,7 +252,7 @@ export default function TaskDetail({ client, taskId, onBack }: Props) {
 
       <Box marginTop={1} paddingX={1}>
         <Text dimColor>
-          space: done · i: in-progress · s: cycle status ·{' '}
+          space: done · i: in-progress · s: cycle status · e: edit ·{' '}
           {task.subtasks.length > 0 ? 'j/k: subtask · t: toggle subtask · ' : ''}
           r: reload · b/esc: back
         </Text>

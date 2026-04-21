@@ -91,10 +91,21 @@ export function createClient(apiUrl: string, token?: string) {
     listProjects: () => request<Project[]>('/api/v1/projects'),
     listTasks: (projectId?: string) =>
       request<Task[]>(`/api/v1/tasks${projectId ? `?projectId=${projectId}` : ''}`),
-    createTask: (projectId: string, title: string) =>
+    createTask: (
+      payload: {
+        projectId: string;
+        title: string;
+        body?: string;
+        priority?: string;
+        tags?: string[];
+        dueDate?: string;
+        startDate?: string;
+        recurrence?: string;
+      },
+    ) =>
       request<Task>('/api/v1/tasks', {
         method: 'POST',
-        body: JSON.stringify({ projectId, title }),
+        body: JSON.stringify(payload),
       }),
     getTask: (id: string) => request<Task>(`/api/v1/tasks/${id}`),
     updateTask: (
@@ -106,6 +117,8 @@ export function createClient(apiUrl: string, token?: string) {
         tags: string[];
         subtasks: Subtask[];
         dueDate: string;
+        startDate: string;
+        recurrence: string;
         body: string;
       }>,
     ) =>

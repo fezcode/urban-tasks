@@ -4,12 +4,17 @@ import Login from './screens/login.js';
 import Projects from './screens/projects.js';
 import Tasks from './screens/tasks.js';
 import TaskDetail from './screens/task-detail.js';
+import TaskForm from './screens/task-form.js';
 import { clearSession, loadSession, type Session } from './storage.js';
 import { clientFromSession, type Project, type Task } from './api.js';
 
 interface Props {
   apiUrl: string;
 }
+
+type FormState =
+  | { kind: 'create' }
+  | { kind: 'edit'; task: Task };
 
 export default function App({ apiUrl }: Props) {
   const [session, setSession] = useState<Session | null>(() => {
@@ -18,6 +23,7 @@ export default function App({ apiUrl }: Props) {
   });
   const [project, setProject] = useState<Project | null>(null);
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
+  const [form, setForm] = useState<FormState | null>(null);
   const [listKey, setListKey] = useState(0);
 
   if (!session) {
@@ -46,6 +52,26 @@ export default function App({ apiUrl }: Props) {
     );
   }
 
+  if (form) {
+    return (
+      <TaskForm
+        client={client}
+        projectId={project.id}
+        initial={form.kind === 'edit' ? form.task : undefined}
+        onDone={(task) => {
+          setForm(null);
+          if (task) {
+            setListKey((k) => k + 1);
+            if (form.kind === 'edit') {
+              // stay on detail with refreshed task
+              setOpenTaskId(task.id);
+            }
+          }
+        }}
+      />
+    );
+  }
+
   if (openTaskId) {
     return (
       <TaskDetail
@@ -55,6 +81,7 @@ export default function App({ apiUrl }: Props) {
           setOpenTaskId(null);
           if (changed) setListKey((k) => k + 1);
         }}
+        onEdit={(task) => setForm({ kind: 'edit', task })}
       />
     );
   }
@@ -66,6 +93,8 @@ export default function App({ apiUrl }: Props) {
       project={project}
       onBack={() => setProject(null)}
       onOpenTask={(t: Task) => setOpenTaskId(t.id)}
+      onCreate={() => setForm({ kind: 'create' })}
+      onEdit={(t: Task) => setForm({ kind: 'edit', task: t })}
     />
   );
 }
