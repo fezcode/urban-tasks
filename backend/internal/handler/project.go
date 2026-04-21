@@ -73,6 +73,10 @@ func (h *ProjectHandler) Update(w http.ResponseWriter, r *http.Request) {
 			respondError(w, http.StatusNotFound, "project not found")
 			return
 		}
+		if errors.Is(err, service.ErrNotAdmin) {
+			respondError(w, http.StatusForbidden, "only project admins can change the name, color, or icon")
+			return
+		}
 		respondError(w, http.StatusInternalServerError, "failed to update project")
 		return
 	}
@@ -87,6 +91,10 @@ func (h *ProjectHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	if err := h.projects.Delete(r.Context(), projectID, userID); err != nil {
 		if errors.Is(err, service.ErrProjectNotFound) {
 			respondError(w, http.StatusNotFound, "project not found")
+			return
+		}
+		if errors.Is(err, service.ErrNotAdmin) {
+			respondError(w, http.StatusForbidden, "only project admins can delete the project")
 			return
 		}
 		respondError(w, http.StatusInternalServerError, "failed to delete project")

@@ -109,15 +109,14 @@ const MainContent: React.FC<Props> = ({
     return () => window.removeEventListener('urban-tasks:add', handler);
   }, [state.projects.length, toastError]);
 
-  // Clear selection if task is no longer in visible list
+  // Clear selection if task is no longer in visible list (skip while tasks are still loading)
   useEffect(() => {
-    if (selectedTaskId) {
-      const visible = state.activeProjectId
-        ? state.tasks.filter((t) => t.projectId === state.activeProjectId)
-        : state.tasks;
-      if (!visible.find((t) => t.id === selectedTaskId)) {
-        onSelectTask(null);
-      }
+    if (!selectedTaskId || state.tasks.length === 0) return;
+    const visible = state.activeProjectId
+      ? state.tasks.filter((t) => t.projectId === state.activeProjectId)
+      : state.tasks;
+    if (!visible.find((t) => t.id === selectedTaskId)) {
+      onSelectTask(null);
     }
   }, [state.activeProjectId, state.tasks, selectedTaskId, onSelectTask]);
 

@@ -15,9 +15,10 @@ import {
   Platform,
   ScrollView,
   Alert,
+  Share,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CalendarClock, Check, Flag, Inbox, Plus, Search, SearchX } from 'lucide-react-native';
+import { CalendarClock, Check, Flag, Inbox, Pencil, Plus, Search, SearchX, Share2, X } from 'lucide-react-native';
 import { useTheme } from '@/theme/ThemeContext';
 import { api, Task, Project } from '@/api/client';
 import { DateField, EmptyState, Markdown } from '@/components/ui';
@@ -134,6 +135,7 @@ export default function TasksScreen() {
   const [groupByPriority, setGroupByPriority] = useState(false);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
+  const [viewing, setViewing] = useState<Task | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -163,7 +165,7 @@ export default function TasksScreen() {
     if (!params.open || tasks.length === 0) return;
     const t = tasks.find((x) => x.id === params.open);
     if (t) {
-      setEditing(t);
+      setViewing(t);
       router.setParams({ open: undefined } as any);
     }
   }, [params.open, tasks, router]);
@@ -530,7 +532,7 @@ export default function TasksScreen() {
                 task={item}
                 projects={projects}
                 onPressStatus={() => cycleStatus(item)}
-                onPress={() => setEditing(item)}
+                onPress={() => setViewing(item)}
               />
             </View>
           )}
@@ -587,13 +589,30 @@ export default function TasksScreen() {
               task={item}
               projects={projects}
               onPressStatus={() => cycleStatus(item)}
-              onPress={() => setEditing(item)}
+              onPress={() => setViewing(item)}
               onTagPress={(tag) => setTagFilter((cur) => (cur === tag ? null : tag))}
             />
           )}
         />
       )}
 
+      <TaskViewModal
+        visible={!!viewing}
+        task={viewing ? tasks.find((t) => t.id === viewing.id) ?? viewing : null}
+        project={viewing ? projects.find((p) => p.id === viewing.projectId) ?? null : null}
+        onClose={() => setViewing(null)}
+        onEdit={() => {
+          if (!viewing) return;
+          const current = tasks.find((t) => t.id === viewing.id) ?? viewing;
+          setViewing(null);
+          setEditing(current);
+        }}
+        onStatusCycle={() => {
+          if (!viewing) return;
+          const current = tasks.find((t) => t.id === viewing.id) ?? viewing;
+          cycleStatus(current);
+        }}
+      />
       <TouchableOpacity
         onPress={() => setCreating(true)}
         activeOpacity={0.85}
@@ -865,6 +884,238 @@ function TaskRow({ task, projects, onPressStatus, onPress, onTagPress }: TaskRow
         </View>
       </TouchableOpacity>
     </View>
+  );
+}
+
+interface TaskViewProps {
+  visible: boolean;
+  task: Task | null;
+  project: Project | null;
+  onClose: () => void;
+  onEdit: () => void;
+  onStatusCycle: () => void;
+}
+
+function TaskViewModal({ visible, task, project, onClose, onEdit, onStatusCycle }: TaskViewProps) {
+  const { palette, radii, spacing, fontSize } = useTheme();
+
+  const share = async () => {
+    if (!task) return;
+    const base =
+      Platform.OS === 'web' && typeof window !== 'undefined'
+        ? `${window.location.origin}${window.location.pathname}`
+        : 'https://urban-tasks.app/';
+    const url = `${base}?task=${task.id}`;
+    try {
+      if (Platform.OS === 'web') {
+        const nav = (typeof navigator !== 'undefined' ? navigator : null) as
+          | (Navigator & { share?: (data: { title?: string; url?: string }) => Promise<void> })
+          | null;
+        if (nav?.share) {
+          await nav.share({ title: task.title, url });
+          return;
+        }
+        if (nav?.clipboard?.writeText) {
+          await nav.clipboard.writeText(url);
+          return;
+        }
+      }
+      await Share.share({ message: url, url, title: task.title });
+    } catch {
+      /* user cancelled or unavailable */
+    }
+  };
+
+  if (!task) {
+    return (
+      <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose} transparent={false}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: palette.bg }} />
+      </Modal>
+    );
+  }
+
+  const due = formatDue(task.dueDate, palette);
+  const pri = task.priority;
+  const priMeta: Record<NonNullable<Task['priority']>, { label: string; color: string }> = {
+    low: { label: 'Low', color: palette.statusActive },
+    medium: { label: 'Medium', color: palette.statusWarning },
+    high: { label: 'High', color: palette.danger },
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+      transparent={false}
+    >
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.bg }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: spacing.lg,
+            paddingVertical: spacing.md,
+            borderBottomColor: palette.borderLight,
+            borderBottomWidth: 1,
+          }}
+        >
+          <TouchableOpacity onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel="Close">
+            <X size={22} color={palette.textSecondary} />
+          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: spacing.md, alignItems: 'center' }}>
+            <TouchableOpacity onPress={share} hitSlop={10} accessibilityRole="button" accessibilityLabel="Share task">
+              <Share2 size={20} color={palette.textSecondary} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onEdit} hitSlop={10} accessibilityRole="button" accessibilityLabel="Edit task">
+              <Pencil size={20} color={palette.accent} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' }}>
+            <TouchableOpacity
+              onPress={onStatusCycle}
+              activeOpacity={0.7}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                paddingHorizontal: spacing.md,
+                paddingVertical: spacing.sm,
+                borderRadius: radii.pill,
+                backgroundColor: palette.surface,
+                borderWidth: 1,
+                borderColor: palette.border,
+              }}
+            >
+              <StatusIndicator status={task.status} />
+              <Text style={{ color: palette.textPrimary, fontFamily: 'Inter_500Medium', fontSize: 13 }}>
+                {STATUS_LABEL[task.status]}
+              </Text>
+            </TouchableOpacity>
+            {project && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <View
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: project.color ?? palette.textTertiary,
+                  }}
+                />
+                <Text style={{ color: palette.textSecondary, fontSize: fontSize.sm, fontFamily: 'Inter_500Medium' }}>
+                  {project.name}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <Text
+            style={{
+              color: task.status === 'done' ? palette.textTertiary : palette.textPrimary,
+              fontSize: 22,
+              lineHeight: 28,
+              fontFamily: 'Fraunces_600SemiBold',
+              textDecorationLine: task.status === 'done' ? 'line-through' : 'none',
+            }}
+          >
+            {task.title}
+          </Text>
+
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+            {pri && priMeta[pri] && (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 5,
+                  paddingHorizontal: spacing.sm + 2,
+                  paddingVertical: 4,
+                  borderRadius: radii.pill,
+                  backgroundColor: palette.surface,
+                  borderWidth: 1,
+                  borderColor: palette.border,
+                }}
+              >
+                <Flag size={12} color={priMeta[pri].color} />
+                <Text style={{ color: priMeta[pri].color, fontSize: 12, fontFamily: 'Inter_500Medium' }}>
+                  {priMeta[pri].label}
+                </Text>
+              </View>
+            )}
+            {due && (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 5,
+                  paddingHorizontal: spacing.sm + 2,
+                  paddingVertical: 4,
+                  borderRadius: radii.pill,
+                  backgroundColor: palette.surface,
+                  borderWidth: 1,
+                  borderColor: palette.border,
+                }}
+              >
+                <CalendarClock size={12} color={due.color} />
+                <Text style={{ color: due.color, fontSize: 12, fontFamily: 'Inter_500Medium' }}>{due.label}</Text>
+              </View>
+            )}
+            {task.tags?.map((tag) => (
+              <View
+                key={tag}
+                style={{
+                  paddingHorizontal: spacing.sm + 2,
+                  paddingVertical: 4,
+                  borderRadius: radii.pill,
+                  backgroundColor: palette.accentLight,
+                }}
+              >
+                <Text style={{ color: palette.accent, fontSize: 12, fontFamily: 'Inter_500Medium' }}>@{tag}</Text>
+              </View>
+            ))}
+          </View>
+
+          {task.body?.trim() ? (
+            <View style={{ gap: spacing.sm }}>
+              <Text
+                style={{
+                  color: palette.textTertiary,
+                  fontSize: 11,
+                  letterSpacing: 1.5,
+                  textTransform: 'uppercase',
+                  fontFamily: 'Inter_500Medium',
+                }}
+              >
+                Notes
+              </Text>
+              <View
+                style={{
+                  backgroundColor: palette.surface,
+                  borderColor: palette.border,
+                  borderWidth: 1,
+                  borderRadius: radii.md,
+                  paddingHorizontal: spacing.md,
+                  paddingVertical: spacing.sm + 2,
+                }}
+              >
+                <Markdown>{task.body}</Markdown>
+              </View>
+            </View>
+          ) : (
+            <Text style={{ color: palette.textTertiary, fontSize: 13, fontStyle: 'italic' }}>
+              No notes — tap edit to add markdown notes, subtasks, or links.
+            </Text>
+          )}
+
+          <View style={{ height: spacing.xl }} />
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
   );
 }
 

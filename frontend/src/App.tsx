@@ -18,14 +18,21 @@ const InstallPrompt = lazy(() => import('./components/InstallPrompt'));
 const InboxPanel = lazy(() => import('./components/InboxPanel'));
 const MembersPanel = lazy(() => import('./components/MembersPanel'));
 
-const ONBOARDING_KEY = 'urban-tasks:onboarded';
+const LEGACY_ONBOARDING_KEY = 'urban-tasks:onboarded';
+const onboardingKeyFor = (userId: string) => `urban-tasks:onboarded:${userId}`;
 const NOTIFICATIONS_ENABLED_KEY = 'urban-tasks:notifications-enabled';
 const notificationsSupported = typeof window !== 'undefined' && 'Notification' in window;
 
-const AuthenticatedApp: React.FC = () => {
+const readTaskParam = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  const params = new URLSearchParams(window.location.search);
+  return params.get('task');
+};
+
+const AuthenticatedApp: React.FC<{ userId: string }> = ({ userId }) => {
   const [currentView, setCurrentView] = useState<View>('tasks');
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1024);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(() => readTaskParam());
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [showDueToday, setShowDueToday] = useState(false);
@@ -35,11 +42,30 @@ const AuthenticatedApp: React.FC = () => {
   const [inboxOpen, setInboxOpen] = useState(false);
   const [membersProjectId, setMembersProjectId] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(
-    () => notificationsSupported && !localStorage.getItem(ONBOARDING_KEY)
+    () =>
+      notificationsSupported &&
+      !localStorage.getItem(onboardingKeyFor(userId)) &&
+      !localStorage.getItem(LEGACY_ONBOARDING_KEY)
   );
+
+  useEffect(() => {
+    const handler = () => setShowOnboarding(true);
+    window.addEventListener('urban-tasks:show-onboarding', handler);
+    return () => window.removeEventListener('urban-tasks:show-onboarding', handler);
+  }, []);
   const [notificationsEnabled, setNotificationsEnabled] = useState(
     () => localStorage.getItem(NOTIFICATIONS_ENABLED_KEY) === 'true'
   );
+
+  // Strip ?task=<id> from the URL after we've consumed it
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has('task')) return;
+    params.delete('task');
+    const qs = params.toString();
+    window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : ''));
+  }, []);
 
   // Global keyboard shortcuts
   useEffect(() => {
@@ -137,9 +163,10 @@ const AuthenticatedApp: React.FC = () => {
   }, []);
 
   const dismissOnboarding = useCallback(() => {
-    localStorage.setItem(ONBOARDING_KEY, 'true');
+    localStorage.setItem(onboardingKeyFor(userId), 'true');
+    localStorage.setItem(LEGACY_ONBOARDING_KEY, 'true');
     setShowOnboarding(false);
-  }, []);
+  }, [userId]);
 
   const enableNotifications = useCallback(async () => {
     const perm = await requestNotificationPermission();
@@ -236,19 +263,26 @@ const AuthenticatedApp: React.FC = () => {
             </div>
           </Suspense>
         )}
-        </div>
 
-        {/* Task detail panel */}
-        {(currentView === 'tasks' || currentView === 'calendar') && selectedTaskId && (
+        {selectedTaskId && (currentView === 'tasks' || currentView === 'calendar') && (
           <Suspense fallback={null}>
-            <TaskDetail
-              key={selectedTaskId}
-              taskId={selectedTaskId}
-              onClose={() => setSelectedTaskId(null)}
-              onTagClick={handleTagClick}
-            />
+            <div
+              className="absolute inset-0 z-[45] flex items-start justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto animate-fade-in"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setSelectedTaskId(null);
+              }}
+            >
+              <TaskDetail
+                key={selectedTaskId}
+                taskId={selectedTaskId}
+                onClose={() => setSelectedTaskId(null)}
+                onTagClick={handleTagClick}
+              />
+            </div>
           </Suspense>
         )}
+        </div>
+
 
         {/* Command palette */}
         {commandPaletteOpen && (
@@ -314,7 +348,7 @@ const RemindersWatcher: React.FC<{ enabled: boolean }> = ({ enabled }) => {
 };
 
 const AppShell: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
     return (
@@ -324,7 +358,7 @@ const AppShell: React.FC = () => {
     );
   }
 
-  return isAuthenticated ? <AuthenticatedApp /> : <AuthPage />;
+  return isAuthenticated && user ? <AuthenticatedApp userId={user.id} /> : <AuthPage />;
 };
 
 const App: React.FC = () => {

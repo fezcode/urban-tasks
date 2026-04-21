@@ -35,6 +35,7 @@ import ConfirmDialog from './ConfirmDialog';
 import * as api from '../api/client';
 import { useToast } from '../context/ToastContext';
 import { useInbox } from '../hooks/useInbox';
+import { usePreferences } from '../context/PreferencesContext';
 
 const ProfilePage = lazy(() => import('./ProfilePage'));
 
@@ -72,6 +73,7 @@ const Sidebar: React.FC<Props> = ({
   onMembersClick,
 }) => {
   const { state, dispatch, syncDispatch, reload } = useAppState();
+  const { showToday, showUpcoming: prefUpcoming, showArchive: prefArchive } = usePreferences();
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
 
@@ -313,65 +315,71 @@ const Sidebar: React.FC<Props> = ({
           <CalendarRange size={18} className={currentView === 'calendar' ? 'text-accent' : ''} />
           <span>Calendar</span>
         </button>
-        <button
-          onClick={() => {
-            onDueTodayClick?.();
-            onNavigate?.();
-          }}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] transition-base ${
-            showDueToday
-              ? 'bg-surface text-text-primary shadow-sm font-medium'
-              : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
-          }`}
-        >
-          <CalendarDays size={18} className={showDueToday ? 'text-accent' : ''} />
-          <span>Today</span>
-          {dueTodayCount > 0 && (
-            <span
-              className={`ml-auto text-2xs tabular-nums ${showDueToday ? 'text-accent font-medium' : 'text-text-tertiary'}`}
-            >
-              {dueTodayCount}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => {
-            onUpcomingClick?.();
-            onNavigate?.();
-          }}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] transition-base ${
-            showUpcoming
-              ? 'bg-surface text-text-primary shadow-sm font-medium'
-              : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
-          }`}
-        >
-          <CalendarRange size={18} className={showUpcoming ? 'text-accent' : ''} />
-          <span>Upcoming</span>
-          {upcomingCount > 0 && (
-            <span
-              className={`ml-auto text-2xs tabular-nums ${showUpcoming ? 'text-accent font-medium' : 'text-text-tertiary'}`}
-            >
-              {upcomingCount}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => {
-            onArchiveClick?.();
-            onNavigate?.();
-          }}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] transition-base ${
-            showArchive
-              ? 'bg-surface text-text-primary shadow-sm font-medium'
-              : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
-          }`}
-        >
-          <Archive size={18} className={showArchive ? 'text-accent' : ''} />
-          <span>Archive</span>
-          {archiveCount > 0 && (
-            <span className="ml-auto text-2xs text-text-tertiary tabular-nums">{archiveCount}</span>
-          )}
-        </button>
+        {showToday && (
+          <button
+            onClick={() => {
+              onDueTodayClick?.();
+              onNavigate?.();
+            }}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] transition-base ${
+              showDueToday
+                ? 'bg-surface text-text-primary shadow-sm font-medium'
+                : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
+            }`}
+          >
+            <CalendarDays size={18} className={showDueToday ? 'text-accent' : ''} />
+            <span>Today</span>
+            {dueTodayCount > 0 && (
+              <span
+                className={`ml-auto text-2xs tabular-nums ${showDueToday ? 'text-accent font-medium' : 'text-text-tertiary'}`}
+              >
+                {dueTodayCount}
+              </span>
+            )}
+          </button>
+        )}
+        {prefUpcoming && (
+          <button
+            onClick={() => {
+              onUpcomingClick?.();
+              onNavigate?.();
+            }}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] transition-base ${
+              showUpcoming
+                ? 'bg-surface text-text-primary shadow-sm font-medium'
+                : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
+            }`}
+          >
+            <CalendarRange size={18} className={showUpcoming ? 'text-accent' : ''} />
+            <span>Upcoming</span>
+            {upcomingCount > 0 && (
+              <span
+                className={`ml-auto text-2xs tabular-nums ${showUpcoming ? 'text-accent font-medium' : 'text-text-tertiary'}`}
+              >
+                {upcomingCount}
+              </span>
+            )}
+          </button>
+        )}
+        {prefArchive && (
+          <button
+            onClick={() => {
+              onArchiveClick?.();
+              onNavigate?.();
+            }}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] transition-base ${
+              showArchive
+                ? 'bg-surface text-text-primary shadow-sm font-medium'
+                : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
+            }`}
+          >
+            <Archive size={18} className={showArchive ? 'text-accent' : ''} />
+            <span>Archive</span>
+            {archiveCount > 0 && (
+              <span className="ml-auto text-2xs text-text-tertiary tabular-nums">{archiveCount}</span>
+            )}
+          </button>
+        )}
         <button
           onClick={() => {
             onInboxClick?.();

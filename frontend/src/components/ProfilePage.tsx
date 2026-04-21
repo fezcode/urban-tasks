@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { format } from 'date-fns';
-import { X, RefreshCw, Check, ArrowRight, AlertTriangle, Download, Upload, Sparkles } from 'lucide-react';
+import { X, RefreshCw, Check, ArrowRight, AlertTriangle, Download, Upload, Sparkles, Compass, SidebarOpen } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useAppState } from '../context/AppState';
 import { useToast } from '../context/ToastContext';
@@ -17,7 +17,16 @@ const ProfilePage: React.FC<Props> = ({ onClose }) => {
   const { user, updateProfile, deleteAccount } = useAuth();
   const { reload } = useAppState();
   const { success, error: toastError } = useToast();
-  const { easterEggsEnabled, setEasterEggsEnabled } = usePreferences();
+  const {
+    easterEggsEnabled,
+    setEasterEggsEnabled,
+    showToday,
+    setShowToday,
+    showUpcoming,
+    setShowUpcoming,
+    showArchive,
+    setShowArchive,
+  } = usePreferences();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState(user?.name ?? '');
@@ -324,10 +333,76 @@ const ProfilePage: React.FC<Props> = ({ onClose }) => {
             </div>
           </section>
 
+          {/* Sidebar columns (desktop only) */}
+          <section className="border-t border-border-light pt-8 hidden lg:block">
+            <SectionLabel
+              index="05"
+              title="Sidebar"
+              hint="Choose which shortcuts appear in the desktop sidebar. Projects and core views always stay."
+            />
+            <div className="mt-5 space-y-3">
+              {(
+                [
+                  { key: 'today', label: 'Today', desc: 'Tasks due today.', value: showToday, set: setShowToday },
+                  { key: 'upcoming', label: 'Upcoming', desc: 'Tasks due in the next 7 days.', value: showUpcoming, set: setShowUpcoming },
+                  { key: 'archive', label: 'Archive', desc: 'Completed tasks, tucked away.', value: showArchive, set: setShowArchive },
+                ] as const
+              ).map((row) => (
+                <div
+                  key={row.key}
+                  className="flex items-center justify-between gap-6 rounded-2xl bg-bg-secondary border border-border-light p-5"
+                >
+                  <div className="min-w-0 flex items-start gap-3">
+                    <SidebarOpen size={18} className="text-accent flex-shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <div className="text-[14px] text-text-primary font-medium">{row.label}</div>
+                      <p className="text-[12px] text-text-secondary mt-0.5 leading-relaxed">{row.desc}</p>
+                    </div>
+                  </div>
+                  <button
+                    role="switch"
+                    aria-checked={row.value}
+                    onClick={() => row.set(!row.value)}
+                    className={`relative flex-shrink-0 w-11 h-6 rounded-full transition-colors ${
+                      row.value ? 'bg-accent' : 'bg-border'
+                    }`}
+                    aria-label={`Toggle ${row.label} in sidebar`}
+                  >
+                    <span
+                      className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                        row.value ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Replay onboarding */}
+          <section className="border-t border-border-light pt-8">
+            <SectionLabel
+              index="06"
+              title="First tour, again"
+              hint="Re-open the welcome walkthrough whenever you want a refresher."
+            />
+            <button
+              onClick={() => {
+                window.dispatchEvent(new Event('urban-tasks:show-onboarding'));
+                success('Onboarding opened');
+                onClose();
+              }}
+              className="mt-5 inline-flex items-center gap-2 px-4 py-2.5 text-[13px] font-medium rounded-full bg-bg-tertiary text-text-primary hover:bg-border-light transition-colors"
+            >
+              <Compass size={14} />
+              Show onboarding
+            </button>
+          </section>
+
           {/* Danger zone */}
           <section className="border-t border-border-light pt-8">
             <SectionLabel
-              index="05"
+              index="07"
               title="End of the road"
               hint="Irreversible. Everything tied to this account goes with it."
               danger

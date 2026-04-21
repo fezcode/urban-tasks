@@ -57,3 +57,6 @@
 
 ## Platforms
 - [~] **Mobile app** — iOS + Android (Expo + React Native, expo-router), scaffolded under `mobile/` with shared theme tokens. Pending: offline-first sync, push notifications, biometric unlock, share-sheet capture.
+
+## In progress
+- [x] **Specific task view** — focused task modal (web + mobile) with markdown description, metadata, and share-link button. Web supports `?task=<id>` deep links.

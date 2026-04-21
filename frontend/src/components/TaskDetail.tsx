@@ -4,7 +4,6 @@ import type { TaskStatus, TaskPriority, TaskRecurrence } from '../context/types'
 import ReactMarkdown from 'react-markdown';
 import {
   X,
-  ArrowLeft,
   Trash2,
   Calendar,
   Tag,
@@ -21,7 +20,9 @@ import {
   Square,
   CheckSquare,
   RefreshCw,
+  Share2,
 } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 import { format, differenceInDays, startOfDay } from 'date-fns';
 import ProjectIcon from './ProjectIcon';
 import DatePicker from './DatePicker';
@@ -50,6 +51,7 @@ function getDueDateLabel(dueDate: string): { label: string; className: string } 
 
 const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
   const { state, syncDispatch } = useAppState();
+  const { success: toastSuccess, error: toastError } = useToast();
   const task = state.tasks.find((t) => t.id === taskId);
   const project = task ? state.projects.find((p) => p.id === task.projectId) : null;
 
@@ -68,8 +70,8 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
   const linkTitleRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!task) onClose();
-  }, [task, onClose]);
+    if (!task && state.tasks.length > 0) onClose();
+  }, [task, state.tasks.length, onClose]);
 
   useEffect(() => {
     if (isEditingTitle) titleRef.current?.focus();
@@ -249,6 +251,22 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
     onClose();
   };
 
+  const handleShare = async () => {
+    const url = `${window.location.origin}${window.location.pathname}?task=${task.id}`;
+    try {
+      const nav = navigator as Navigator & { share?: (data: ShareData) => Promise<void> };
+      if (nav.share) {
+        await nav.share({ title: task.title, url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      toastSuccess('Task link copied to clipboard');
+    } catch (e) {
+      if (e instanceof Error && e.name === 'AbortError') return;
+      toastError('Could not share task');
+    }
+  };
+
   const statusLabel: Record<TaskStatus, string> = {
     todo: 'To Do',
     'in-progress': 'In Progress',
@@ -267,23 +285,9 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
   const dueDateInfo = task.dueDate ? getDueDateLabel(task.dueDate) : null;
 
   return (
-    <aside
-      className="
-        fixed inset-0 z-50 bg-bg
-        lg:relative lg:inset-auto lg:z-auto lg:w-[420px] lg:flex-shrink-0 lg:border-l lg:border-border
-        flex flex-col overflow-hidden animate-fade-in
-      "
-    >
+    <div className="w-full max-w-2xl bg-surface border border-border rounded-2xl shadow-xl flex flex-col max-h-[calc(100vh-2rem)] animate-fade-in overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 lg:px-5 py-3 border-b border-border flex-shrink-0">
-        <button
-          onClick={onClose}
-          className="p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-base"
-        >
-          <ArrowLeft size={18} className="lg:hidden" />
-          <X size={18} className="hidden lg:block" />
-        </button>
-
+      <div className="flex items-center justify-between px-5 py-3 border-b border-border flex-shrink-0">
         <div className="flex items-center gap-2">
           <button
             onClick={cycleStatus}
@@ -292,17 +296,36 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
             <StatusActionIcon size={12} />
             {statusActionLabel[task.status]}
           </button>
+        </div>
+
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleShare}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-base"
+            title="Share task"
+          >
+            <Share2 size={14} />
+            Share
+          </button>
           <button
             onClick={handleDelete}
             className="p-2 rounded-lg text-text-tertiary hover:text-danger hover:bg-danger-bg transition-base"
+            title="Delete task"
           >
             <Trash2 size={16} />
+          </button>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-base"
+            title="Close"
+          >
+            <X size={18} />
           </button>
         </div>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-5 lg:px-6 py-6 space-y-6">
+      <div className="flex-1 overflow-y-auto px-5 lg:px-6 py-6 space-y-6 min-h-0">
         {/* Status + Project badges */}
         <div className="flex items-center gap-3 flex-wrap">
           <span
@@ -784,7 +807,7 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
           )}
         </div>
       </div>
-    </aside>
+    </div>
   );
 };
 
