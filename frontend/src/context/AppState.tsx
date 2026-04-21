@@ -189,9 +189,15 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             await reload();
             break;
 
-          case 'UPDATE_TASK':
-            await api.tasks.update(action.id, action.updates);
+          case 'UPDATE_TASK': {
+            const patch: Record<string, unknown> = {};
+            const DROP = new Set(['id', 'createdAt', 'updatedAt', 'completedAt', 'createdBy', 'updatedBy']);
+            for (const [k, v] of Object.entries(action.updates)) {
+              if (!DROP.has(k)) patch[k] = v;
+            }
+            await api.tasks.update(action.id, patch);
             break;
+          }
 
           case 'DELETE_TASK':
             await api.tasks.delete(action.id);

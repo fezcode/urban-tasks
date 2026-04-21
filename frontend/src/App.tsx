@@ -15,6 +15,8 @@ const CommandPalette = lazy(() => import('./components/CommandPalette'));
 const ShortcutsHelp = lazy(() => import('./components/ShortcutsHelp'));
 const Onboarding = lazy(() => import('./components/Onboarding'));
 const InstallPrompt = lazy(() => import('./components/InstallPrompt'));
+const InboxPanel = lazy(() => import('./components/InboxPanel'));
+const MembersPanel = lazy(() => import('./components/MembersPanel'));
 
 const ONBOARDING_KEY = 'urban-tasks:onboarded';
 const NOTIFICATIONS_ENABLED_KEY = 'urban-tasks:notifications-enabled';
@@ -30,6 +32,8 @@ const AuthenticatedApp: React.FC = () => {
   const [showUpcoming, setShowUpcoming] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [inboxOpen, setInboxOpen] = useState(false);
+  const [membersProjectId, setMembersProjectId] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(
     () => notificationsSupported && !localStorage.getItem(ONBOARDING_KEY)
   );
@@ -183,10 +187,13 @@ const AuthenticatedApp: React.FC = () => {
             onArchiveClick={handleArchiveClick}
             activeTag={activeTag}
             onTagClick={handleTagClick}
+            onInboxClick={() => setInboxOpen(true)}
+            onMembersClick={(id) => setMembersProjectId(id)}
           />
         </div>
 
         {/* Main content */}
+        <div className="relative flex-1 flex min-w-0">
         <MainContent
           currentView={currentView}
           onMenuClick={() => setSidebarOpen(!sidebarOpen)}
@@ -203,6 +210,33 @@ const AuthenticatedApp: React.FC = () => {
           onClearArchive={() => setShowArchive(false)}
           onOpenCommandPalette={() => setCommandPaletteOpen(true)}
         />
+
+        {inboxOpen && (
+          <Suspense fallback={null}>
+            <div
+              className="absolute inset-0 z-[40] flex items-start justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto animate-fade-in"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setInboxOpen(false);
+              }}
+            >
+              <InboxPanel onClose={() => setInboxOpen(false)} embedded />
+            </div>
+          </Suspense>
+        )}
+
+        {membersProjectId && (
+          <Suspense fallback={null}>
+            <div
+              className="absolute inset-0 z-[40] flex items-start justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto animate-fade-in"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setMembersProjectId(null);
+              }}
+            >
+              <MembersPanel projectId={membersProjectId} onClose={() => setMembersProjectId(null)} embedded />
+            </div>
+          </Suspense>
+        )}
+        </div>
 
         {/* Task detail panel */}
         {(currentView === 'tasks' || currentView === 'calendar') && selectedTaskId && (

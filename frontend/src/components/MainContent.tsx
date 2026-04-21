@@ -24,7 +24,7 @@ import type { Task, TaskStatus } from '../context/types';
 import type { View } from './Sidebar';
 import ProjectIcon from './ProjectIcon';
 
-type Filter = 'all' | 'todo' | 'in-progress';
+type Filter = 'all' | 'todo' | 'in-progress' | 'done';
 type PriorityFilter = 'all' | 'high' | 'medium' | 'low';
 
 const PRIORITY_RANK: Record<string, number> = { high: 0, medium: 1, low: 2, none: 3 };
@@ -132,7 +132,9 @@ const MainContent: React.FC<Props> = ({
   // View-level scope: archive shows only done; all other views hide done
   const scopedTasks = showArchive
     ? projectTasks.filter((t) => t.status === 'done')
-    : projectTasks.filter((t) => t.status !== 'done');
+    : filter === 'done'
+      ? projectTasks
+      : projectTasks.filter((t) => t.status !== 'done');
 
   // Due-date views
   const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -193,6 +195,7 @@ const MainContent: React.FC<Props> = ({
 
   const todoCount = tagFilteredTasks.filter((t) => t.status === 'todo').length;
   const activeCount = tagFilteredTasks.filter((t) => t.status === 'in-progress').length;
+  const doneCount = projectTasks.filter((t) => t.status === 'done').length;
 
   const handleAddTask = () => {
     const title = newTaskTitle.trim();
@@ -243,6 +246,7 @@ const MainContent: React.FC<Props> = ({
     { key: 'all', label: 'All', count: tagFilteredTasks.length },
     { key: 'todo', label: 'To do', count: todoCount },
     { key: 'in-progress', label: 'Active', count: activeCount },
+    { key: 'done', label: 'Done', count: doneCount },
   ];
 
   const priorityCounts = {

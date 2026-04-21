@@ -11,9 +11,10 @@ import { useToast } from '../context/ToastContext';
 interface Props {
   projectId: string;
   onClose: () => void;
+  embedded?: boolean;
 }
 
-const MembersPanel: React.FC<Props> = ({ projectId, onClose }) => {
+const MembersPanel: React.FC<Props> = ({ projectId, onClose, embedded = false }) => {
   const { user } = useAuth();
   const { state } = useAppState();
   const { success, error: toastError } = useToast();
@@ -85,9 +86,8 @@ const MembersPanel: React.FC<Props> = ({ projectId, onClose }) => {
 
   const pendingInvs = invitations.filter((i) => i.status === 'pending');
 
-  return (
-    <div className="fixed inset-0 z-[60] flex items-start justify-center bg-black/40 p-4 overflow-y-auto animate-fade-in">
-      <div className="w-full max-w-xl bg-bg border border-border rounded-2xl shadow-xl my-12">
+  const card = (
+    <div className="w-full max-w-xl bg-bg border border-border rounded-2xl shadow-xl my-12">
         <header className="flex items-center gap-3 px-5 py-4 border-b border-border-light">
           <Users size={18} className="text-accent" />
           <div>
@@ -200,6 +200,18 @@ const MembersPanel: React.FC<Props> = ({ projectId, onClose }) => {
           )}
         </div>
       </div>
+  );
+
+  if (embedded) return card;
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-start justify-center bg-black/40 p-4 overflow-y-auto animate-fade-in"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      {card}
     </div>
   );
 };

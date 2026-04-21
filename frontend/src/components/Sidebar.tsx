@@ -37,8 +37,6 @@ import { useToast } from '../context/ToastContext';
 import { useInbox } from '../hooks/useInbox';
 
 const ProfilePage = lazy(() => import('./ProfilePage'));
-const InboxPanel = lazy(() => import('./InboxPanel'));
-const MembersPanel = lazy(() => import('./MembersPanel'));
 
 export type View = 'tasks' | 'dashboard' | 'calendar';
 
@@ -54,6 +52,8 @@ interface Props {
   onArchiveClick?: () => void;
   activeTag?: string | null;
   onTagClick?: (tag: string) => void;
+  onInboxClick?: () => void;
+  onMembersClick?: (projectId: string) => void;
 }
 
 const Sidebar: React.FC<Props> = ({
@@ -68,6 +68,8 @@ const Sidebar: React.FC<Props> = ({
   onArchiveClick,
   activeTag,
   onTagClick,
+  onInboxClick,
+  onMembersClick,
 }) => {
   const { state, dispatch, syncDispatch, reload } = useAppState();
   const [dragId, setDragId] = useState<string | null>(null);
@@ -107,9 +109,7 @@ const Sidebar: React.FC<Props> = ({
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [profileMenuOpen]);
-  const [inboxOpen, setInboxOpen] = useState(false);
-  const [membersProjectId, setMembersProjectId] = useState<string | null>(null);
-  const { badge: inboxBadge, refresh: refreshInbox } = useInbox();
+  const { badge: inboxBadge } = useInbox();
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -373,7 +373,10 @@ const Sidebar: React.FC<Props> = ({
           )}
         </button>
         <button
-          onClick={() => setInboxOpen(true)}
+          onClick={() => {
+            onInboxClick?.();
+            onNavigate?.();
+          }}
           className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-base relative"
         >
           <Mail size={18} />
@@ -552,7 +555,7 @@ const Sidebar: React.FC<Props> = ({
                     </button>
                     <button
                       onClick={() => {
-                        setMembersProjectId(project.id);
+                        onMembersClick?.(project.id);
                         setMenuOpenId(null);
                       }}
                       className="w-full flex items-center gap-2 px-3 py-1.5 text-[13px] text-text-secondary hover:bg-bg-secondary transition-base"
@@ -773,26 +776,6 @@ const Sidebar: React.FC<Props> = ({
         </Suspense>
       )}
 
-      {inboxOpen && (
-        <Suspense fallback={null}>
-          <InboxPanel
-            onClose={() => {
-              setInboxOpen(false);
-              refreshInbox();
-            }}
-            onChanged={refreshInbox}
-          />
-        </Suspense>
-      )}
-
-      {membersProjectId && (
-        <Suspense fallback={null}>
-          <MembersPanel
-            projectId={membersProjectId}
-            onClose={() => setMembersProjectId(null)}
-          />
-        </Suspense>
-      )}
     </aside>
   );
 };
