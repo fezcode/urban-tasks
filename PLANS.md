@@ -57,6 +57,34 @@
 
 ## Platforms
 - [~] **Mobile app** — iOS + Android (Expo + React Native, expo-router), scaffolded under `mobile/` with shared theme tokens. Pending: offline-first sync, push notifications, biometric unlock, share-sheet capture.
+- [ ] **TUI** — terminal UI under `tui/`, built with React + Ink (same stack Claude Code uses). Login, project list, task list, create/edit/complete, keyboard-first nav.
+
+## Collaboration
+- [ ] **Comments + @mentions** — threaded comments on tasks, mention users to trigger notifications. Reuses existing notification pipeline.
+- [ ] **Task watchers** — subscribe without being assignee; get notified on status/assignee/due-date changes.
+- [ ] **Roles & permissions** — owner/admin/member split; gate delete/invite/billing on role.
+
+## Search & Organization
+- [ ] **Global search** — full-text across titles, descriptions, comments via Postgres `tsvector`+GIN. Cmd+K command palette on web.
+- [ ] **Saved filters / smart lists** — named views in sidebar (e.g., "My high-priority due this week").
+- [ ] **Bulk actions** — multi-select tasks to assign/tag/move/complete/delete in one shot.
+
+## Productivity
+- [ ] **Natural-language quick add** — parse "fix login bug tomorrow 3pm #frontend !high" into structured fields (chrono-node).
+- [ ] **Templates** — reusable project/task-set templates (e.g., "sprint kickoff" seeds N tasks).
+- [ ] **Time tracking** — per-task start/stop timer, daily totals, estimated vs actual.
+
+## Integrations
+- [ ] **Personal API tokens** — user-issued PATs with scopes; public REST docs.
+- [ ] **Outbound webhooks** — fire on task/project events; prerequisite for Zapier-style integrations.
+- [ ] **ICS calendar feed** — per-user subscribe URL exposing tasks with due dates to Google/Apple Calendar.
+- [ ] **GitHub/GitLab linking** — attach issue URLs, auto-pull title/status, optional two-way close sync.
+- [ ] **Email dispatch** — transactional email (Resend or SMTP) for invitations, assignments, due-date reminders.
+
+## AI
+- [ ] **Task breakdown** — "break into subtasks" button, one Claude call, user accepts/edits results.
+- [ ] **Weekly summary** — Claude-generated recap of the week's task activity on the dashboard.
+- [ ] **Smart prioritization** — suggest priority + due date at create time from title/description.
 
 ## In progress
 - [x] **Specific task view** — focused task modal (web + mobile) with markdown description, metadata, and share-link button. Web supports `?task=<id>` deep links.
