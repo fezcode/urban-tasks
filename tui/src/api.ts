@@ -89,6 +89,13 @@ export function createClient(apiUrl: string, token?: string) {
       }),
     me: () => request<User>('/api/v1/me'),
     listProjects: () => request<Project[]>('/api/v1/projects'),
+    createProject: (name: string, color: string) =>
+      request<Project>('/api/v1/projects', {
+        method: 'POST',
+        body: JSON.stringify({ name, color }),
+      }),
+    deleteProject: (id: string) =>
+      request<void>(`/api/v1/projects/${id}`, { method: 'DELETE' }),
     listTasks: (projectId?: string) =>
       request<Task[]>(`/api/v1/tasks${projectId ? `?projectId=${projectId}` : ''}`),
     createTask: (

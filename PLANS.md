@@ -57,18 +57,19 @@
 
 ## Platforms
 - [~] **Mobile app** — iOS + Android (Expo + React Native, expo-router), scaffolded under `mobile/` with shared theme tokens. Pending: offline-first sync, push notifications, biometric unlock, share-sheet capture.
-- [~] **TUI** — terminal UI under `tui/`, built with React + Ink (same stack Claude Code uses). Login, project list, task list with create/toggle-done/delete. Pending:
-  - [ ] **Task detail view** — open selected task with body/description, tags, priority, due date, subtasks, assignee; markdown rendered with `marked-terminal` or a small custom renderer
-  - [ ] **Edit fields inline** — rename, set priority (1/2/3), set due date, toggle tags
-  - [ ] **Subtask view** — list, toggle, add, remove within the detail screen
-  - [ ] **Filters** — status/priority/tag chips in the task list; composes like web
-  - [ ] **Search** — `/` to fuzzy-filter the current list
+- [~] **TUI** — terminal UI under `tui/`, built with React + Ink (same stack Claude Code uses). Login, project list, task list, task detail, full create/edit form, search, filters. Pending:
+  - [x] **Task detail view** — body, priority, due/start, tags, links, subtasks, recurrence
+  - [x] **Edit fields inline** — full form screen for title/body/priority/status/dates/tags/recurrence (used for both create and edit)
+  - [~] **Subtask view** — toggle implemented; add/remove pending
+  - [x] **Filters** — `f`/`F` cycles status chip, `p`/`P` cycles priority chip
+  - [x] **Search** — `/` filters on title, body, tags
   - [ ] **Inbox screen** — notifications + invitations, accept/reject, mark-all-read
   - [ ] **Assignee picker** — load project members, assign/unassign via popup
   - [ ] **Project switcher** — `p` to jump between projects without returning to list
-  - [ ] **Create project** — `N` on project screen
+  - [x] **Create project** — `N` opens name+color create flow; `d` deletes selected
   - [ ] **Color / theme** — respect `NO_COLOR`, pick accent from project color
   - [ ] **Global shortcuts** — `?` help overlay, `q` quit everywhere
+  - [ ] **Markdown description** — render task body with a small markdown-for-terminal renderer
 
 ## Collaboration
 - [ ] **Comments + @mentions** — threaded comments on tasks, mention users to trigger notifications. Reuses existing notification pipeline.

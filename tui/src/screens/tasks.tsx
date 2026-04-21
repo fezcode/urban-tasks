@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Box, Text, useInput } from 'ink';
+import TextInput from 'ink-text-input';
 import Spinner from 'ink-spinner';
 import type { Client, Project, Task } from '../api.js';
 
@@ -14,6 +15,12 @@ interface Props {
 
 const STATUS_ORDER = ['todo', 'in-progress', 'done'] as const;
 
+type StatusFilter = 'all' | 'todo' | 'in-progress' | 'done' | 'open';
+type PriorityFilter = 'all' | 'high' | 'medium' | 'low';
+
+const STATUS_FILTERS: StatusFilter[] = ['all', 'open', 'todo', 'in-progress', 'done'];
+const PRIORITY_FILTERS: PriorityFilter[] = ['all', 'high', 'medium', 'low'];
+
 function statusIcon(s: string): string {
   if (s === 'done') return '✔';
   if (s === 'in-progress') return '◐';
@@ -26,11 +33,21 @@ function priorityMark(p: string): string {
   return ' ';
 }
 
+function cycle<T>(list: readonly T[], current: T, dir: 1 | -1): T {
+  const i = list.indexOf(current);
+  return list[(i + dir + list.length) % list.length] ?? list[0]!;
+}
+
 export default function Tasks({ client, project, onBack, onOpenTask, onCreate, onEdit }: Props) {
   const [tasks, setTasks] = useState<Task[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cursor, setCursor] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all');
+  const [query, setQuery] = useState('');
+  const [searching, setSearching] = useState(false);
+  const [searchDraft, setSearchDraft] = useState('');
 
   const load = useCallback(() => {
     client
@@ -43,7 +60,6 @@ export default function Tasks({ client, project, onBack, onOpenTask, onCreate, o
           return a.position - b.position;
         });
         setTasks(sorted);
-        setCursor((c) => Math.min(c, Math.max(0, sorted.length - 1)));
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'));
   }, [client, project.id]);
@@ -52,9 +68,34 @@ export default function Tasks({ client, project, onBack, onOpenTask, onCreate, o
     load();
   }, [load]);
 
+  const visible = useMemo(() => {
+    if (!tasks) return [] as Task[];
+    const q = query.trim().toLowerCase();
+    return tasks.filter((t) => {
+      if (statusFilter === 'open' && t.status === 'done') return false;
+      if (statusFilter !== 'all' && statusFilter !== 'open' && t.status !== statusFilter) return false;
+      if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false;
+      if (q) {
+        const hay = `${t.title} ${t.body ?? ''} ${t.tags.join(' ')}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [tasks, statusFilter, priorityFilter, query]);
+
+  useEffect(() => {
+    setCursor((c) => Math.min(c, Math.max(0, visible.length - 1)));
+  }, [visible.length]);
+
   useInput(async (input, key) => {
-    if (busy || !tasks) return;
+    if (busy || !tasks || searching) return;
     if (key.escape || input === 'b') {
+      if (query || statusFilter !== 'all' || priorityFilter !== 'all') {
+        setQuery('');
+        setStatusFilter('all');
+        setPriorityFilter('all');
+        return;
+      }
       onBack();
       return;
     }
@@ -63,7 +104,7 @@ export default function Tasks({ client, project, onBack, onOpenTask, onCreate, o
       return;
     }
     if (key.downArrow || input === 'j') {
-      setCursor((c) => Math.min(tasks.length - 1, c + 1));
+      setCursor((c) => Math.min(visible.length - 1, c + 1));
       return;
     }
     if (input === 'n') {
@@ -74,19 +115,38 @@ export default function Tasks({ client, project, onBack, onOpenTask, onCreate, o
       load();
       return;
     }
-    const current = tasks[cursor];
+    if (input === '/') {
+      setSearchDraft(query);
+      setSearching(true);
+      return;
+    }
+    if (input === 'f') {
+      setStatusFilter((v) => cycle(STATUS_FILTERS, v, 1));
+      return;
+    }
+    if (input === 'F') {
+      setStatusFilter((v) => cycle(STATUS_FILTERS, v, -1));
+      return;
+    }
+    if (input === 'p') {
+      setPriorityFilter((v) => cycle(PRIORITY_FILTERS, v, 1));
+      return;
+    }
+    if (input === 'P') {
+      setPriorityFilter((v) => cycle(PRIORITY_FILTERS, v, -1));
+      return;
+    }
+    const current = visible[cursor];
     if (!current) return;
 
     if (key.return) {
       onOpenTask(current);
       return;
     }
-
     if (input === 'e') {
       onEdit(current);
       return;
     }
-
     if (input === ' ' || input === 'x') {
       const next = current.status === 'done' ? 'todo' : 'done';
       setBusy(true);
@@ -113,6 +173,11 @@ export default function Tasks({ client, project, onBack, onOpenTask, onCreate, o
     }
   });
 
+  const submitSearch = () => {
+    setQuery(searchDraft);
+    setSearching(false);
+  };
+
   if (error) {
     return (
       <Box padding={1} flexDirection="column">
@@ -131,6 +196,12 @@ export default function Tasks({ client, project, onBack, onOpenTask, onCreate, o
     );
   }
 
+  const filterChip = (active: boolean, label: string, color?: string) => (
+    <Text color={active ? color ?? 'green' : 'gray'} bold={active}>
+      [{label}]
+    </Text>
+  );
+
   return (
     <Box flexDirection="column" padding={1}>
       <Box
@@ -145,13 +216,43 @@ export default function Tasks({ client, project, onBack, onOpenTask, onCreate, o
           </Text>
           <Text dimColor>
             {' '}
-            — {tasks.length} task{tasks.length === 1 ? '' : 's'}
+            — {visible.length}/{tasks.length} task{tasks.length === 1 ? '' : 's'}
           </Text>
         </Box>
+        <Box>
+          <Text dimColor>status </Text>
+          {filterChip(statusFilter !== 'all', statusFilter, 'cyan')}
+          <Text dimColor>  priority </Text>
+          {filterChip(priorityFilter !== 'all', priorityFilter, 'magenta')}
+          {query && (
+            <>
+              <Text dimColor>  search </Text>
+              {filterChip(true, `"${query}"`, 'yellow')}
+            </>
+          )}
+        </Box>
         <Text dimColor>
-          j/k: move · enter: open · e: edit · space: done · n: new · d: delete · r: reload · b/esc: back
+          j/k: move · enter: open · e: edit · space: done · n: new · d: del · /: search · f/p: filter · r: reload · esc: clear/back
         </Text>
       </Box>
+
+      {searching && (
+        <Box
+          borderStyle="round"
+          borderColor="yellow"
+          paddingX={1}
+          marginTop={1}
+        >
+          <Text color="yellow">/ </Text>
+          <TextInput
+            value={searchDraft}
+            onChange={setSearchDraft}
+            onSubmit={submitSearch}
+            focus
+            placeholder="search title, body, tags…"
+          />
+        </Box>
+      )}
 
       <Box
         borderStyle="round"
@@ -160,8 +261,14 @@ export default function Tasks({ client, project, onBack, onOpenTask, onCreate, o
         marginTop={1}
         flexDirection="column"
       >
-        {tasks.length === 0 && <Text dimColor>No tasks. Press n to create one.</Text>}
-        {tasks.map((t, i) => {
+        {visible.length === 0 && (
+          <Text dimColor>
+            {tasks.length === 0
+              ? 'No tasks. Press n to create one.'
+              : 'No tasks match the current filter.'}
+          </Text>
+        )}
+        {visible.map((t, i) => {
           const selected = i === cursor;
           const done = t.status === 'done';
           const inProgress = t.status === 'in-progress';
@@ -176,6 +283,9 @@ export default function Tasks({ client, project, onBack, onOpenTask, onCreate, o
                 {t.title}
               </Text>
               {t.dueDate && <Text dimColor> · due {t.dueDate}</Text>}
+              {t.tags.length > 0 && (
+                <Text dimColor> · {t.tags.map((x) => `#${x}`).join(' ')}</Text>
+              )}
             </Box>
           );
         })}
