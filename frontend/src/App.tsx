@@ -53,6 +53,15 @@ const AuthenticatedApp: React.FC<{ userId: string }> = ({ userId }) => {
     window.addEventListener('urban-tasks:show-onboarding', handler);
     return () => window.removeEventListener('urban-tasks:show-onboarding', handler);
   }, []);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail;
+      if (typeof id === 'string' && id) setSelectedTaskId(id);
+    };
+    window.addEventListener('urban-tasks:open-task', handler);
+    return () => window.removeEventListener('urban-tasks:open-task', handler);
+  }, []);
   const [notificationsEnabled, setNotificationsEnabled] = useState(
     () => localStorage.getItem(NOTIFICATIONS_ENABLED_KEY) === 'true'
   );

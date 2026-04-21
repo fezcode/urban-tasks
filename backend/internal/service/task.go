@@ -53,11 +53,12 @@ func advanceDueDate(dueDate string, recurrence string) string {
 type TaskService struct {
 	tasks         *repository.TaskRepo
 	projects      *repository.ProjectRepo
+	users         *repository.UserRepo
 	notifications *NotificationService
 }
 
-func NewTaskService(tasks *repository.TaskRepo, projects *repository.ProjectRepo, notifications *NotificationService) *TaskService {
-	return &TaskService{tasks: tasks, projects: projects, notifications: notifications}
+func NewTaskService(tasks *repository.TaskRepo, projects *repository.ProjectRepo, users *repository.UserRepo, notifications *NotificationService) *TaskService {
+	return &TaskService{tasks: tasks, projects: projects, users: users, notifications: notifications}
 }
 
 // resolveAssignee normalizes a requested assignee value and validates membership.
@@ -193,12 +194,23 @@ func (s *TaskService) notifyAssigned(ctx context.Context, t *model.Task, assigne
 	if s.notifications == nil || t.AssigneeID == nil {
 		return
 	}
-	_ = s.notifications.Push(ctx, *t.AssigneeID, "task_assigned", map[string]any{
+	payload := map[string]any{
 		"taskId":     t.ID,
 		"taskTitle":  t.Title,
 		"projectId":  t.ProjectID,
 		"assignerId": assignerID,
-	})
+	}
+	if s.users != nil {
+		if u, err := s.users.GetByID(ctx, assignerID); err == nil && u != nil {
+			payload["assignerName"] = u.Name
+		}
+	}
+	if s.projects != nil {
+		if p, err := s.projects.GetByID(ctx, t.ProjectID, *t.AssigneeID); err == nil && p != nil {
+			payload["projectName"] = p.Name
+		}
+	}
+	_ = s.notifications.Push(ctx, *t.AssigneeID, "task_assigned", payload)
 }
 
 func (s *TaskService) Update(ctx context.Context, id, userID string, req model.UpdateTaskRequest) (*model.Task, error) {

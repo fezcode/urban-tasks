@@ -71,6 +71,15 @@ const InboxPanel: React.FC<Props> = ({ onClose, onChanged, embedded = false }) =
     }
   };
 
+  const handleClick = (n: Notification) => {
+    markRead(n);
+    const taskId = typeof n.payload?.taskId === 'string' ? (n.payload.taskId as string) : null;
+    if (taskId && n.kind === 'task_assigned') {
+      window.dispatchEvent(new CustomEvent('urban-tasks:open-task', { detail: taskId }));
+      onClose?.();
+    }
+  };
+
   const markAllRead = async () => {
     try {
       await api.notifications.markAllRead();
@@ -181,7 +190,7 @@ const InboxPanel: React.FC<Props> = ({ onClose, onChanged, embedded = false }) =
                   {notifications.map((n) => (
                     <li
                       key={n.id}
-                      onClick={() => markRead(n)}
+                      onClick={() => handleClick(n)}
                       className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-base ${
                         n.readAt
                           ? 'opacity-60 hover:bg-surface-hover'
@@ -236,6 +245,8 @@ function formatNotification(n: Notification): string {
       return `${p.inviteeName ?? p.inviteeEmail ?? 'Someone'} joined ${p.projectName ?? 'your project'}`;
     case 'invitation_rejected':
       return `${p.inviteeName ?? p.inviteeEmail ?? 'Someone'} declined your invitation to ${p.projectName ?? 'a project'}`;
+    case 'task_assigned':
+      return `${p.assignerName ?? 'Someone'} assigned you “${p.taskTitle ?? 'a task'}”${p.projectName ? ` in ${p.projectName}` : ''}`;
     default:
       return n.kind.replace(/_/g, ' ');
   }

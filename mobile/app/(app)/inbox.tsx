@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { BellRing, Check, Mail, X, CheckCheck, Inbox as InboxIcon } from 'lucide-react-native';
 import { useTheme } from '@/theme/ThemeContext';
 import { api, Invitation, Notification } from '@/api/client';
@@ -49,6 +49,8 @@ function formatNotification(n: Notification): string {
       return `${p.inviteeName ?? p.inviteeEmail ?? 'Someone'} joined ${p.projectName ?? 'your project'}`;
     case 'invitation_rejected':
       return `${p.inviteeName ?? p.inviteeEmail ?? 'Someone'} declined ${p.projectName ?? 'your invitation'}`;
+    case 'task_assigned':
+      return `${p.assignerName ?? 'Someone'} assigned you “${p.taskTitle ?? 'a task'}”${p.projectName ? ` in ${p.projectName}` : ''}`;
     default:
       return n.kind.replace(/_/g, ' ');
   }
@@ -56,6 +58,7 @@ function formatNotification(n: Notification): string {
 
 export default function InboxScreen() {
   const { palette, radii, spacing, fontSize } = useTheme();
+  const router = useRouter();
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,6 +106,14 @@ export default function InboxScreen() {
       );
     } catch {
       // ignore
+    }
+  };
+
+  const handleNotificationPress = (n: Notification) => {
+    markRead(n);
+    const taskId = typeof n.payload?.taskId === 'string' ? (n.payload.taskId as string) : null;
+    if (taskId && n.kind === 'task_assigned') {
+      router.push({ pathname: '/tasks', params: { open: taskId } } as any);
     }
   };
 
@@ -254,7 +265,7 @@ export default function InboxScreen() {
             {notifications.map((n) => (
               <Pressable
                 key={n.id}
-                onPress={() => markRead(n)}
+                onPress={() => handleNotificationPress(n)}
                 style={{
                   backgroundColor: n.readAt ? palette.surface : (palette.accentLight ?? palette.surface),
                   borderColor: palette.borderLight,

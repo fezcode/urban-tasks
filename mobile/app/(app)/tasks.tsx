@@ -125,6 +125,7 @@ export default function TasksScreen() {
   const params = useLocalSearchParams<{ open?: string }>();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [membersById, setMembersById] = useState<Record<string, Member>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -154,6 +155,24 @@ export default function TasksScreen() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    const assignedProjectIds = Array.from(
+      new Set(tasks.filter((t) => t.assigneeId).map((t) => t.projectId)),
+    );
+    if (assignedProjectIds.length === 0) return;
+    let cancelled = false;
+    Promise.all(assignedProjectIds.map((pid) => api.listMembers(pid).catch(() => [])))
+      .then((lists) => {
+        if (cancelled) return;
+        const map: Record<string, Member> = {};
+        for (const list of lists) for (const m of list) map[m.userId] = m;
+        setMembersById((prev) => ({ ...prev, ...map }));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tasks]);
 
   useFocusEffect(
     useCallback(() => {
@@ -531,6 +550,7 @@ export default function TasksScreen() {
               <TaskRow
                 task={item}
                 projects={projects}
+                assignee={item.assigneeId ? membersById[item.assigneeId] : undefined}
                 onPressStatus={() => cycleStatus(item)}
                 onPress={() => setViewing(item)}
               />
@@ -588,6 +608,7 @@ export default function TasksScreen() {
             <TaskRow
               task={item}
               projects={projects}
+              assignee={item.assigneeId ? membersById[item.assigneeId] : undefined}
               onPressStatus={() => cycleStatus(item)}
               onPress={() => setViewing(item)}
               onTagPress={(tag) => setTagFilter((cur) => (cur === tag ? null : tag))}
@@ -600,6 +621,9 @@ export default function TasksScreen() {
         visible={!!viewing}
         task={viewing ? tasks.find((t) => t.id === viewing.id) ?? viewing : null}
         project={viewing ? projects.find((p) => p.id === viewing.projectId) ?? null : null}
+        assignee={
+          viewing && viewing.assigneeId ? membersById[viewing.assigneeId] : undefined
+        }
         onClose={() => setViewing(null)}
         onEdit={() => {
           if (!viewing) return;
@@ -732,12 +756,13 @@ function StatusIndicator({ status }: { status: Task['status'] }) {
 interface TaskRowProps {
   task: Task;
   projects: Project[];
+  assignee?: Member;
   onPressStatus: () => void;
   onPress: () => void;
   onTagPress?: (tag: string) => void;
 }
 
-function TaskRow({ task, projects, onPressStatus, onPress, onTagPress }: TaskRowProps) {
+function TaskRow({ task, projects, assignee, onPressStatus, onPress, onTagPress }: TaskRowProps) {
   const { palette, radii, spacing, fontSize } = useTheme();
   const project = projects.find((p) => p.id === task.projectId);
   const due = formatDue(task.dueDate, palette);
@@ -881,8 +906,57 @@ function TaskRow({ task, projects, onPressStatus, onPress, onTagPress }: TaskRow
               </Text>
             </View>
           )}
+          {task.assigneeId && (
+            <AssigneeChip assignee={assignee} assigneeId={task.assigneeId} />
+          )}
         </View>
       </TouchableOpacity>
+    </View>
+  );
+}
+
+function AssigneeChip({ assignee, assigneeId }: { assignee?: Member; assigneeId: string }) {
+  const { palette, fontSize } = useTheme();
+  const label = assignee?.name ?? '…';
+  const initials = (assignee?.name ?? '?')
+    .split(/\s+/)
+    .map((s) => s[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+      <View
+        style={{
+          width: 14,
+          height: 14,
+          borderRadius: 7,
+          backgroundColor: palette.accentLight,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Text
+          style={{
+            color: palette.accent,
+            fontSize: 8,
+            fontFamily: 'Inter_600SemiBold',
+          }}
+        >
+          {initials}
+        </Text>
+      </View>
+      <Text
+        style={{
+          color: palette.textTertiary,
+          fontSize: fontSize['2xs'],
+          fontFamily: 'Inter_500Medium',
+        }}
+        numberOfLines={1}
+      >
+        {assignee ? label : assigneeId.slice(0, 6)}
+      </Text>
     </View>
   );
 }
@@ -891,12 +965,13 @@ interface TaskViewProps {
   visible: boolean;
   task: Task | null;
   project: Project | null;
+  assignee?: Member;
   onClose: () => void;
   onEdit: () => void;
   onStatusCycle: () => void;
 }
 
-function TaskViewModal({ visible, task, project, onClose, onEdit, onStatusCycle }: TaskViewProps) {
+function TaskViewModal({ visible, task, project, assignee, onClose, onEdit, onStatusCycle }: TaskViewProps) {
   const { palette, radii, spacing, fontSize } = useTheme();
 
   const share = async () => {
@@ -1078,6 +1153,25 @@ function TaskViewModal({ visible, task, project, onClose, onEdit, onStatusCycle 
                 <Text style={{ color: palette.accent, fontSize: 12, fontFamily: 'Inter_500Medium' }}>@{tag}</Text>
               </View>
             ))}
+            {task.assigneeId && (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6,
+                  paddingHorizontal: spacing.sm + 2,
+                  paddingVertical: 4,
+                  borderRadius: radii.pill,
+                  backgroundColor: palette.surface,
+                  borderWidth: 1,
+                  borderColor: palette.border,
+                }}
+              >
+                <Text style={{ color: palette.textSecondary, fontSize: 12, fontFamily: 'Inter_500Medium' }}>
+                  {assignee ? `@ ${assignee.name}` : '@ assigned'}
+                </Text>
+              </View>
+            )}
           </View>
 
           {task.body?.trim() ? (

@@ -60,3 +60,5 @@
 
 ## In progress
 - [x] **Specific task view** — focused task modal (web + mobile) with markdown description, metadata, and share-link button. Web supports `?task=<id>` deep links.
+- [x] **Assignee display on mobile** — assignee chip in `TaskRow` list and `TaskViewModal`, backed by per-project members cache built from tasks with `assigneeId`
+- [x] **Notification renderer for `task_assigned`** — human copy ("X assigned you …") + click opens the task; backend payload now includes assignerName/projectName
