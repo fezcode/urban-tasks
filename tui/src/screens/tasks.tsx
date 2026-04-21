@@ -12,7 +12,7 @@ interface Props {
 
 type Mode = 'list' | 'create';
 
-const STATUS_ORDER = ['active', 'inProgress', 'done'] as const;
+const STATUS_ORDER = ['todo', 'inProgress', 'done'] as const;
 
 function statusIcon(s: string): string {
   if (s === 'done') return '✔';
@@ -81,7 +81,7 @@ export default function Tasks({ client, project, onBack }: Props) {
     if (!current) return;
 
     if (input === ' ' || input === 'x') {
-      const next = current.status === 'done' ? 'active' : 'done';
+      const next = current.status === 'done' ? 'todo' : 'done';
       setBusy(true);
       try {
         await client.updateTask(current.id, { status: next });
