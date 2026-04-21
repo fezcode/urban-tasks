@@ -127,6 +127,7 @@ export function createClient(apiUrl: string, token?: string) {
         startDate: string;
         recurrence: string;
         body: string;
+        assigneeId: string;
       }>,
     ) =>
       request<Task>(`/api/v1/tasks/${id}`, {
@@ -135,6 +136,9 @@ export function createClient(apiUrl: string, token?: string) {
       }),
     deleteTask: (id: string) =>
       request<void>(`/api/v1/tasks/${id}`, { method: 'DELETE' }),
+
+    listMembers: (projectId: string) =>
+      request<ProjectMember[]>(`/api/v1/projects/${projectId}/members`),
 
     listInvitations: () => request<Invitation[]>('/api/v1/invitations'),
     acceptInvitation: (id: string) =>
@@ -148,6 +152,14 @@ export function createClient(apiUrl: string, token?: string) {
     markAllNotificationsRead: () =>
       request<void>('/api/v1/notifications/read-all', { method: 'POST' }),
   };
+}
+
+export interface ProjectMember {
+  projectId: string;
+  userId: string;
+  role: string;
+  name: string;
+  email: string;
 }
 
 export interface Invitation {

@@ -11,6 +11,7 @@ interface Props {
   onOpenTask: (task: Task) => void;
   onCreate: () => void;
   onEdit: (task: Task) => void;
+  onSwitchProject: (dir: 1 | -1) => void;
 }
 
 const STATUS_ORDER = ['todo', 'in-progress', 'done'] as const;
@@ -38,7 +39,15 @@ function cycle<T>(list: readonly T[], current: T, dir: 1 | -1): T {
   return list[(i + dir + list.length) % list.length] ?? list[0]!;
 }
 
-export default function Tasks({ client, project, onBack, onOpenTask, onCreate, onEdit }: Props) {
+export default function Tasks({
+  client,
+  project,
+  onBack,
+  onOpenTask,
+  onCreate,
+  onEdit,
+  onSwitchProject,
+}: Props) {
   const [tasks, setTasks] = useState<Task[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cursor, setCursor] = useState(0);
@@ -118,6 +127,14 @@ export default function Tasks({ client, project, onBack, onOpenTask, onCreate, o
     if (input === '/') {
       setSearchDraft(query);
       setSearching(true);
+      return;
+    }
+    if (input === '>' || input === ']') {
+      onSwitchProject(1);
+      return;
+    }
+    if (input === '<' || input === '[') {
+      onSwitchProject(-1);
       return;
     }
     if (input === 'f') {
@@ -232,7 +249,7 @@ export default function Tasks({ client, project, onBack, onOpenTask, onCreate, o
           )}
         </Box>
         <Text dimColor>
-          j/k: move · enter: open · e: edit · space: done · n: new · d: del · /: search · f/p: filter · r: reload · esc: clear/back
+          j/k: move · enter: open · e: edit · space: done · n: new · d: del · /: search · f/p: filter · {'<'}/{'>'}: switch proj · r: reload · esc: clear/back
         </Text>
       </Box>
 

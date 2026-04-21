@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import TextInput from 'ink-text-input';
 import Spinner from 'ink-spinner';
-import type { Client, Subtask, Task } from '../api.js';
+import type { Client, ProjectMember, Subtask, Task } from '../api.js';
 
 interface Props {
   client: Client;
@@ -47,6 +47,8 @@ export default function TaskDetail({ client, taskId, onBack, onEdit }: Props) {
   const [changed, setChanged] = useState(false);
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState('');
+  const [picker, setPicker] = useState<{ members: ProjectMember[]; cursor: number } | null>(null);
+  const [pickerLoading, setPickerLoading] = useState(false);
 
   const load = () =>
     client
@@ -73,7 +75,52 @@ export default function TaskDetail({ client, taskId, onBack, onEdit }: Props) {
     }
   };
 
+  const openPicker = async () => {
+    if (!task) return;
+    setPickerLoading(true);
+    try {
+      const members = await client.listMembers(task.projectId);
+      setPicker({ members, cursor: 0 });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load members');
+    } finally {
+      setPickerLoading(false);
+    }
+  };
+
   useInput(async (input, key) => {
+    if (picker) {
+      if (key.escape) {
+        setPicker(null);
+        return;
+      }
+      if (key.upArrow || input === 'k') {
+        setPicker((p) => p && { ...p, cursor: Math.max(0, p.cursor - 1) });
+        return;
+      }
+      if (key.downArrow || input === 'j') {
+        setPicker(
+          (p) => p && { ...p, cursor: Math.min(p.members.length, p.cursor + 1) },
+        );
+        return;
+      }
+      if (key.return && task) {
+        const isUnassign = picker.cursor === picker.members.length;
+        const nextId = isUnassign ? '' : picker.members[picker.cursor]?.userId ?? '';
+        setPicker(null);
+        setBusy(true);
+        try {
+          const updated = await client.updateTask(task.id, { assigneeId: nextId });
+          setTask(updated);
+          setChanged(true);
+        } catch (e) {
+          setError(e instanceof Error ? e.message : 'Assign failed');
+        } finally {
+          setBusy(false);
+        }
+      }
+      return;
+    }
     if (adding || busy || !task) return;
     if (key.escape || input === 'b') {
       onBack(changed);
@@ -90,6 +137,10 @@ export default function TaskDetail({ client, taskId, onBack, onEdit }: Props) {
     if (input === 'a') {
       setDraft('');
       setAdding(true);
+      return;
+    }
+    if (input === '@') {
+      await openPicker();
       return;
     }
     const setStatus = async (next: string) => {
@@ -309,9 +360,43 @@ export default function TaskDetail({ client, taskId, onBack, onEdit }: Props) {
         )}
       </Box>
 
+      {picker && (
+        <Box
+          borderStyle="round"
+          borderColor="cyan"
+          paddingX={1}
+          marginTop={1}
+          flexDirection="column"
+        >
+          <Text bold color="cyan">
+            Assign to…
+          </Text>
+          <Text dimColor>j/k: move · Enter: select · Esc: cancel</Text>
+          {picker.members.map((m, i) => {
+            const selected = i === picker.cursor;
+            const current = task.assigneeId === m.userId;
+            return (
+              <Box key={m.userId}>
+                <Text color={selected ? 'green' : undefined}>{selected ? '▶ ' : '  '}</Text>
+                <Text>
+                  {m.name} <Text dimColor>({m.email})</Text>
+                </Text>
+                {current && <Text color="cyan"> · current</Text>}
+              </Box>
+            );
+          })}
+          <Box>
+            <Text color={picker.cursor === picker.members.length ? 'green' : undefined}>
+              {picker.cursor === picker.members.length ? '▶ ' : '  '}
+            </Text>
+            <Text dimColor>(unassign)</Text>
+          </Box>
+        </Box>
+      )}
+
       <Box marginTop={1} paddingX={1}>
         <Text dimColor>
-          space: done · i: in-progress · s: cycle · e: edit · a: add subtask ·{' '}
+          space: done · i: in-progress · s: cycle · e: edit · a: add subtask · @: assign ·{' '}
           {task.subtasks.length > 0 ? 'j/k: move · t: toggle · D: delete subtask · ' : ''}
           r: reload · b/esc: back
         </Text>

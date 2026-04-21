@@ -78,6 +78,7 @@ urban-tasks --logout
 - `/` — search title, body, tags
 - `f` / `F` — cycle status filter (forward / back)
 - `p` / `P` — cycle priority filter
+- `<` / `>` or `[` / `]` — switch to previous / next project
 - Esc — clear active filters; second Esc goes back
 - `r` — reload · `b` — back
 
@@ -87,6 +88,7 @@ urban-tasks --logout
 - `s` — cycle status (todo → in-progress → done)
 - `e` — edit task
 - `a` — add subtask · `D` — delete highlighted subtask · `t` — toggle subtask
+- `@` — assign / unassign member
 - j / k — move between subtasks
 - `r` — reload · `b` / Esc — back
 

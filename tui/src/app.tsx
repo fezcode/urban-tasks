@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, Text } from 'ink';
 import Login from './screens/login.js';
 import Projects from './screens/projects.js';
@@ -27,12 +27,21 @@ export default function App({ apiUrl }: Props) {
   const [form, setForm] = useState<FormState | null>(null);
   const [listKey, setListKey] = useState(0);
   const [inboxOpen, setInboxOpen] = useState(false);
+  const [projectCache, setProjectCache] = useState<Project[]>([]);
 
-  if (!session) {
+  const client = session ? clientFromSession(session) : null;
+
+  useEffect(() => {
+    if (!client || !project) return;
+    client
+      .listProjects()
+      .then((ps) => setProjectCache([...ps].sort((a, b) => a.position - b.position)))
+      .catch(() => {});
+  }, [client, project?.id]);
+
+  if (!session || !client) {
     return <Login apiUrl={apiUrl} onLoggedIn={setSession} />;
   }
-
-  const client = clientFromSession(session);
 
   if (inboxOpen) {
     return <Inbox client={client} onBack={() => setInboxOpen(false)} />;
@@ -71,7 +80,6 @@ export default function App({ apiUrl }: Props) {
           if (task) {
             setListKey((k) => k + 1);
             if (form.kind === 'edit') {
-              // stay on detail with refreshed task
               setOpenTaskId(task.id);
             }
           }
@@ -103,6 +111,13 @@ export default function App({ apiUrl }: Props) {
       onOpenTask={(t: Task) => setOpenTaskId(t.id)}
       onCreate={() => setForm({ kind: 'create' })}
       onEdit={(t: Task) => setForm({ kind: 'edit', task: t })}
+      onSwitchProject={(dir) => {
+        if (projectCache.length === 0) return;
+        const idx = projectCache.findIndex((p) => p.id === project.id);
+        if (idx === -1) return;
+        const next = projectCache[(idx + dir + projectCache.length) % projectCache.length];
+        if (next) setProject(next);
+      }}
     />
   );
 }

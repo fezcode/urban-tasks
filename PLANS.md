@@ -64,8 +64,8 @@
   - [x] **Filters** — `f`/`F` cycles status chip, `p`/`P` cycles priority chip
   - [x] **Search** — `/` filters on title, body, tags
   - [x] **Inbox screen** — invitations (accept/reject) + notifications (mark read / mark all read)
-  - [ ] **Assignee picker** — load project members, assign/unassign via popup
-  - [ ] **Project switcher** — `p` to jump between projects without returning to list
+  - [x] **Assignee picker** — `@` in detail opens a member list, Enter assigns (or choose "unassign")
+  - [x] **Project switcher** — `<` / `>` (or `[` / `]`) cycles projects from the task list
   - [x] **Create project** — `N` opens name+color create flow; `d` deletes selected
   - [ ] **Color / theme** — respect `NO_COLOR`, pick accent from project color
   - [ ] **Global shortcuts** — `?` help overlay, `q` quit everywhere
