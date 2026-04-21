@@ -8,6 +8,7 @@ interface Props {
   client: Client;
   project: Project;
   onBack: () => void;
+  onOpenTask: (task: Task) => void;
 }
 
 type Mode = 'list' | 'create';
@@ -26,7 +27,7 @@ function priorityMark(p: string): string {
   return ' ';
 }
 
-export default function Tasks({ client, project, onBack }: Props) {
+export default function Tasks({ client, project, onBack, onOpenTask }: Props) {
   const [tasks, setTasks] = useState<Task[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cursor, setCursor] = useState(0);
@@ -79,6 +80,11 @@ export default function Tasks({ client, project, onBack }: Props) {
     }
     const current = tasks[cursor];
     if (!current) return;
+
+    if (key.return) {
+      onOpenTask(current);
+      return;
+    }
 
     if (input === ' ' || input === 'x') {
       const next = current.status === 'done' ? 'todo' : 'done';
@@ -152,7 +158,7 @@ export default function Tasks({ client, project, onBack }: Props) {
         <Text dimColor> — {tasks.length} task{tasks.length === 1 ? '' : 's'}</Text>
       </Box>
       <Text dimColor>
-        j/k: move · space: toggle done · n: new · d: delete · r: reload · b/esc: back
+        j/k: move · enter: open · space: toggle done · n: new · d: delete · r: reload · b/esc: back
       </Text>
       <Box marginTop={1} flexDirection="column">
         {tasks.length === 0 && <Text dimColor>No tasks. Press n to create one.</Text>}

@@ -20,6 +20,18 @@ export interface Project {
   position: number;
 }
 
+export interface Subtask {
+  id: string;
+  title: string;
+  done: boolean;
+}
+
+export interface TaskLink {
+  id: string;
+  title: string;
+  url: string;
+}
+
 export interface Task {
   id: string;
   projectId: string;
@@ -28,8 +40,11 @@ export interface Task {
   status: string;
   priority: string;
   tags: string[];
+  links: TaskLink[];
+  subtasks: Subtask[];
   startDate?: string | null;
   dueDate?: string | null;
+  recurrence?: string | null;
   position: number;
   createdAt: string;
   updatedAt: string;
@@ -81,7 +96,19 @@ export function createClient(apiUrl: string, token?: string) {
         method: 'POST',
         body: JSON.stringify({ projectId, title }),
       }),
-    updateTask: (id: string, patch: Partial<{ status: string; title: string }>) =>
+    getTask: (id: string) => request<Task>(`/api/v1/tasks/${id}`),
+    updateTask: (
+      id: string,
+      patch: Partial<{
+        status: string;
+        title: string;
+        priority: string;
+        tags: string[];
+        subtasks: Subtask[];
+        dueDate: string;
+        body: string;
+      }>,
+    ) =>
       request<Task>(`/api/v1/tasks/${id}`, {
         method: 'PATCH',
         body: JSON.stringify(patch),

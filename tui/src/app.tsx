@@ -3,8 +3,9 @@ import { Box, Text } from 'ink';
 import Login from './screens/login.js';
 import Projects from './screens/projects.js';
 import Tasks from './screens/tasks.js';
+import TaskDetail from './screens/task-detail.js';
 import { clearSession, loadSession, type Session } from './storage.js';
-import { clientFromSession, type Project } from './api.js';
+import { clientFromSession, type Project, type Task } from './api.js';
 
 interface Props {
   apiUrl: string;
@@ -16,6 +17,8 @@ export default function App({ apiUrl }: Props) {
     return s && s.accessToken ? { ...s, apiUrl } : null;
   });
   const [project, setProject] = useState<Project | null>(null);
+  const [openTaskId, setOpenTaskId] = useState<string | null>(null);
+  const [listKey, setListKey] = useState(0);
 
   if (!session) {
     return <Login apiUrl={apiUrl} onLoggedIn={setSession} />;
@@ -43,5 +46,26 @@ export default function App({ apiUrl }: Props) {
     );
   }
 
-  return <Tasks client={client} project={project} onBack={() => setProject(null)} />;
+  if (openTaskId) {
+    return (
+      <TaskDetail
+        client={client}
+        taskId={openTaskId}
+        onBack={(changed) => {
+          setOpenTaskId(null);
+          if (changed) setListKey((k) => k + 1);
+        }}
+      />
+    );
+  }
+
+  return (
+    <Tasks
+      key={listKey}
+      client={client}
+      project={project}
+      onBack={() => setProject(null)}
+      onOpenTask={(t: Task) => setOpenTaskId(t.id)}
+    />
+  );
 }

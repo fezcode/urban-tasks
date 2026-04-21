@@ -57,7 +57,18 @@
 
 ## Platforms
 - [~] **Mobile app** — iOS + Android (Expo + React Native, expo-router), scaffolded under `mobile/` with shared theme tokens. Pending: offline-first sync, push notifications, biometric unlock, share-sheet capture.
-- [ ] **TUI** — terminal UI under `tui/`, built with React + Ink (same stack Claude Code uses). Login, project list, task list, create/edit/complete, keyboard-first nav.
+- [~] **TUI** — terminal UI under `tui/`, built with React + Ink (same stack Claude Code uses). Login, project list, task list with create/toggle-done/delete. Pending:
+  - [ ] **Task detail view** — open selected task with body/description, tags, priority, due date, subtasks, assignee; markdown rendered with `marked-terminal` or a small custom renderer
+  - [ ] **Edit fields inline** — rename, set priority (1/2/3), set due date, toggle tags
+  - [ ] **Subtask view** — list, toggle, add, remove within the detail screen
+  - [ ] **Filters** — status/priority/tag chips in the task list; composes like web
+  - [ ] **Search** — `/` to fuzzy-filter the current list
+  - [ ] **Inbox screen** — notifications + invitations, accept/reject, mark-all-read
+  - [ ] **Assignee picker** — load project members, assign/unassign via popup
+  - [ ] **Project switcher** — `p` to jump between projects without returning to list
+  - [ ] **Create project** — `N` on project screen
+  - [ ] **Color / theme** — respect `NO_COLOR`, pick accent from project color
+  - [ ] **Global shortcuts** — `?` help overlay, `q` quit everywhere
 
 ## Collaboration
 - [ ] **Comments + @mentions** — threaded comments on tasks, mention users to trigger notifications. Reuses existing notification pipeline.
