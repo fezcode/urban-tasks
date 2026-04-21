@@ -8,13 +8,14 @@ interface Props {
   client: Client;
   onPick: (p: Project) => void;
   onLogout: () => void;
+  onOpenInbox: () => void;
 }
 
 type Mode = 'list' | 'create-name' | 'create-color';
 
 const COLORS = ['#C96442', '#6B8E23', '#4682B4', '#B5651D', '#8B5CF6', '#10B981', '#F59E0B'];
 
-export default function Projects({ client, onPick, onLogout }: Props) {
+export default function Projects({ client, onPick, onLogout, onOpenInbox }: Props) {
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cursor, setCursor] = useState(0);
@@ -39,6 +40,10 @@ export default function Projects({ client, onPick, onLogout }: Props) {
     if (input === 'q') process.exit(0);
     if (input === 'l') {
       onLogout();
+      return;
+    }
+    if (input === 'i') {
+      onOpenInbox();
       return;
     }
     if (input === 'r') {
@@ -150,7 +155,7 @@ export default function Projects({ client, onPick, onLogout }: Props) {
           Projects
         </Text>
         <Text dimColor>
-          j/k: move · enter: open · N: new · d: delete · r: reload · l: logout · q: quit
+          j/k: move · enter: open · N: new · d: delete · i: inbox · r: reload · l: logout · q: quit
         </Text>
       </Box>
 

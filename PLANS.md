@@ -63,7 +63,7 @@
   - [~] **Subtask view** — toggle implemented; add/remove pending
   - [x] **Filters** — `f`/`F` cycles status chip, `p`/`P` cycles priority chip
   - [x] **Search** — `/` filters on title, body, tags
-  - [ ] **Inbox screen** — notifications + invitations, accept/reject, mark-all-read
+  - [x] **Inbox screen** — invitations (accept/reject) + notifications (mark read / mark all read)
   - [ ] **Assignee picker** — load project members, assign/unassign via popup
   - [ ] **Project switcher** — `p` to jump between projects without returning to list
   - [x] **Create project** — `N` opens name+color create flow; `d` deletes selected

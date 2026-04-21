@@ -5,6 +5,7 @@ import Projects from './screens/projects.js';
 import Tasks from './screens/tasks.js';
 import TaskDetail from './screens/task-detail.js';
 import TaskForm from './screens/task-form.js';
+import Inbox from './screens/inbox.js';
 import { clearSession, loadSession, type Session } from './storage.js';
 import { clientFromSession, type Project, type Task } from './api.js';
 
@@ -25,6 +26,7 @@ export default function App({ apiUrl }: Props) {
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState | null>(null);
   const [listKey, setListKey] = useState(0);
+  const [inboxOpen, setInboxOpen] = useState(false);
 
   if (!session) {
     return <Login apiUrl={apiUrl} onLoggedIn={setSession} />;
@@ -32,12 +34,17 @@ export default function App({ apiUrl }: Props) {
 
   const client = clientFromSession(session);
 
+  if (inboxOpen) {
+    return <Inbox client={client} onBack={() => setInboxOpen(false)} />;
+  }
+
   if (!project) {
     return (
       <Box flexDirection="column">
         <Box paddingX={1}>
           <Text dimColor>
-            Signed in as <Text color="cyan">{session.name}</Text> ({session.email})
+            Signed in as <Text color="cyan">{session.name}</Text> ({session.email}) · press{' '}
+            <Text color="cyan">i</Text> for inbox
           </Text>
         </Box>
         <Projects
@@ -47,6 +54,7 @@ export default function App({ apiUrl }: Props) {
             clearSession();
             setSession(null);
           }}
+          onOpenInbox={() => setInboxOpen(true)}
         />
       </Box>
     );

@@ -135,7 +135,40 @@ export function createClient(apiUrl: string, token?: string) {
       }),
     deleteTask: (id: string) =>
       request<void>(`/api/v1/tasks/${id}`, { method: 'DELETE' }),
+
+    listInvitations: () => request<Invitation[]>('/api/v1/invitations'),
+    acceptInvitation: (id: string) =>
+      request<Invitation>(`/api/v1/invitations/${id}/accept`, { method: 'POST' }),
+    rejectInvitation: (id: string) =>
+      request<Invitation>(`/api/v1/invitations/${id}/reject`, { method: 'POST' }),
+    listNotifications: () =>
+      request<{ items: Notification[]; unread: number }>('/api/v1/notifications'),
+    markNotificationRead: (id: string) =>
+      request<void>(`/api/v1/notifications/${id}/read`, { method: 'POST' }),
+    markAllNotificationsRead: () =>
+      request<void>('/api/v1/notifications/read-all', { method: 'POST' }),
   };
+}
+
+export interface Invitation {
+  id: string;
+  projectId: string;
+  projectName?: string;
+  projectColor?: string;
+  inviterId: string;
+  inviterName?: string;
+  inviteeEmail: string;
+  status: string;
+  expiresAt: string;
+  createdAt: string;
+}
+
+export interface Notification {
+  id: string;
+  kind: string;
+  payload?: Record<string, unknown> | null;
+  readAt?: string | null;
+  createdAt: string;
 }
 
 export type Client = ReturnType<typeof createClient>;
