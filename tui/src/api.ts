@@ -53,15 +53,12 @@ export function createClient(apiUrl: string, token?: string) {
 
     const res = await fetch(`${apiUrl}${path}`, { ...init, headers });
     const text = await res.text();
-    const body = text ? (JSON.parse(text) as unknown) : null;
+    const body = text ? (JSON.parse(text) as { data?: unknown; error?: string }) : null;
     if (!res.ok) {
-      const msg =
-        body && typeof body === 'object' && 'error' in body
-          ? String((body as { error: unknown }).error)
-          : res.statusText;
+      const msg = body?.error ? String(body.error) : res.statusText;
       throw new ApiError(res.status, msg);
     }
-    return body as T;
+    return (body?.data ?? body) as T;
   }
 
   return {
