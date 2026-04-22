@@ -25,6 +25,18 @@ const FreeProjectLimit = 1
 // a project beyond their quota.
 var ErrProjectLimitReached = errors.New("project limit reached for current plan")
 
+// ErrProRequired is returned when a Free-tier user tries to use a
+// Pro-gated feature (sending invitations, assigning tasks).
+var ErrProRequired = errors.New("Pro plan required for this action")
+
+// RequirePro returns ErrProRequired if the user's effective plan is not Pro.
+func RequirePro(u *model.User, now time.Time) error {
+	if EffectivePlan(u, now) != PlanPro {
+		return ErrProRequired
+	}
+	return nil
+}
+
 // EffectivePlan returns the plan a user is currently entitled to, factoring
 // in an active Pro trial. A user on the Free plan whose trial has not yet
 // expired is effectively on Pro.

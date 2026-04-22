@@ -56,6 +56,9 @@ func (s *InvitationService) Create(ctx context.Context, projectID, inviterID, em
 	if err != nil || inviter == nil {
 		return nil, ErrInvalidCredentials
 	}
+	if err := RequirePro(inviter, time.Now().UTC()); err != nil {
+		return nil, err
+	}
 	if strings.EqualFold(inviter.Email, email) {
 		return nil, ErrSelfInvite
 	}

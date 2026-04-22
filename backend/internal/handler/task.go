@@ -75,6 +75,10 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 			respondError(w, http.StatusBadRequest, "project not found")
 			return
 		}
+		if errors.Is(err, service.ErrProRequired) {
+			respondError(w, http.StatusPaymentRequired, "assigning tasks requires a Pro plan")
+			return
+		}
 		slog.Error("create task", "error", err, "userID", userID)
 		respondError(w, http.StatusInternalServerError, "failed to create task")
 		return
@@ -101,6 +105,10 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 		if errors.Is(err, service.ErrProjectNotFound) {
 			respondError(w, http.StatusBadRequest, "project not found")
+			return
+		}
+		if errors.Is(err, service.ErrProRequired) {
+			respondError(w, http.StatusPaymentRequired, "assigning tasks requires a Pro plan")
 			return
 		}
 		slog.Error("update task", "error", err, "userID", userID, "taskID", taskID)

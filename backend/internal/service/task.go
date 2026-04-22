@@ -151,6 +151,15 @@ func (s *TaskService) Create(ctx context.Context, userID string, req model.Creat
 	if err != nil {
 		return nil, err
 	}
+	if assignee != nil {
+		actor, err := s.users.GetByID(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+		if err := RequirePro(actor, time.Now().UTC()); err != nil {
+			return nil, err
+		}
+	}
 
 	now := time.Now().UTC()
 	t := &model.Task{
@@ -298,6 +307,17 @@ func (s *TaskService) Update(ctx context.Context, id, userID string, req model.U
 		resolved, cleared, err := s.resolveAssignee(ctx, t.ProjectID, req.AssigneeID)
 		if err != nil {
 			return nil, err
+		}
+		// Gate: setting a non-empty assignee requires the acting user be Pro.
+		// Clearing (unassign) is always allowed.
+		if !cleared {
+			actor, err := s.users.GetByID(ctx, userID)
+			if err != nil {
+				return nil, err
+			}
+			if err := RequirePro(actor, time.Now().UTC()); err != nil {
+				return nil, err
+			}
 		}
 		if cleared {
 			t.AssigneeID = nil

@@ -100,6 +100,8 @@ func (h *MemberHandler) CreateInvitation(w http.ResponseWriter, r *http.Request)
 			respondError(w, http.StatusConflict, "invitation already pending")
 		case errors.Is(err, service.ErrSelfInvite):
 			respondError(w, http.StatusBadRequest, "cannot invite yourself")
+		case errors.Is(err, service.ErrProRequired):
+			respondError(w, http.StatusPaymentRequired, "sending invitations requires a Pro plan")
 		default:
 			respondError(w, http.StatusInternalServerError, "failed to create invitation")
 		}
