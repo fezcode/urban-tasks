@@ -3,13 +3,17 @@ package model
 import "time"
 
 type User struct {
-	ID           string    `json:"id"`
-	Email        string    `json:"email"`
-	Name         string    `json:"name"`
-	AvatarSeed   *string   `json:"avatarSeed,omitempty"`
-	PasswordHash string    `json:"-"`
-	CreatedAt    time.Time `json:"createdAt"`
-	UpdatedAt    time.Time `json:"updatedAt"`
+	ID             string     `json:"id"`
+	Email          string     `json:"email"`
+	Name           string     `json:"name"`
+	AvatarSeed     *string    `json:"avatarSeed,omitempty"`
+	PasswordHash   string     `json:"-"`
+	Plan           string     `json:"plan"`
+	TrialEndsAt    *time.Time `json:"trialEndsAt,omitempty"`
+	EffectivePlan  string     `json:"effectivePlan"`
+	PlanUpdatedAt  time.Time  `json:"planUpdatedAt"`
+	CreatedAt      time.Time  `json:"createdAt"`
+	UpdatedAt      time.Time  `json:"updatedAt"`
 }
 
 type UpdateUserRequest struct {

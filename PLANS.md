@@ -43,17 +43,16 @@
 
 ### Tier plan
 
-| Tier | Price | Projects | Sync | Collaboration | Views | Integrations |
-|------|-------|----------|------|---------------|-------|--------------|
-| **Free** | $0 | 1 | local only | — | list, calendar | export/import JSON |
-| **Pro** | $4/mo, $40/yr | unlimited | cloud sync, multi-device | — | list, calendar, dashboard, archive | attachments, recurring tasks, priority support |
-| **Team** | $9/user/mo, $90/user/yr | unlimited | cloud sync | assignees, shared projects, roles, audit log | Pro + team dashboard | SSO, webhook hooks, priority support |
+| Tier | Price | Projects | Collaboration | Views | Sync |
+|------|-------|----------|---------------|-------|------|
+| **Free** | $0 | 1 owned (can join projects they're invited to) | invitee only — cannot send invitations or assign tasks | list, calendar | cloud |
+| **Pro** | $4/mo, $40/yr | unlimited | full — invite members, assign tasks, manage roles | list, calendar, dashboard, archive | cloud |
 
 - 14-day Pro trial on signup, no card required
 - Annual billing = 2 months free
-- Team min 2 seats, bulk seats via billing portal
 - Downgrades retain read-only access to Pro-only data until re-upgrade
 - Lifetime deal for early adopters (first 500) at $99 one-time Pro
+- Team tier split off later if enterprise demand emerges (SSO, audit log, per-seat billing)
 
 ## Platforms
 - [~] **Mobile app** — iOS + Android (Expo + React Native, expo-router), scaffolded under `mobile/` with shared theme tokens. Pending: offline-first sync, push notifications, biometric unlock, share-sheet capture.

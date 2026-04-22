@@ -50,6 +50,10 @@ func (h *ProjectHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	project, err := h.projects.Create(r.Context(), userID, req)
 	if err != nil {
+		if errors.Is(err, service.ErrProjectLimitReached) {
+			respondError(w, http.StatusPaymentRequired, "project limit reached on your plan; upgrade to Pro for unlimited projects")
+			return
+		}
 		respondError(w, http.StatusInternalServerError, "failed to create project")
 		return
 	}

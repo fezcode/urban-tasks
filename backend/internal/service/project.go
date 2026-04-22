@@ -21,10 +21,11 @@ var (
 type ProjectService struct {
 	projects *repository.ProjectRepo
 	tasks    *repository.TaskRepo
+	users    *repository.UserRepo
 }
 
-func NewProjectService(projects *repository.ProjectRepo, tasks *repository.TaskRepo) *ProjectService {
-	return &ProjectService{projects: projects, tasks: tasks}
+func NewProjectService(projects *repository.ProjectRepo, tasks *repository.TaskRepo, users *repository.UserRepo) *ProjectService {
+	return &ProjectService{projects: projects, tasks: tasks, users: users}
 }
 
 func (s *ProjectService) List(ctx context.Context, userID string) ([]model.Project, error) {
@@ -39,6 +40,25 @@ func (s *ProjectService) List(ctx context.Context, userID string) ([]model.Proje
 }
 
 func (s *ProjectService) Create(ctx context.Context, userID string, req model.CreateProjectRequest) (*model.Project, error) {
+	if s.users != nil {
+		user, err := s.users.GetByID(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+		if user != nil {
+			limit := ProjectLimit(EffectivePlan(user, time.Now().UTC()))
+			if limit > 0 {
+				owned, err := s.users.CountOwnedProjects(ctx, userID)
+				if err != nil {
+					return nil, err
+				}
+				if owned >= limit {
+					return nil, ErrProjectLimitReached
+				}
+			}
+		}
+	}
+
 	pos, err := s.projects.NextPosition(ctx, userID)
 	if err != nil {
 		return nil, err

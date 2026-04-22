@@ -53,14 +53,19 @@ func (s *AuthService) Register(ctx context.Context, req model.RegisterRequest) (
 	}
 
 	now := time.Now().UTC()
+	trialEnd := now.Add(TrialDuration)
 	user := &model.User{
-		ID:           uuid.New().String(),
-		Email:        req.Email,
-		Name:         req.Name,
-		PasswordHash: string(hash),
-		CreatedAt:    now,
-		UpdatedAt:    now,
+		ID:            uuid.New().String(),
+		Email:         req.Email,
+		Name:          req.Name,
+		PasswordHash:  string(hash),
+		Plan:          PlanFree,
+		TrialEndsAt:   &trialEnd,
+		PlanUpdatedAt: now,
+		CreatedAt:     now,
+		UpdatedAt:     now,
 	}
+	user.EffectivePlan = EffectivePlan(user, now)
 
 	if err := s.users.Create(ctx, user); err != nil {
 		return nil, fmt.Errorf("creating user: %w", err)
@@ -71,7 +76,7 @@ func (s *AuthService) Register(ctx context.Context, req model.RegisterRequest) (
 		_ = s.invitations.AttachInviteeID(ctx, user.Email, user.ID)
 	}
 
-	return s.issueTokens(user)
+	return s.issueTokens(ctx, user)
 }
 
 func (s *AuthService) Login(ctx context.Context, req model.LoginRequest) (*model.AuthResponse, error) {
@@ -87,7 +92,7 @@ func (s *AuthService) Login(ctx context.Context, req model.LoginRequest) (*model
 		return nil, ErrInvalidCredentials
 	}
 
-	return s.issueTokens(user)
+	return s.issueTokens(ctx, user)
 }
 
 func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (*model.RefreshResponse, error) {
@@ -123,6 +128,7 @@ func (s *AuthService) GetUser(ctx context.Context, userID string) (*model.User, 
 	if u == nil {
 		return nil, ErrInvalidCredentials
 	}
+	u.EffectivePlan = EffectivePlan(u, time.Now().UTC())
 	return u, nil
 }
 
@@ -149,7 +155,7 @@ func (s *AuthService) ValidateAccessToken(tokenStr string) (string, error) {
 	return userID, nil
 }
 
-func (s *AuthService) issueTokens(user *model.User) (*model.AuthResponse, error) {
+func (s *AuthService) issueTokens(_ context.Context, user *model.User) (*model.AuthResponse, error) {
 	access, err := s.generateToken(user.ID, "access", s.accessTTL)
 	if err != nil {
 		return nil, err
@@ -159,6 +165,7 @@ func (s *AuthService) issueTokens(user *model.User) (*model.AuthResponse, error)
 		return nil, err
 	}
 
+	user.EffectivePlan = EffectivePlan(user, time.Now().UTC())
 	return &model.AuthResponse{
 		AccessToken:  access,
 		RefreshToken: refresh,
