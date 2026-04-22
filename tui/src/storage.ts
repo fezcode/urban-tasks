@@ -9,6 +9,9 @@ export interface Session {
   email: string;
   name: string;
   apiUrl: string;
+  plan?: 'free' | 'pro';
+  effectivePlan?: 'free' | 'pro';
+  trialEndsAt?: string | null;
 }
 
 const configPath = join(homedir(), '.urban-tasks', 'session.json');

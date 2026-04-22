@@ -249,7 +249,7 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
       } catch (e) {
         console.error('API sync failed, reverting', e);
-        const msg = e instanceof Error && e.message ? e.message : 'Change could not be saved — reverting.';
+        const msg = api.friendlyErrorMessage(e, 'Change could not be saved — reverting.');
         toastError(msg);
         // Restore the pre-action snapshot so the UI matches persisted state
         dispatch({ type: 'SET_STATE', state: snapshot });

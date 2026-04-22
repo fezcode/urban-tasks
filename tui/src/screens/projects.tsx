@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import TextInput from 'ink-text-input';
 import Spinner from 'ink-spinner';
-import type { Client, Project } from '../api.js';
+import { friendlyErrorMessage, type Client, type Project } from '../api.js';
 
 interface Props {
   client: Client;
@@ -78,7 +78,7 @@ export default function Projects({ client, onPick, onLogout, onOpenInbox }: Prop
         await client.deleteProject(p.id);
         load();
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Delete failed');
+        setError(friendlyErrorMessage(e, 'Delete failed'));
       } finally {
         setBusy(false);
       }
@@ -118,7 +118,7 @@ export default function Projects({ client, onPick, onLogout, onOpenInbox }: Prop
       setMode('list');
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Create failed');
+      setError(friendlyErrorMessage(e, 'Create failed'));
     } finally {
       setBusy(false);
     }

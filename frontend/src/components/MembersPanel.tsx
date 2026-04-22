@@ -67,7 +67,7 @@ const MembersPanel: React.FC<Props> = ({ projectId, onClose, embedded = false })
       setEmail('');
       success(`Invitation sent to ${trimmed}`);
     } catch (e) {
-      toastError(e instanceof Error ? e.message : 'Invite failed');
+      toastError(api.friendlyErrorMessage(e, 'Invite failed'));
     } finally {
       setInviting(false);
     }

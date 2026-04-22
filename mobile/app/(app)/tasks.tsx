@@ -20,7 +20,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CalendarClock, Check, Flag, Inbox, Pencil, Plus, Search, SearchX, Share2, X } from 'lucide-react-native';
 import { useTheme } from '@/theme/ThemeContext';
-import { api, Task, Project, Member } from '@/api/client';
+import { api, friendlyErrorMessage, Task, Project, Member } from '@/api/client';
 import { DateField, EmptyState, Markdown } from '@/components/ui';
 import { haptic } from '@/haptics';
 
@@ -1352,7 +1352,7 @@ function TaskFormModal({
       }
       onClose();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Failed to save');
+      setErr(friendlyErrorMessage(e, 'Failed to save'));
     } finally {
       setBusy(false);
     }

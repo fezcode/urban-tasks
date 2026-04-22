@@ -19,7 +19,7 @@ import { useFocusEffect } from 'expo-router';
 import { FolderKanban, Plus, Shield, UserMinus, UserPlus, Users } from 'lucide-react-native';
 import { useTheme } from '@/theme/ThemeContext';
 import Avatar from '@/components/Avatar';
-import { api, Invitation, Member, Project, Task } from '@/api/client';
+import { api, friendlyErrorMessage, Invitation, Member, Project, Task } from '@/api/client';
 import { EmptyState } from '@/components/ui';
 import { haptic } from '@/haptics';
 
@@ -251,7 +251,7 @@ function ProjectModal({ editing, taskCount, onClose, onSaved, onDeleted }: Proje
       onClose();
     } catch (e) {
       haptic.warning();
-      setErr(e instanceof Error ? e.message : 'Failed to save');
+      setErr(friendlyErrorMessage(e, 'Failed to save'));
     } finally {
       setBusy(false);
     }
@@ -515,7 +515,7 @@ function MembersSection({ projectId }: { projectId: string }) {
       setEmail('');
       haptic.success();
     } catch (e: any) {
-      Alert.alert('Invite', e?.message ?? 'Failed');
+      Alert.alert('Invite', friendlyErrorMessage(e, 'Failed'));
     } finally {
       setBusy(false);
     }

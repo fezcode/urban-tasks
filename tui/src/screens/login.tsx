@@ -52,6 +52,9 @@ export default function Login({ apiUrl, onLoggedIn }: Props) {
         email: resp.user.email,
         name: resp.user.name,
         apiUrl,
+        plan: resp.user.plan,
+        effectivePlan: resp.user.effectivePlan,
+        trialEndsAt: resp.user.trialEndsAt,
       };
       saveSession(session);
       onLoggedIn(session);

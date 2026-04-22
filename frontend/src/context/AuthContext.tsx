@@ -58,6 +58,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email: resp.user.email,
       name: resp.user.name,
       avatarSeed: resp.user.avatarSeed,
+      plan: resp.user.plan,
+      effectivePlan: resp.user.effectivePlan,
+      trialEndsAt: resp.user.trialEndsAt,
+      planUpdatedAt: resp.user.planUpdatedAt,
     };
     setUser(u);
     localStorage.setItem('auth_user', JSON.stringify(u));

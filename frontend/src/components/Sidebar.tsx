@@ -667,8 +667,9 @@ const Sidebar: React.FC<Props> = ({
               className="flex-shrink-0 rounded-full"
             />
             <div className="flex-1 min-w-0 text-left">
-              <div className="text-[13px] font-medium text-text-primary truncate">
-                {user.name || 'Unnamed'}
+              <div className="text-[13px] font-medium text-text-primary truncate flex items-center gap-1.5">
+                <span className="truncate">{user.name || 'Unnamed'}</span>
+                <PlanBadge user={user} />
               </div>
               <div className="text-2xs text-text-tertiary truncate">{user.email}</div>
             </div>
@@ -787,5 +788,36 @@ const Sidebar: React.FC<Props> = ({
     </aside>
   );
 };
+
+function PlanBadge({ user }: { user: { plan?: string; effectivePlan?: string; trialEndsAt?: string | null } }) {
+  const effective = user.effectivePlan ?? user.plan;
+  if (!effective) return null;
+  if (effective === 'pro' && user.plan === 'free' && user.trialEndsAt) {
+    const days = Math.max(
+      0,
+      Math.ceil((new Date(user.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    );
+    return (
+      <span
+        title={`Pro trial — ${days} day${days === 1 ? '' : 's'} left`}
+        className="flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400"
+      >
+        Trial · {days}d
+      </span>
+    );
+  }
+  if (effective === 'pro') {
+    return (
+      <span className="flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+        Pro
+      </span>
+    );
+  }
+  return (
+    <span className="flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-surface-hover text-text-tertiary">
+      Free
+    </span>
+  );
+}
 
 export default Sidebar;

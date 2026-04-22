@@ -73,8 +73,8 @@ export default function App({ apiUrl }: Props) {
       <Box flexDirection="column">
         <Box paddingX={1}>
           <Text dimColor>
-            Signed in as <Text color="cyan">{session.name}</Text> ({session.email}) · press{' '}
-            <Text color="cyan">i</Text> for inbox
+            Signed in as <Text color="cyan">{session.name}</Text> ({session.email}){' '}
+            <PlanChip session={session} /> · press <Text color="cyan">i</Text> for inbox
           </Text>
         </Box>
         <Projects
@@ -141,4 +141,20 @@ export default function App({ apiUrl }: Props) {
       }}
     />
   );
+}
+
+function PlanChip({ session }: { session: Session }) {
+  const effective = session.effectivePlan ?? session.plan;
+  if (!effective) return null;
+  const isTrial =
+    effective === 'pro' && session.plan === 'free' && !!session.trialEndsAt;
+  if (isTrial && session.trialEndsAt) {
+    const days = Math.max(
+      0,
+      Math.ceil((new Date(session.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+    );
+    return <Text color="yellow">[Pro trial · {days}d]</Text>;
+  }
+  if (effective === 'pro') return <Text color="green">[Pro]</Text>;
+  return <Text dimColor>[Free]</Text>;
 }

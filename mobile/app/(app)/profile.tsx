@@ -186,6 +186,7 @@ export default function Profile() {
                   {user.email}
                 </Text>
               )}
+              {user && <PlanBadgeRow user={user} palette={palette} />}
               <TouchableOpacity
                 onPress={() => setEditOpen(true)}
                 activeOpacity={0.8}
@@ -725,6 +726,46 @@ function DataModal({
         </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
+  );
+}
+
+function PlanBadgeRow({ user, palette }: { user: User; palette: any }) {
+  const effective = user.effectivePlan ?? user.plan;
+  if (!effective) return null;
+  const isTrial =
+    effective === 'pro' && user.plan === 'free' && !!user.trialEndsAt;
+  const daysLeft = isTrial && user.trialEndsAt
+    ? Math.max(0, Math.ceil((new Date(user.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : 0;
+  const label = isTrial
+    ? `Pro trial · ${daysLeft}d left`
+    : effective === 'pro'
+      ? 'Pro'
+      : 'Free';
+  const bg = isTrial
+    ? 'rgba(245, 158, 11, 0.18)'
+    : effective === 'pro'
+      ? 'rgba(16, 185, 129, 0.18)'
+      : palette.surfaceHover;
+  const fg = isTrial
+    ? '#d97706'
+    : effective === 'pro'
+      ? '#10b981'
+      : palette.textTertiary;
+  return (
+    <View
+      style={{
+        marginTop: 2,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 999,
+        backgroundColor: bg,
+      }}
+    >
+      <Text style={{ color: fg, fontSize: 11, fontFamily: 'Inter_600SemiBold', letterSpacing: 0.3 }}>
+        {label}
+      </Text>
+    </View>
   );
 }
 

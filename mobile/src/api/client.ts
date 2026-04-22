@@ -74,6 +74,25 @@ export class NetworkError extends Error {
   }
 }
 
+export class ApiError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+    this.name = 'ApiError';
+  }
+}
+
+export function isPlanLimitError(err: unknown): err is ApiError {
+  return err instanceof ApiError && err.status === 402;
+}
+
+export function friendlyErrorMessage(err: unknown, fallback = 'Something went wrong'): string {
+  if (isPlanLimitError(err)) return `${err.message} — upgrade to Pro to unlock.`;
+  if (err instanceof Error && err.message) return err.message;
+  return fallback;
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   await hydrate();
   const doFetch = () =>
@@ -107,18 +126,24 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}) as any);
-    throw new Error(body.error || `Request failed: ${res.status}`);
+    throw new ApiError(res.status, body.error || `Request failed: ${res.status}`);
   }
   if (res.status === 204) return undefined as T;
   const json = await res.json();
   return (json.data ?? json) as T;
 }
 
+export type Plan = 'free' | 'pro';
+
 export interface User {
   id: string;
   email: string;
   name: string;
   avatarSeed?: string;
+  plan?: Plan;
+  effectivePlan?: Plan;
+  trialEndsAt?: string | null;
+  planUpdatedAt?: string;
 }
 
 export interface AuthResponse {

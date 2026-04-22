@@ -1,10 +1,16 @@
 import { saveSession, clearSession, type Session } from './storage.js';
 
+export type Plan = 'free' | 'pro';
+
 export interface User {
   id: string;
   email: string;
   name: string;
   avatarSeed?: string | null;
+  plan?: Plan;
+  effectivePlan?: Plan;
+  trialEndsAt?: string | null;
+  planUpdatedAt?: string;
 }
 
 export interface AuthResponse {
@@ -56,6 +62,16 @@ export class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);
   }
+}
+
+export function isPlanLimitError(err: unknown): err is ApiError {
+  return err instanceof ApiError && err.status === 402;
+}
+
+export function friendlyErrorMessage(err: unknown, fallback = 'Something went wrong'): string {
+  if (isPlanLimitError(err)) return `${err.message} — upgrade to Pro to unlock.`;
+  if (err instanceof Error && err.message) return err.message;
+  return fallback;
 }
 
 export function createClient(
