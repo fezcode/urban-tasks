@@ -3,6 +3,7 @@ import { Box, Text, useInput } from 'ink';
 import TextInput from 'ink-text-input';
 import Spinner from 'ink-spinner';
 import type { Client, ProjectMember, Subtask, Task } from '../api.js';
+import { Markdown } from '../markdown.js';
 
 interface Props {
   client: Client;
@@ -297,7 +298,7 @@ export default function TaskDetail({ client, taskId, onBack, onEdit }: Props) {
           <Text bold dimColor>
             Description
           </Text>
-          <Text>{task.body}</Text>
+          <Markdown source={task.body} />
         </Box>
       )}
 

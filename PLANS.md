@@ -69,7 +69,7 @@
   - [x] **Create project** — `N` opens name+color create flow; `d` deletes selected
   - [x] **Color / theme** — `NO_COLOR` respected via chalk; task list header borders/title use project accent color
   - [x] **Global shortcuts** — `?` help overlay, `q` quits from projects/task list/detail/inbox
-  - [ ] **Markdown description** — render task body with a small markdown-for-terminal renderer
+  - [x] **Markdown description** — custom Ink renderer for headings, lists, code fences, blockquotes, inline bold/italic/code/links
 
 ## Collaboration
 - [ ] **Comments + @mentions** — threaded comments on tasks, mention users to trigger notifications. Reuses existing notification pipeline.
