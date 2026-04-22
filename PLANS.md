@@ -67,7 +67,7 @@
   - [x] **Assignee picker** — `@` in detail opens a member list, Enter assigns (or choose "unassign")
   - [x] **Project switcher** — `<` / `>` (or `[` / `]`) cycles projects from the task list
   - [x] **Create project** — `N` opens name+color create flow; `d` deletes selected
-  - [ ] **Color / theme** — respect `NO_COLOR`, pick accent from project color
+  - [x] **Color / theme** — `NO_COLOR` respected via chalk; task list header borders/title use project accent color
   - [x] **Global shortcuts** — `?` help overlay, `q` quits from projects/task list/detail/inbox
   - [ ] **Markdown description** — render task body with a small markdown-for-terminal renderer
 

@@ -224,12 +224,12 @@ export default function Tasks({
     <Box flexDirection="column" padding={1}>
       <Box
         borderStyle="round"
-        borderColor="cyan"
+        borderColor={project.color || 'cyan'}
         paddingX={1}
         flexDirection="column"
       >
         <Box>
-          <Text bold color="cyan">
+          <Text bold color={project.color || 'cyan'}>
             {project.name}
           </Text>
           <Text dimColor>
