@@ -98,6 +98,7 @@ export default function Tasks({
 
   useInput(async (input, key) => {
     if (busy || !tasks || searching) return;
+    if (input === 'q') process.exit(0);
     if (key.escape || input === 'b') {
       if (query || statusFilter !== 'all' || priorityFilter !== 'all') {
         setQuery('');
@@ -249,7 +250,7 @@ export default function Tasks({
           )}
         </Box>
         <Text dimColor>
-          j/k: move · enter: open · e: edit · space: done · n: new · d: del · /: search · f/p: filter · {'<'}/{'>'}: switch proj · r: reload · esc: clear/back
+          j/k: move · enter: open · e: edit · space: done · n: new · d: del · /: search · f/p: filter · {'<'}/{'>'}: switch proj · r: reload · q: quit · ?: help · esc: clear/back
         </Text>
       </Box>
 

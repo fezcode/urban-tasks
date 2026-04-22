@@ -46,6 +46,10 @@ urban-tasks --logout
 
 ## Keybindings
 
+### Global
+- `?` — toggle help overlay (from any post-login screen)
+- `q` — quit (projects, task list, task detail, inbox)
+
 ### Login / register
 - Tab — next field
 - Enter — submit

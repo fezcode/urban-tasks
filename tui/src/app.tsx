@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Text } from 'ink';
+import { Box, Text, useInput } from 'ink';
 import Login from './screens/login.js';
 import Projects from './screens/projects.js';
 import Tasks from './screens/tasks.js';
 import TaskDetail from './screens/task-detail.js';
 import TaskForm from './screens/task-form.js';
 import Inbox from './screens/inbox.js';
+import Help from './screens/help.js';
 import { clearSession, loadSession, type Session } from './storage.js';
 import { clientFromSession, type Project, type Task } from './api.js';
 
@@ -28,6 +29,12 @@ export default function App({ apiUrl }: Props) {
   const [listKey, setListKey] = useState(0);
   const [inboxOpen, setInboxOpen] = useState(false);
   const [projectCache, setProjectCache] = useState<Project[]>([]);
+  const [helpOpen, setHelpOpen] = useState(false);
+
+  useInput((input) => {
+    if (!session) return;
+    if (input === '?') setHelpOpen((h) => !h);
+  });
 
   const client = session
     ? clientFromSession(session, {
@@ -51,6 +58,10 @@ export default function App({ apiUrl }: Props) {
 
   if (!session || !client) {
     return <Login apiUrl={apiUrl} onLoggedIn={setSession} />;
+  }
+
+  if (helpOpen) {
+    return <Help onClose={() => setHelpOpen(false)} />;
   }
 
   if (inboxOpen) {

@@ -155,7 +155,7 @@ export default function Projects({ client, onPick, onLogout, onOpenInbox }: Prop
           Projects
         </Text>
         <Text dimColor>
-          j/k: move · enter: open · N: new · d: delete · i: inbox · r: reload · l: logout · q: quit
+          j/k: move · enter: open · N: new · d: delete · i: inbox · r: reload · l: logout · q: quit · ?: help
         </Text>
       </Box>
 

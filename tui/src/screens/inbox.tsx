@@ -97,6 +97,7 @@ export default function Inbox({ client, onBack }: Props) {
 
   useInput(async (input, key) => {
     if (busy || loading) return;
+    if (input === 'q') process.exit(0);
     if (key.escape || input === 'b') {
       onBack();
       return;

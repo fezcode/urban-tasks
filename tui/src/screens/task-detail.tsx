@@ -122,6 +122,7 @@ export default function TaskDetail({ client, taskId, onBack, onEdit }: Props) {
       return;
     }
     if (adding || busy || !task) return;
+    if (input === 'q') process.exit(0);
     if (key.escape || input === 'b') {
       onBack(changed);
       return;
