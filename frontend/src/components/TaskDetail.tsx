@@ -30,6 +30,7 @@ import DatePicker from './DatePicker';
 import Avatar from './Avatar';
 import * as api from '../api/client';
 import type { Member } from '../api/client';
+import Comments from './Comments';
 
 interface Props {
   taskId: string;
@@ -863,6 +864,11 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
               )}
             </div>
           )}
+        </div>
+
+        {/* Comments */}
+        <div className="pt-4 border-t border-border">
+          <Comments taskId={task.id} members={members} />
         </div>
 
         {/* Metadata */}

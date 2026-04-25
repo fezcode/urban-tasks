@@ -60,6 +60,7 @@ func main() {
 	invitationRepo := repository.NewInvitationRepo(pool)
 	notificationRepo := repository.NewNotificationRepo(pool)
 	savedFilterRepo := repository.NewSavedFilterRepo(pool)
+	commentRepo := repository.NewCommentRepo(pool)
 
 	// Services
 	authSvc := service.NewAuthService(userRepo, invitationRepo, cfg.JWTSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL)
@@ -68,6 +69,7 @@ func main() {
 	taskSvc := service.NewTaskService(taskRepo, projectRepo, userRepo, notificationSvc)
 	invitationSvc := service.NewInvitationService(invitationRepo, projectRepo, userRepo, notificationSvc)
 	savedFilterSvc := service.NewSavedFilterService(savedFilterRepo)
+	commentSvc := service.NewCommentService(commentRepo, taskRepo, projectRepo, userRepo, notificationSvc)
 
 	// Handlers
 	authH := handler.NewAuthHandler(authSvc)
@@ -78,6 +80,7 @@ func main() {
 	invitationH := handler.NewInvitationHandler(invitationSvc)
 	notificationH := handler.NewNotificationHandler(notificationSvc)
 	savedFilterH := handler.NewSavedFilterHandler(savedFilterSvc)
+	commentH := handler.NewCommentHandler(commentSvc)
 
 	// Router
 	r := chi.NewRouter()
@@ -164,6 +167,12 @@ func main() {
 			protected.Get("/invitations", invitationH.ListMine)
 			protected.Post("/invitations/{id}/accept", invitationH.Accept)
 			protected.Post("/invitations/{id}/reject", invitationH.Reject)
+
+			// Task comments
+			protected.Get("/tasks/{id}/comments", commentH.List)
+			protected.Post("/tasks/{id}/comments", commentH.Create)
+			protected.Patch("/comments/{cid}", commentH.Update)
+			protected.Delete("/comments/{cid}", commentH.Delete)
 
 			// Saved filters (smart lists)
 			protected.Get("/saved-filters", savedFilterH.List)

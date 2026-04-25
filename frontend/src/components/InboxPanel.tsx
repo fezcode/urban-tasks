@@ -74,7 +74,10 @@ const InboxPanel: React.FC<Props> = ({ onClose, onChanged, embedded = false }) =
   const handleClick = (n: Notification) => {
     markRead(n);
     const taskId = typeof n.payload?.taskId === 'string' ? (n.payload.taskId as string) : null;
-    if (taskId && n.kind === 'task_assigned') {
+    if (
+      taskId &&
+      (n.kind === 'task_assigned' || n.kind === 'task_mention' || n.kind === 'task_commented')
+    ) {
       window.dispatchEvent(new CustomEvent('urban-tasks:open-task', { detail: taskId }));
       onClose?.();
     }
@@ -247,6 +250,10 @@ function formatNotification(n: Notification): string {
       return `${p.inviteeName ?? p.inviteeEmail ?? 'Someone'} declined your invitation to ${p.projectName ?? 'a project'}`;
     case 'task_assigned':
       return `${p.assignerName ?? 'Someone'} assigned you “${p.taskTitle ?? 'a task'}”${p.projectName ? ` in ${p.projectName}` : ''}`;
+    case 'task_mention':
+      return `${p.authorName ?? 'Someone'} mentioned you on “${p.taskTitle ?? 'a task'}”${p.snippet ? `: ${p.snippet}` : ''}`;
+    case 'task_commented':
+      return `${p.authorName ?? 'Someone'} commented on “${p.taskTitle ?? 'a task'}”${p.snippet ? `: ${p.snippet}` : ''}`;
     default:
       return n.kind.replace(/_/g, ' ');
   }

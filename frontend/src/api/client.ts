@@ -273,6 +273,35 @@ export const notifications = {
     request<void>('/notifications/read-all', { method: 'POST' }),
 };
 
+// --- Task comments ---
+
+export interface TaskComment {
+  id: string;
+  taskId: string;
+  userId: string;
+  authorName?: string;
+  authorAvatarSeed?: string | null;
+  body: string;
+  mentions: string[];
+  editedAt?: string | null;
+  createdAt: string;
+}
+
+export const comments = {
+  list: (taskId: string) => request<TaskComment[]>(`/tasks/${taskId}/comments`),
+  create: (taskId: string, body: string) =>
+    request<TaskComment>(`/tasks/${taskId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ body }),
+    }),
+  update: (id: string, body: string) =>
+    request<TaskComment>(`/comments/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ body }),
+    }),
+  delete: (id: string) => request<void>(`/comments/${id}`, { method: 'DELETE' }),
+};
+
 // --- Saved filters ---
 
 export interface SavedFilterDef {

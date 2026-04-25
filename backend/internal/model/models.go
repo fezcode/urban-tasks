@@ -67,6 +67,26 @@ type Task struct {
 	AssigneeID  *string    `json:"assigneeId,omitempty"`
 }
 
+type TaskComment struct {
+	ID         string     `json:"id"`
+	TaskID     string     `json:"taskId"`
+	UserID     string     `json:"userId"`
+	AuthorName string     `json:"authorName,omitempty"`
+	AuthorSeed *string    `json:"authorAvatarSeed,omitempty"`
+	Body       string     `json:"body"`
+	Mentions   []string   `json:"mentions"`
+	EditedAt   *time.Time `json:"editedAt,omitempty"`
+	CreatedAt  time.Time  `json:"createdAt"`
+}
+
+type CreateCommentRequest struct {
+	Body string `json:"body"`
+}
+
+type UpdateCommentRequest struct {
+	Body string `json:"body"`
+}
+
 // SavedFilter is a user-defined named view, e.g. "My high-priority due this week".
 // Filter holds an opaque JSON object the frontend interprets (status, priority,
 // projectIds, tags, dueWithinDays, etc.) — kept loose so frontend can extend it
