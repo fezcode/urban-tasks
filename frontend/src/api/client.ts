@@ -273,6 +273,39 @@ export const notifications = {
     request<void>('/notifications/read-all', { method: 'POST' }),
 };
 
+// --- Global search ---
+
+export interface SearchTaskHit {
+  id: string;
+  title: string;
+  snippet: string;
+  projectId: string;
+  projectName?: string;
+  status: string;
+  rank: number;
+}
+
+export interface SearchCommentHit {
+  id: string;
+  taskId: string;
+  taskTitle: string;
+  snippet: string;
+  authorName?: string;
+  projectId: string;
+  projectName?: string;
+  rank: number;
+}
+
+export interface SearchResult {
+  tasks: SearchTaskHit[];
+  comments: SearchCommentHit[];
+}
+
+export const search = {
+  query: (q: string, limit = 20) =>
+    request<SearchResult>(`/search?q=${encodeURIComponent(q)}&limit=${limit}`),
+};
+
 // --- Task comments ---
 
 export interface TaskComment {

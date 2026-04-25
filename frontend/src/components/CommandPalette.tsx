@@ -13,18 +13,23 @@ import {
   Tag,
   Trash2,
   Check,
+  MessageSquare,
 } from 'lucide-react';
+import * as api from '../api/client';
 
-type ResultType = 'action' | 'task' | 'tag' | 'header';
+type ResultType = 'action' | 'task' | 'tag' | 'header' | 'comment';
 
 interface ResultItem {
   type: ResultType;
   id: string;
   label: string;
   detail?: string;
+  // Snippet may contain <…> markers from ts_headline; rendered as <mark>
+  snippet?: string;
   icon?: React.ComponentType<{ size?: number; className?: string }>;
   status?: TaskStatus;
   projectColor?: string;
+  taskId?: string; // for comment hits, points at the task to open
 }
 
 interface Props {
@@ -46,8 +51,35 @@ const CommandPalette: React.FC<Props> = ({
   const { theme, toggle: toggleTheme } = useTheme();
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
+  const [serverHits, setServerHits] = useState<api.SearchResult | null>(null);
+  const [searching, setSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
+  // Server-side full-text search: debounced, only when query is non-trivial
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2 || q.startsWith('@')) {
+      setServerHits(null);
+      return;
+    }
+    let cancelled = false;
+    setSearching(true);
+    const timer = window.setTimeout(async () => {
+      try {
+        const res = await api.search.query(q, 15);
+        if (!cancelled) setServerHits(res);
+      } catch {
+        if (!cancelled) setServerHits(null);
+      } finally {
+        if (!cancelled) setSearching(false);
+      }
+    }, 200);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query]);
 
   useEffect(() => {
     setTimeout(() => inputRef.current?.focus(), 0);
@@ -120,27 +152,54 @@ const CommandPalette: React.FC<Props> = ({
       return items;
     }
 
-    // General search: tasks + tags + actions
+    // General search: prefer server hits when available; fall back to local scan
     const matchingTasks: ResultItem[] = [];
-    state.tasks.forEach((task) => {
-      const titleMatch = task.title.toLowerCase().includes(q);
-      const bodyMatch = task.body?.toLowerCase().includes(q);
-      const tagMatch = task.tags?.some((t) => t.includes(q));
-      if (titleMatch || bodyMatch || tagMatch) {
-        const project = state.projects.find((p) => p.id === task.projectId);
+    if (serverHits && serverHits.tasks.length > 0) {
+      for (const h of serverHits.tasks) {
         matchingTasks.push({
           type: 'task',
-          id: task.id,
-          label: task.title,
-          detail: project?.name,
-          status: task.status,
-          projectColor: project?.color,
+          id: h.id,
+          label: h.title,
+          detail: h.projectName,
+          snippet: h.snippet,
+          status: h.status as TaskStatus,
         });
       }
-    });
+    } else {
+      state.tasks.forEach((task) => {
+        const titleMatch = task.title.toLowerCase().includes(q);
+        const bodyMatch = task.body?.toLowerCase().includes(q);
+        const tagMatch = task.tags?.some((t) => t.includes(q));
+        if (titleMatch || bodyMatch || tagMatch) {
+          const project = state.projects.find((p) => p.id === task.projectId);
+          matchingTasks.push({
+            type: 'task',
+            id: task.id,
+            label: task.title,
+            detail: project?.name,
+            status: task.status,
+            projectColor: project?.color,
+          });
+        }
+      });
+    }
     if (matchingTasks.length > 0) {
       items.push({ type: 'header', id: 'h-tasks', label: 'Tasks' });
       items.push(...matchingTasks.slice(0, 10));
+    }
+
+    if (serverHits && serverHits.comments.length > 0) {
+      items.push({ type: 'header', id: 'h-comments', label: 'Comments' });
+      for (const c of serverHits.comments.slice(0, 8)) {
+        items.push({
+          type: 'comment',
+          id: `c:${c.id}`,
+          label: c.taskTitle,
+          detail: c.authorName ? `${c.authorName} · ${c.projectName ?? ''}` : c.projectName,
+          snippet: c.snippet,
+          taskId: c.taskId,
+        });
+      }
     }
 
     const matchingTags: ResultItem[] = [];
@@ -176,7 +235,7 @@ const CommandPalette: React.FC<Props> = ({
     }
 
     return items;
-  }, [query, state.tasks, state.projects, tagMap, theme]);
+  }, [query, state.tasks, state.projects, tagMap, theme, serverHits]);
 
   // Selectable items (exclude headers)
   const selectableIndices = useMemo(
@@ -192,6 +251,9 @@ const CommandPalette: React.FC<Props> = ({
     switch (item.type) {
       case 'task':
         onSelectTask(item.id);
+        break;
+      case 'comment':
+        if (item.taskId) onSelectTask(item.taskId);
         break;
       case 'tag':
         onTagClick(item.label.slice(1));
@@ -271,6 +333,9 @@ const CommandPalette: React.FC<Props> = ({
             }}
             onKeyDown={handleKeyDown}
           />
+          {searching && (
+            <span className="text-2xs text-text-tertiary flex-shrink-0">searching…</span>
+          )}
           <kbd className="text-2xs text-text-tertiary bg-bg-secondary px-1.5 py-0.5 rounded font-mono">
             Esc
           </kbd>
@@ -318,19 +383,25 @@ const CommandPalette: React.FC<Props> = ({
                   />
                 )}
                 {item.type === 'tag' && <Tag size={14} className="text-accent flex-shrink-0" />}
+                {item.type === 'comment' && (
+                  <MessageSquare size={14} className="text-text-tertiary flex-shrink-0" />
+                )}
 
-                {/* Label */}
-                <span
-                  className={`flex-1 text-[14px] truncate ${
-                    item.type === 'tag'
-                      ? 'text-accent font-medium'
-                      : item.status === 'done'
-                        ? 'text-text-tertiary line-through'
-                        : 'text-text-primary'
-                  }`}
-                >
-                  {item.label}
-                </span>
+                {/* Label + snippet */}
+                <div className="flex-1 min-w-0">
+                  <span
+                    className={`block text-[14px] truncate ${
+                      item.type === 'tag'
+                        ? 'text-accent font-medium'
+                        : item.status === 'done'
+                          ? 'text-text-tertiary line-through'
+                          : 'text-text-primary'
+                    }`}
+                  >
+                    {item.label}
+                  </span>
+                  {item.snippet && <Snippet text={item.snippet} />}
+                </div>
 
                 {/* Detail */}
                 {item.detail && (
@@ -371,6 +442,29 @@ const CommandPalette: React.FC<Props> = ({
         </div>
       </div>
     </div>
+  );
+};
+
+// ts_headline returns the snippet with <…> wrapping each match. Render those
+// runs as bold; everything else stays plain.
+const Snippet: React.FC<{ text: string }> = ({ text }) => {
+  const parts: React.ReactNode[] = [];
+  let i = 0;
+  let key = 0;
+  const re = /<([^<>]+)>/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > i) parts.push(<span key={key++}>{text.slice(i, m.index)}</span>);
+    parts.push(
+      <mark key={key++} className="bg-accent-light text-accent rounded px-0.5">
+        {m[1]}
+      </mark>
+    );
+    i = m.index + m[0].length;
+  }
+  if (i < text.length) parts.push(<span key={key++}>{text.slice(i)}</span>);
+  return (
+    <span className="block text-2xs text-text-tertiary truncate mt-0.5">{parts}</span>
   );
 };
 

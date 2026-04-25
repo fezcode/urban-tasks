@@ -70,6 +70,7 @@ func main() {
 	invitationSvc := service.NewInvitationService(invitationRepo, projectRepo, userRepo, notificationSvc)
 	savedFilterSvc := service.NewSavedFilterService(savedFilterRepo)
 	commentSvc := service.NewCommentService(commentRepo, taskRepo, projectRepo, userRepo, notificationSvc)
+	searchSvc := service.NewSearchService(pool)
 
 	// Handlers
 	authH := handler.NewAuthHandler(authSvc)
@@ -81,6 +82,7 @@ func main() {
 	notificationH := handler.NewNotificationHandler(notificationSvc)
 	savedFilterH := handler.NewSavedFilterHandler(savedFilterSvc)
 	commentH := handler.NewCommentHandler(commentSvc)
+	searchH := handler.NewSearchHandler(searchSvc)
 
 	// Router
 	r := chi.NewRouter()
@@ -167,6 +169,9 @@ func main() {
 			protected.Get("/invitations", invitationH.ListMine)
 			protected.Post("/invitations/{id}/accept", invitationH.Accept)
 			protected.Post("/invitations/{id}/reject", invitationH.Reject)
+
+			// Global search
+			protected.Get("/search", searchH.Search)
 
 			// Task comments
 			protected.Get("/tasks/{id}/comments", commentH.List)
