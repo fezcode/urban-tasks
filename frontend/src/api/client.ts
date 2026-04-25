@@ -273,6 +273,41 @@ export const notifications = {
     request<void>('/notifications/read-all', { method: 'POST' }),
 };
 
+// --- Saved filters ---
+
+export interface SavedFilterDef {
+  projectId?: string | null;
+  tag?: string | null;
+  dueRange?: 'today' | 'upcoming' | 'archive' | null;
+  status?: 'all' | 'todo' | 'in-progress' | 'done';
+  priority?: 'all' | 'high' | 'medium' | 'low';
+}
+
+export interface SavedFilter {
+  id: string;
+  name: string;
+  icon?: string | null;
+  filter: SavedFilterDef;
+  position: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const savedFilters = {
+  list: () => request<SavedFilter[]>('/saved-filters'),
+  create: (data: { name: string; icon?: string | null; filter: SavedFilterDef }) =>
+    request<SavedFilter>('/saved-filters', { method: 'POST', body: JSON.stringify(data) }),
+  update: (
+    id: string,
+    data: { name?: string; icon?: string | null; filter?: SavedFilterDef; position?: number }
+  ) =>
+    request<SavedFilter>(`/saved-filters/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  delete: (id: string) => request<void>(`/saved-filters/${id}`, { method: 'DELETE' }),
+};
+
 export const tasks = {
   list: (projectId?: string) =>
     request<Task[]>(`/tasks${projectId ? `?projectId=${projectId}` : ''}`),

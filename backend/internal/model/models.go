@@ -67,6 +67,34 @@ type Task struct {
 	AssigneeID  *string    `json:"assigneeId,omitempty"`
 }
 
+// SavedFilter is a user-defined named view, e.g. "My high-priority due this week".
+// Filter holds an opaque JSON object the frontend interprets (status, priority,
+// projectIds, tags, dueWithinDays, etc.) — kept loose so frontend can extend it
+// without a migration.
+type SavedFilter struct {
+	ID        string         `json:"id"`
+	UserID    string         `json:"-"`
+	Name      string         `json:"name"`
+	Icon      *string        `json:"icon,omitempty"`
+	Filter    map[string]any `json:"filter"`
+	Position  int            `json:"position"`
+	CreatedAt time.Time      `json:"createdAt"`
+	UpdatedAt time.Time      `json:"updatedAt"`
+}
+
+type CreateSavedFilterRequest struct {
+	Name   string         `json:"name"`
+	Icon   *string        `json:"icon,omitempty"`
+	Filter map[string]any `json:"filter"`
+}
+
+type UpdateSavedFilterRequest struct {
+	Name     *string        `json:"name,omitempty"`
+	Icon     *string        `json:"icon,omitempty"`
+	Filter   map[string]any `json:"filter,omitempty"`
+	Position *int           `json:"position,omitempty"`
+}
+
 // --- Multi-user: membership, invitations, notifications ---
 
 type ProjectMember struct {

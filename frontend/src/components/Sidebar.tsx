@@ -28,6 +28,8 @@ import {
   UserCog,
   Mail,
   Users,
+  Filter as FilterIcon,
+  Settings,
 } from 'lucide-react';
 import { format, differenceInDays, startOfDay } from 'date-fns';
 import ProjectIcon from './ProjectIcon';
@@ -35,7 +37,9 @@ import ConfirmDialog from './ConfirmDialog';
 import * as api from '../api/client';
 import { useToast } from '../context/ToastContext';
 import { useInbox } from '../hooks/useInbox';
+import { useSavedFilters } from '../hooks/useSavedFilters';
 import { usePreferences } from '../context/PreferencesContext';
+import SavedFiltersModal from './SavedFiltersModal';
 
 const ProfilePage = lazy(() => import('./ProfilePage'));
 
@@ -112,6 +116,16 @@ const Sidebar: React.FC<Props> = ({
     return () => document.removeEventListener('mousedown', handler);
   }, [profileMenuOpen]);
   const { badge: inboxBadge } = useInbox();
+  const { items: savedFilters, refresh: refreshSavedFilters } = useSavedFilters();
+  const [savedFiltersModalOpen, setSavedFiltersModalOpen] = useState(false);
+
+  const applySavedFilter = (def: api.SavedFilterDef) => {
+    dispatch({ type: 'SET_ACTIVE_PROJECT', id: def.projectId ?? null });
+    window.dispatchEvent(
+      new CustomEvent('urban-tasks:apply-saved-filter', { detail: def })
+    );
+    onNavigate?.();
+  };
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -611,6 +625,45 @@ const Sidebar: React.FC<Props> = ({
           )}
         </div>
 
+        {/* Smart lists section */}
+        <div className="mx-2 my-3 border-t border-border-light" />
+        <div className="flex items-center justify-between px-3 mb-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
+            Smart lists
+          </span>
+          <button
+            onClick={() => setSavedFiltersModalOpen(true)}
+            className="p-1 rounded text-text-tertiary hover:text-text-primary hover:bg-surface-hover transition-base"
+            title="Manage smart lists"
+            aria-label="Manage smart lists"
+          >
+            <Settings size={12} />
+          </button>
+        </div>
+        {savedFilters.length > 0 ? (
+          <div className="space-y-0.5 mb-2">
+            {savedFilters.map((f) => (
+              <button
+                key={f.id}
+                onClick={() => applySavedFilter(f.filter)}
+                className="w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-[13px] text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-base"
+                title={f.name}
+              >
+                <FilterIcon size={14} className="text-text-tertiary flex-shrink-0" />
+                <span className="truncate">{f.name}</span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <button
+            onClick={() => setSavedFiltersModalOpen(true)}
+            className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12px] text-text-tertiary hover:bg-surface-hover hover:text-text-primary transition-base mb-2"
+          >
+            <Plus size={12} />
+            New smart list
+          </button>
+        )}
+
         {/* Tags section */}
         {tagMap.size > 0 && (
           <>
@@ -783,6 +836,14 @@ const Sidebar: React.FC<Props> = ({
         <Suspense fallback={null}>
           <ProfilePage onClose={() => setProfileOpen(false)} />
         </Suspense>
+      )}
+
+      {savedFiltersModalOpen && (
+        <SavedFiltersModal
+          items={savedFilters}
+          onClose={() => setSavedFiltersModalOpen(false)}
+          onChanged={() => void refreshSavedFilters()}
+        />
       )}
 
     </aside>

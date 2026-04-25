@@ -54,6 +54,25 @@ const AuthenticatedApp: React.FC<{ userId: string }> = ({ userId }) => {
     return () => window.removeEventListener('urban-tasks:show-onboarding', handler);
   }, []);
 
+  // Saved filter applies tag + due-range + view; project + status/priority are
+  // handled by Sidebar (dispatch) and MainContent (local state) respectively.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const def = (e as CustomEvent<{
+        tag?: string | null;
+        dueRange?: 'today' | 'upcoming' | 'archive' | null;
+      }>).detail;
+      if (!def) return;
+      setActiveTag(def.tag ?? null);
+      setShowDueToday(def.dueRange === 'today');
+      setShowUpcoming(def.dueRange === 'upcoming');
+      setShowArchive(def.dueRange === 'archive');
+      setCurrentView('tasks');
+    };
+    window.addEventListener('urban-tasks:apply-saved-filter', handler);
+    return () => window.removeEventListener('urban-tasks:apply-saved-filter', handler);
+  }, []);
+
   useEffect(() => {
     const handler = (e: Event) => {
       const id = (e as CustomEvent<string>).detail;

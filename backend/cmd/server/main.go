@@ -59,6 +59,7 @@ func main() {
 	taskRepo := repository.NewTaskRepo(pool)
 	invitationRepo := repository.NewInvitationRepo(pool)
 	notificationRepo := repository.NewNotificationRepo(pool)
+	savedFilterRepo := repository.NewSavedFilterRepo(pool)
 
 	// Services
 	authSvc := service.NewAuthService(userRepo, invitationRepo, cfg.JWTSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL)
@@ -66,6 +67,7 @@ func main() {
 	notificationSvc := service.NewNotificationService(notificationRepo)
 	taskSvc := service.NewTaskService(taskRepo, projectRepo, userRepo, notificationSvc)
 	invitationSvc := service.NewInvitationService(invitationRepo, projectRepo, userRepo, notificationSvc)
+	savedFilterSvc := service.NewSavedFilterService(savedFilterRepo)
 
 	// Handlers
 	authH := handler.NewAuthHandler(authSvc)
@@ -75,6 +77,7 @@ func main() {
 	memberH := handler.NewMemberHandler(projectSvc, invitationSvc)
 	invitationH := handler.NewInvitationHandler(invitationSvc)
 	notificationH := handler.NewNotificationHandler(notificationSvc)
+	savedFilterH := handler.NewSavedFilterHandler(savedFilterSvc)
 
 	// Router
 	r := chi.NewRouter()
@@ -161,6 +164,12 @@ func main() {
 			protected.Get("/invitations", invitationH.ListMine)
 			protected.Post("/invitations/{id}/accept", invitationH.Accept)
 			protected.Post("/invitations/{id}/reject", invitationH.Reject)
+
+			// Saved filters (smart lists)
+			protected.Get("/saved-filters", savedFilterH.List)
+			protected.Post("/saved-filters", savedFilterH.Create)
+			protected.Patch("/saved-filters/{id}", savedFilterH.Update)
+			protected.Delete("/saved-filters/{id}", savedFilterH.Delete)
 
 			// Notifications (inbox)
 			protected.Get("/notifications", notificationH.List)

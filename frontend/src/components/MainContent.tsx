@@ -111,6 +111,23 @@ const MainContent: React.FC<Props> = ({
     if (isAdding) inputRef.current?.focus();
   }, [isAdding]);
 
+  // Apply saved-filter status/priority to local state when sidebar fires the event
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const def = (
+        e as CustomEvent<{
+          status?: 'all' | 'todo' | 'in-progress' | 'done';
+          priority?: 'all' | 'high' | 'medium' | 'low';
+        }>
+      ).detail;
+      if (!def) return;
+      setFilter((def.status ?? 'all') as Filter);
+      setPriorityFilter((def.priority ?? 'all') as PriorityFilter);
+    };
+    window.addEventListener('urban-tasks:apply-saved-filter', handler);
+    return () => window.removeEventListener('urban-tasks:apply-saved-filter', handler);
+  }, []);
+
   // Listen for add-task events from command palette
   useEffect(() => {
     const handler = () => {
