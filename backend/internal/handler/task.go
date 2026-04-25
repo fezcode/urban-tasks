@@ -119,6 +119,37 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, task)
 }
 
+func (h *TaskHandler) Bulk(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.UserIDFromContext(r.Context())
+
+	var req model.BulkTaskRequest
+	if err := decodeJSON(r, &req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if len(req.IDs) == 0 {
+		respondError(w, http.StatusBadRequest, "ids is required")
+		return
+	}
+	if req.Op == "" {
+		respondError(w, http.StatusBadRequest, "op is required")
+		return
+	}
+	if len(req.IDs) > 500 {
+		respondError(w, http.StatusBadRequest, "too many ids (max 500)")
+		return
+	}
+
+	resp, err := h.tasks.Bulk(r.Context(), userID, req)
+	if err != nil {
+		slog.Error("bulk tasks", "error", err, "userID", userID, "op", req.Op)
+		respondError(w, http.StatusInternalServerError, "failed to apply bulk operation")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, resp)
+}
+
 func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.UserIDFromContext(r.Context())
 	taskID := chi.URLParam(r, "id")

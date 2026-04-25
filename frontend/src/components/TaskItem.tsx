@@ -11,6 +11,9 @@ interface Props {
   isSelected?: boolean;
   onClick?: () => void;
   onTagClick?: (tag: string) => void;
+  isMultiSelected?: boolean;
+  onToggleMultiSelect?: (e: React.MouseEvent) => void;
+  selectionActive?: boolean;
 }
 
 export const PRIORITY_META: Record<TaskPriority, { label: string; className: string } | null> = {
@@ -32,7 +35,16 @@ function getDueDateInfo(dueDate: string): { label: string; className: string } {
   return { label: format(due, 'MMM d'), className: 'text-text-tertiary' };
 }
 
-const TaskItem: React.FC<Props> = ({ task, showProject, isSelected, onClick, onTagClick }) => {
+const TaskItem: React.FC<Props> = ({
+  task,
+  showProject,
+  isSelected,
+  onClick,
+  onTagClick,
+  isMultiSelected,
+  onToggleMultiSelect,
+  selectionActive,
+}) => {
   const { state, syncDispatch } = useAppState();
   const [isHovered, setIsHovered] = useState(false);
 
@@ -82,9 +94,19 @@ const TaskItem: React.FC<Props> = ({ task, showProject, isSelected, onClick, onT
   return (
     <div
       className={`group flex items-start gap-3 sm:gap-3.5 px-3 sm:px-4 py-3 sm:py-3.5 rounded-xl transition-base cursor-pointer ${
-        isSelected ? 'bg-surface shadow-sm ring-1 ring-border' : 'hover:bg-surface-hover'
+        isMultiSelected
+          ? 'bg-accent-light ring-1 ring-accent/40'
+          : isSelected
+            ? 'bg-surface shadow-sm ring-1 ring-border'
+            : 'hover:bg-surface-hover'
       } ${task.status === 'done' ? 'opacity-60' : ''}`}
-      onClick={onClick}
+      onClick={(e) => {
+        if (selectionActive && onToggleMultiSelect) {
+          onToggleMultiSelect(e);
+          return;
+        }
+        onClick?.();
+      }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onKeyDown={(e) => {
@@ -98,6 +120,26 @@ const TaskItem: React.FC<Props> = ({ task, showProject, isSelected, onClick, onT
       aria-label={`Task: ${task.title}`}
       aria-pressed={isSelected}
     >
+      {/* Multi-select checkbox (visible on hover, or always when selection mode is active) */}
+      {onToggleMultiSelect && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleMultiSelect(e);
+          }}
+          className={`mt-0.5 w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center transition-base ${
+            isMultiSelected
+              ? 'bg-accent border-accent'
+              : `border-text-tertiary hover:border-accent ${selectionActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`
+          }`}
+          title={isMultiSelected ? 'Deselect' : 'Select for bulk action'}
+          aria-label={isMultiSelected ? 'Deselect task' : 'Select task'}
+          aria-pressed={isMultiSelected}
+        >
+          {isMultiSelected && <Check size={10} className="text-white" strokeWidth={3} />}
+        </button>
+      )}
+
       {/* Status circle */}
       <button
         onClick={(e) => {

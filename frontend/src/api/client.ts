@@ -293,4 +293,13 @@ export const tasks = {
   update: (id: string, data: Partial<Task>) =>
     request<Task>(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   delete: (id: string) => request<void>(`/tasks/${id}`, { method: 'DELETE' }),
+  bulk: (
+    ids: string[],
+    op: 'complete' | 'reopen' | 'delete' | 'set_priority' | 'move' | 'add_tags' | 'remove_tags',
+    payload?: Record<string, unknown>
+  ) =>
+    request<{ updated: number; failed: { id: string; error: string }[] }>('/tasks/bulk', {
+      method: 'POST',
+      body: JSON.stringify({ ids, op, payload }),
+    }),
 };

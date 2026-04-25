@@ -351,6 +351,90 @@ func samePtr(a, b *string) bool {
 	return *a == *b
 }
 
+// Bulk applies a single operation to many tasks. Membership is enforced
+// per-task by reusing GetByID (which JOINs project_members), so unauthorized
+// IDs are reported as failures rather than silently skipped.
+func (s *TaskService) Bulk(ctx context.Context, userID string, req model.BulkTaskRequest) (model.BulkTaskResponse, error) {
+	resp := model.BulkTaskResponse{Failed: []model.BulkTaskFailure{}}
+	if len(req.IDs) == 0 {
+		return resp, nil
+	}
+
+	for _, id := range req.IDs {
+		if err := s.applyBulkOne(ctx, userID, id, req.Op, req.Payload); err != nil {
+			resp.Failed = append(resp.Failed, model.BulkTaskFailure{ID: id, Error: err.Error()})
+			continue
+		}
+		resp.Updated++
+	}
+	return resp, nil
+}
+
+func (s *TaskService) applyBulkOne(ctx context.Context, userID, id, op string, payload map[string]any) error {
+	switch op {
+	case "delete":
+		return s.Delete(ctx, id, userID)
+	case "complete":
+		status := "done"
+		_, err := s.Update(ctx, id, userID, model.UpdateTaskRequest{Status: &status})
+		return err
+	case "reopen":
+		status := "todo"
+		_, err := s.Update(ctx, id, userID, model.UpdateTaskRequest{Status: &status})
+		return err
+	case "set_priority":
+		p, _ := payload["priority"].(string)
+		if !isValidPriority(p) {
+			return errors.New("invalid priority")
+		}
+		_, err := s.Update(ctx, id, userID, model.UpdateTaskRequest{Priority: &p})
+		return err
+	case "move":
+		pid, _ := payload["projectId"].(string)
+		if pid == "" {
+			return errors.New("projectId is required")
+		}
+		_, err := s.Update(ctx, id, userID, model.UpdateTaskRequest{ProjectID: &pid})
+		return err
+	case "add_tags", "remove_tags":
+		tagsAny, _ := payload["tags"].([]any)
+		add := make([]string, 0, len(tagsAny))
+		for _, t := range tagsAny {
+			if s, ok := t.(string); ok && s != "" {
+				add = append(add, s)
+			}
+		}
+		if len(add) == 0 {
+			return errors.New("tags is required")
+		}
+		t, err := s.GetByID(ctx, id, userID)
+		if err != nil {
+			return err
+		}
+		set := map[string]struct{}{}
+		for _, x := range t.Tags {
+			set[x] = struct{}{}
+		}
+		if op == "add_tags" {
+			for _, x := range add {
+				set[x] = struct{}{}
+			}
+		} else {
+			for _, x := range add {
+				delete(set, x)
+			}
+		}
+		next := make([]string, 0, len(set))
+		for x := range set {
+			next = append(next, x)
+		}
+		_, err = s.Update(ctx, id, userID, model.UpdateTaskRequest{Tags: next})
+		return err
+	default:
+		return errors.New("unknown op")
+	}
+}
+
 func (s *TaskService) Delete(ctx context.Context, id, userID string) error {
 	t, err := s.tasks.GetByID(ctx, id, userID)
 	if err != nil {

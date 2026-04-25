@@ -138,6 +138,7 @@ func main() {
 			protected.Get("/tasks", taskH.List)
 			protected.Get("/tasks/{id}", taskH.Get)
 			protected.Post("/tasks", taskH.Create)
+			protected.Post("/tasks/bulk", taskH.Bulk)
 			protected.Patch("/tasks/{id}", taskH.Update)
 			protected.Delete("/tasks/{id}", taskH.Delete)
 

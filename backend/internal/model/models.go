@@ -162,6 +162,24 @@ type CreateTaskRequest struct {
 	AssigneeID *string    `json:"assigneeId,omitempty"`
 }
 
+// BulkTaskRequest applies one operation to many tasks at once.
+// op values: "complete", "reopen", "delete", "set_priority", "move", "add_tags", "remove_tags".
+type BulkTaskRequest struct {
+	IDs     []string       `json:"ids"`
+	Op      string         `json:"op"`
+	Payload map[string]any `json:"payload,omitempty"`
+}
+
+type BulkTaskFailure struct {
+	ID    string `json:"id"`
+	Error string `json:"error"`
+}
+
+type BulkTaskResponse struct {
+	Updated int               `json:"updated"`
+	Failed  []BulkTaskFailure `json:"failed"`
+}
+
 type UpdateTaskRequest struct {
 	Title      *string    `json:"title,omitempty"`
 	Body       *string    `json:"body,omitempty"`

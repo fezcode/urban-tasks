@@ -4,6 +4,7 @@ import { useToast } from '../context/ToastContext';
 import { usePreferences } from '../context/PreferencesContext';
 import TaskItem from './TaskItem';
 import BlackHole from './BlackHole';
+import BulkActionBar from './BulkActionBar';
 
 const Dashboard = lazy(() => import('./Dashboard'));
 const Calendar = lazy(() => import('./Calendar'));
@@ -90,6 +91,20 @@ const MainContent: React.FC<Props> = ({
   const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
   const [dragTaskId, setDragTaskId] = useState<string | null>(null);
   const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null);
+  const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
+  const lastClickedIdRef = useRef<string | null>(null);
+
+  const clearBulkSelection = () => setBulkSelected(new Set());
+
+  // Esc clears multi-select
+  useEffect(() => {
+    if (bulkSelected.size === 0) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') clearBulkSelection();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [bulkSelected.size]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -222,6 +237,28 @@ const MainContent: React.FC<Props> = ({
     syncDispatch({ type: 'ADD_TASK', task });
     setNewTaskTitle('');
     inputRef.current?.focus();
+  };
+
+  const toggleBulkSelect = (taskId: string, e: React.MouseEvent) => {
+    setBulkSelected((prev) => {
+      const next = new Set(prev);
+      // Shift-click: range select within currently sortedTasks
+      if (e.shiftKey && lastClickedIdRef.current && lastClickedIdRef.current !== taskId) {
+        const ids = sortedTasks.map((t) => t.id);
+        const a = ids.indexOf(lastClickedIdRef.current);
+        const b = ids.indexOf(taskId);
+        if (a >= 0 && b >= 0) {
+          const [lo, hi] = a < b ? [a, b] : [b, a];
+          for (let i = lo; i <= hi; i++) next.add(ids[i]);
+          lastClickedIdRef.current = taskId;
+          return next;
+        }
+      }
+      if (next.has(taskId)) next.delete(taskId);
+      else next.add(taskId);
+      lastClickedIdRef.current = taskId;
+      return next;
+    });
   };
 
   const toggleCollapse = (id: string) => {
@@ -585,6 +622,9 @@ const MainContent: React.FC<Props> = ({
                                   onSelectTask(task.id === selectedTaskId ? null : task.id)
                                 }
                                 onTagClick={onTagClick}
+                                isMultiSelected={bulkSelected.has(task.id)}
+                                onToggleMultiSelect={(e) => toggleBulkSelect(task.id, e)}
+                                selectionActive={bulkSelected.size > 0}
                               />
                             ))}
                           </div>
@@ -671,6 +711,9 @@ const MainContent: React.FC<Props> = ({
                               onSelectTask(task.id === selectedTaskId ? null : task.id)
                             }
                             onTagClick={onTagClick}
+                            isMultiSelected={bulkSelected.has(task.id)}
+                            onToggleMultiSelect={(e) => toggleBulkSelect(task.id, e)}
+                            selectionActive={bulkSelected.size > 0}
                           />
                         </div>
                       );
@@ -702,6 +745,9 @@ const MainContent: React.FC<Props> = ({
             </div>
           </div>
         </>
+      )}
+      {bulkSelected.size > 0 && (
+        <BulkActionBar selectedIds={bulkSelected} onClear={clearBulkSelection} />
       )}
     </main>
   );
