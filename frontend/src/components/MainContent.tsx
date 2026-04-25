@@ -5,6 +5,7 @@ import { usePreferences } from '../context/PreferencesContext';
 import TaskItem from './TaskItem';
 import BlackHole from './BlackHole';
 import BulkActionBar from './BulkActionBar';
+import { parseQuickAdd } from '../lib/parseQuickAdd';
 
 const Dashboard = lazy(() => import('./Dashboard'));
 const Calendar = lazy(() => import('./Calendar'));
@@ -228,9 +229,11 @@ const MainContent: React.FC<Props> = ({
   const activeCount = tagFilteredTasks.filter((t) => t.status === 'in-progress').length;
   const doneCount = projectTasks.filter((t) => t.status === 'done').length;
 
+  const parsedQuickAdd = newTaskTitle.trim() ? parseQuickAdd(newTaskTitle) : null;
+
   const handleAddTask = () => {
-    const title = newTaskTitle.trim();
-    if (!title) {
+    const raw = newTaskTitle.trim();
+    if (!raw) {
       setIsAdding(false);
       return;
     }
@@ -243,13 +246,19 @@ const MainContent: React.FC<Props> = ({
       );
       return;
     }
+    const parsed = parseQuickAdd(raw);
+    const finalTitle = parsed.title || raw;
     const task: Task = {
       id: Date.now().toString(),
-      title,
+      title: finalTitle,
       status: 'todo',
       projectId: targetProject,
       startDate: todayStr,
       createdAt: new Date().toISOString(),
+      ...(parsed.tags.length > 0 && { tags: parsed.tags }),
+      ...(parsed.priority && { priority: parsed.priority }),
+      ...(parsed.recurrence && { recurrence: parsed.recurrence }),
+      ...(parsed.dueDate && { dueDate: parsed.dueDate }),
     };
     syncDispatch({ type: 'ADD_TASK', task });
     setNewTaskTitle('');
@@ -561,40 +570,78 @@ const MainContent: React.FC<Props> = ({
             <div>
               {isAdding && (
                 <div className="mb-3 animate-slide-down">
-                  <div className="flex items-center gap-3 bg-surface border border-border-focus rounded-xl px-4 py-3 shadow-sm">
-                    <div className="w-5 h-5 rounded-full border-2 border-border flex-shrink-0" />
-                    <input
-                      ref={inputRef}
-                      type="text"
-                      className="flex-1 bg-transparent text-[14px] text-text-primary outline-none"
-                      placeholder="What needs to be done?"
-                      value={newTaskTitle}
-                      onChange={(e) => setNewTaskTitle(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleAddTask();
-                        if (e.key === 'Escape') {
-                          setIsAdding(false);
-                          setNewTaskTitle('');
-                        }
-                      }}
-                    />
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={handleAddTask}
-                        className="p-1.5 rounded-md bg-accent text-text-inverse hover:bg-accent-hover transition-base"
-                      >
-                        <Plus size={14} />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setIsAdding(false);
-                          setNewTaskTitle('');
+                  <div className="bg-surface border border-border-focus rounded-xl px-4 py-3 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-5 h-5 rounded-full border-2 border-border flex-shrink-0" />
+                      <input
+                        ref={inputRef}
+                        type="text"
+                        className="flex-1 bg-transparent text-[14px] text-text-primary outline-none"
+                        placeholder="e.g. fix login bug tomorrow 3pm #frontend !high"
+                        value={newTaskTitle}
+                        onChange={(e) => setNewTaskTitle(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleAddTask();
+                          if (e.key === 'Escape') {
+                            setIsAdding(false);
+                            setNewTaskTitle('');
+                          }
                         }}
-                        className="p-1.5 rounded-md text-text-tertiary hover:text-text-primary hover:bg-bg-secondary transition-base"
-                      >
-                        <span className="text-xs">Esc</span>
-                      </button>
+                      />
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={handleAddTask}
+                          className="p-1.5 rounded-md bg-accent text-text-inverse hover:bg-accent-hover transition-base"
+                        >
+                          <Plus size={14} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setIsAdding(false);
+                            setNewTaskTitle('');
+                          }}
+                          className="p-1.5 rounded-md text-text-tertiary hover:text-text-primary hover:bg-bg-secondary transition-base"
+                        >
+                          <span className="text-xs">Esc</span>
+                        </button>
+                      </div>
                     </div>
+                    {parsedQuickAdd &&
+                      (parsedQuickAdd.tags.length > 0 ||
+                        parsedQuickAdd.priority ||
+                        parsedQuickAdd.recurrence ||
+                        parsedQuickAdd.dueDate) && (
+                        <div className="flex items-center gap-1.5 flex-wrap mt-2 ml-8">
+                          {parsedQuickAdd.dueDate && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-status-warning-bg text-status-warning text-2xs font-medium">
+                              <CalendarDays size={11} />
+                              {format(new Date(parsedQuickAdd.dueDate), 'MMM d')}
+                              {parsedQuickAdd.hasTime && '*'}
+                            </span>
+                          )}
+                          {parsedQuickAdd.priority && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent-light text-accent text-2xs font-medium uppercase">
+                              !{parsedQuickAdd.priority}
+                            </span>
+                          )}
+                          {parsedQuickAdd.recurrence && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-bg-tertiary text-text-secondary text-2xs font-medium">
+                              ↻ {parsedQuickAdd.recurrence}
+                            </span>
+                          )}
+                          {parsedQuickAdd.tags.map((t) => (
+                            <span
+                              key={t}
+                              className="inline-flex items-center px-2 py-0.5 rounded-full bg-accent-light text-accent text-2xs font-medium"
+                            >
+                              #{t}
+                            </span>
+                          ))}
+                          <span className="ml-auto text-2xs text-text-tertiary italic">
+                            press Enter to save
+                          </span>
+                        </div>
+                      )}
                   </div>
                 </div>
               )}
