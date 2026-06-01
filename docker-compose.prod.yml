@@ -21,11 +21,13 @@ services:
 
   frontend-build:
     image: node:22-alpine
-    working_dir: /app
+    working_dir: /build
     volumes:
       - ./frontend:/app:ro
       - frontend_build:/output
-    command: sh -c "npm ci && npm run build && cp -r dist/* /output/"
+    # Source is mounted read-only, so npm can't write node_modules into /app.
+    # Copy the source into a writable dir, install + build there, publish dist.
+    command: sh -c "cp -a /app/. /build/ && npm ci && npm run build && cp -r dist/* /output/"
 
   backend:
     build:
