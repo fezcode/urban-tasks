@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAppState } from '../context/AppState';
-import type { TaskStatus, TaskPriority, TaskRecurrence } from '../context/types';
+import type { TaskStatus, TaskPriority, TaskRecurrence, Location } from '../context/types';
 import ReactMarkdown from 'react-markdown';
 import {
   X,
@@ -27,6 +27,7 @@ import { useToast } from '../context/ToastContext';
 import { format, differenceInDays, startOfDay } from 'date-fns';
 import ProjectIcon from './ProjectIcon';
 import DatePicker from './DatePicker';
+import LocationField from './LocationField';
 import Avatar from './Avatar';
 import * as api from '../api/client';
 import type { Member } from '../api/client';
@@ -268,6 +269,14 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
     });
   };
 
+  const setLocation = (location: Location | null) => {
+    syncDispatch({
+      type: 'UPDATE_TASK',
+      id: task.id,
+      updates: { location },
+    });
+  };
+
   const setRecurrence = (recurrence: TaskRecurrence | null) => {
     syncDispatch({
       type: 'UPDATE_TASK',
@@ -454,6 +463,9 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
             )}
           </div>
         </div>
+
+        {/* Location */}
+        <LocationField value={task.location} onChange={setLocation} />
 
         {/* Priority */}
         <div>

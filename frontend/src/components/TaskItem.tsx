@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAppState } from '../context/AppState';
 import type { Task, TaskStatus, TaskPriority } from '../context/types';
-import { Trash2, Play, RotateCcw, Check, CalendarClock, Flag, Link2, ListChecks, RefreshCw } from 'lucide-react';
+import { Trash2, Play, RotateCcw, Check, CalendarClock, Flag, Link2, ListChecks, RefreshCw, MapPin } from 'lucide-react';
 import { formatDistanceToNow, differenceInDays, startOfDay, format } from 'date-fns';
 import Avatar from './Avatar';
 
@@ -210,6 +210,16 @@ const TaskItem: React.FC<Props> = ({
             <span className="inline-flex items-center gap-1 text-2xs text-text-tertiary">
               <Link2 size={11} className="text-accent" />
               {task.links.length}
+            </span>
+          )}
+
+          {task.location && (
+            <span
+              className="inline-flex items-center gap-1 max-w-[140px] text-2xs text-text-tertiary"
+              title={task.location.name}
+            >
+              <MapPin size={11} className="shrink-0 text-accent" />
+              <span className="truncate">{task.location.name}</span>
             </span>
           )}
 
