@@ -108,7 +108,10 @@ export default function LocationField({ value, onChange }: Props) {
 
       {value && (
         <div className="mt-2">
-          <div className="h-40 w-full overflow-hidden rounded-lg border border-border">
+          {/* relative z-0 isolates Leaflet's internal z-indexes (panes/controls
+              go up to ~1000) into their own stacking context, so they can't
+              paint over sibling popovers like the date-picker calendar (z-50). */}
+          <div className="relative z-0 h-40 w-full overflow-hidden rounded-lg border border-border">
             <MapContainer
               center={[value.lat, value.lon]}
               zoom={15}
