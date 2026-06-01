@@ -1,19 +1,23 @@
 package model
 
-import "time"
+import (
+	"encoding/json"
+	"strings"
+	"time"
+)
 
 type User struct {
-	ID             string     `json:"id"`
-	Email          string     `json:"email"`
-	Name           string     `json:"name"`
-	AvatarSeed     *string    `json:"avatarSeed,omitempty"`
-	PasswordHash   string     `json:"-"`
-	Plan           string     `json:"plan"`
-	TrialEndsAt    *time.Time `json:"trialEndsAt,omitempty"`
-	EffectivePlan  string     `json:"effectivePlan"`
-	PlanUpdatedAt  time.Time  `json:"planUpdatedAt"`
-	CreatedAt      time.Time  `json:"createdAt"`
-	UpdatedAt      time.Time  `json:"updatedAt"`
+	ID            string     `json:"id"`
+	Email         string     `json:"email"`
+	Name          string     `json:"name"`
+	AvatarSeed    *string    `json:"avatarSeed,omitempty"`
+	PasswordHash  string     `json:"-"`
+	Plan          string     `json:"plan"`
+	TrialEndsAt   *time.Time `json:"trialEndsAt,omitempty"`
+	EffectivePlan string     `json:"effectivePlan"`
+	PlanUpdatedAt time.Time  `json:"planUpdatedAt"`
+	CreatedAt     time.Time  `json:"createdAt"`
+	UpdatedAt     time.Time  `json:"updatedAt"`
 }
 
 type UpdateUserRequest struct {
@@ -36,6 +40,32 @@ type TaskLink struct {
 	ID    string `json:"id"`
 	Title string `json:"title"`
 	URL   string `json:"url"`
+}
+
+// Location is an optional place attached to a task, sourced from OpenStreetMap.
+type Location struct {
+	Name string  `json:"name"`
+	Lat  float64 `json:"lat"`
+	Lon  float64 `json:"lon"`
+}
+
+// SanitizeLocation trims/caps the name and validates coordinates.
+// Returns nil for invalid or empty input (treated as "no location").
+func SanitizeLocation(l *Location) *Location {
+	if l == nil {
+		return nil
+	}
+	name := strings.TrimSpace(l.Name)
+	if name == "" {
+		return nil
+	}
+	if l.Lat < -90 || l.Lat > 90 || l.Lon < -180 || l.Lon > 180 {
+		return nil
+	}
+	if r := []rune(name); len(r) > 256 {
+		name = string(r[:256])
+	}
+	return &Location{Name: name, Lat: l.Lat, Lon: l.Lon}
 }
 
 type Subtask struct {
@@ -65,6 +95,7 @@ type Task struct {
 	CreatedBy   *string    `json:"createdBy,omitempty"`
 	UpdatedBy   *string    `json:"updatedBy,omitempty"`
 	AssigneeID  *string    `json:"assigneeId,omitempty"`
+	Location    *Location  `json:"location,omitempty"`
 }
 
 type TaskComment struct {
@@ -208,6 +239,7 @@ type CreateTaskRequest struct {
 	Priority   *string    `json:"priority,omitempty"`
 	Recurrence *string    `json:"recurrence,omitempty"`
 	AssigneeID *string    `json:"assigneeId,omitempty"`
+	Location   *Location  `json:"location,omitempty"`
 }
 
 // BulkTaskRequest applies one operation to many tasks at once.
@@ -229,17 +261,18 @@ type BulkTaskResponse struct {
 }
 
 type UpdateTaskRequest struct {
-	Title      *string    `json:"title,omitempty"`
-	Body       *string    `json:"body,omitempty"`
-	Status     *string    `json:"status,omitempty"`
-	Priority   *string    `json:"priority,omitempty"`
-	Tags       []string   `json:"tags,omitempty"`
-	Links      []TaskLink `json:"links,omitempty"`
-	Subtasks   []Subtask  `json:"subtasks,omitempty"`
-	StartDate  *string    `json:"startDate,omitempty"`
-	DueDate    *string    `json:"dueDate,omitempty"`
-	Recurrence *string    `json:"recurrence,omitempty"`
-	ProjectID  *string    `json:"projectId,omitempty"`
-	Position   *int       `json:"position,omitempty"`
-	AssigneeID *string    `json:"assigneeId,omitempty"`
+	Title      *string         `json:"title,omitempty"`
+	Body       *string         `json:"body,omitempty"`
+	Status     *string         `json:"status,omitempty"`
+	Priority   *string         `json:"priority,omitempty"`
+	Tags       []string        `json:"tags,omitempty"`
+	Links      []TaskLink      `json:"links,omitempty"`
+	Subtasks   []Subtask       `json:"subtasks,omitempty"`
+	StartDate  *string         `json:"startDate,omitempty"`
+	DueDate    *string         `json:"dueDate,omitempty"`
+	Recurrence *string         `json:"recurrence,omitempty"`
+	ProjectID  *string         `json:"projectId,omitempty"`
+	Position   *int            `json:"position,omitempty"`
+	AssigneeID *string         `json:"assigneeId,omitempty"`
+	Location   json.RawMessage `json:"location,omitempty"`
 }
