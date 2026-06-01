@@ -8,6 +8,12 @@ export interface TaskLink {
   url: string;
 }
 
+export interface Location {
+  name: string;
+  lat: number;
+  lon: number;
+}
+
 export interface Subtask {
   id: string;
   title: string;
@@ -34,6 +40,7 @@ export interface Task {
   updatedBy?: string;
   updatedAt?: string;
   assigneeId?: string | null;
+  location?: Location | null;
 }
 
 export interface Project {

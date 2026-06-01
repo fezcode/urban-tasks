@@ -165,7 +165,7 @@ export async function login(email: string, password: string): Promise<AuthRespon
 
 // --- Projects ---
 
-import type { Project, Task } from '../context/types';
+import type { Project, Task, Location } from '../context/types';
 
 export const projects = {
   list: () => request<Project[]>('/projects'),
@@ -306,6 +306,15 @@ export const search = {
     request<SearchResult>(`/search?q=${encodeURIComponent(q)}&limit=${limit}`),
 };
 
+// --- Geocoding (OpenStreetMap proxy) ---
+
+export const geocode = {
+  search: (q: string) =>
+    request<Location[]>(`/geocode/search?q=${encodeURIComponent(q)}`),
+  reverse: (lat: number, lon: number) =>
+    request<Location | null>(`/geocode/reverse?lat=${lat}&lon=${lon}`),
+};
+
 // --- Task comments ---
 
 export interface TaskComment {
@@ -386,6 +395,7 @@ export const tasks = {
     dueDate?: string;
     priority?: string;
     assigneeId?: string | null;
+    location?: Location | null;
   }) => request<Task>('/tasks', { method: 'POST', body: JSON.stringify(data) }),
   update: (id: string, data: Partial<Task>) =>
     request<Task>(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
