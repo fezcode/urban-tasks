@@ -16,12 +16,14 @@ import {
   ScrollView,
   Alert,
   Share,
+  Linking,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CalendarClock, Check, Flag, Inbox, Pencil, Plus, Search, SearchX, Share2, X } from 'lucide-react-native';
+import { CalendarClock, Check, Flag, Inbox, MapPin, Pencil, Plus, Search, SearchX, Share2, X } from 'lucide-react-native';
 import { useTheme } from '@/theme/ThemeContext';
-import { api, friendlyErrorMessage, Task, Project, Member } from '@/api/client';
+import { api, friendlyErrorMessage, Task, Project, Member, Location } from '@/api/client';
 import { DateField, EmptyState, Markdown } from '@/components/ui';
+import LocationField from '@/components/LocationField';
 import { haptic } from '@/haptics';
 
 type Filter = 'all' | 'todo' | 'in-progress' | 'done';
@@ -885,6 +887,21 @@ function TaskRow({ task, projects, assignee, onPressStatus, onPress, onTagPress 
               </Text>
             </View>
           )}
+          {task.location && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, maxWidth: 150 }}>
+              <MapPin size={11} color={palette.accent} />
+              <Text
+                numberOfLines={1}
+                style={{
+                  color: palette.textTertiary,
+                  fontSize: fontSize['2xs'],
+                  fontFamily: 'Inter_500Medium',
+                }}
+              >
+                {task.location.name}
+              </Text>
+            </View>
+          )}
           {project && (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
               <View
@@ -1140,6 +1157,35 @@ function TaskViewModal({ visible, task, project, assignee, onClose, onEdit, onSt
                 <Text style={{ color: due.color, fontSize: 12, fontFamily: 'Inter_500Medium' }}>{due.label}</Text>
               </View>
             )}
+            {task.location && (
+              <TouchableOpacity
+                onPress={() =>
+                  Linking.openURL(
+                    `https://www.openstreetmap.org/?mlat=${task.location!.lat}&mlon=${task.location!.lon}#map=16/${task.location!.lat}/${task.location!.lon}`,
+                  )
+                }
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 5,
+                  maxWidth: 220,
+                  paddingHorizontal: spacing.sm + 2,
+                  paddingVertical: 4,
+                  borderRadius: radii.pill,
+                  backgroundColor: palette.surface,
+                  borderWidth: 1,
+                  borderColor: palette.border,
+                }}
+              >
+                <MapPin size={12} color={palette.accent} />
+                <Text
+                  numberOfLines={1}
+                  style={{ color: palette.textSecondary, fontSize: 12, fontFamily: 'Inter_500Medium' }}
+                >
+                  {task.location.name}
+                </Text>
+              </TouchableOpacity>
+            )}
             {task.tags?.map((tag) => (
               <View
                 key={tag}
@@ -1244,6 +1290,7 @@ function TaskFormModal({
   const [startDate, setStartDate] = useState<string | undefined>(undefined);
   const [tags, setTags] = useState('');
   const [assigneeId, setAssigneeId] = useState<string | null>(null);
+  const [location, setLocation] = useState<Location | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [busy, setBusy] = useState(false);
   const [notesPreview, setNotesPreview] = useState(false);
@@ -1261,6 +1308,7 @@ function TaskFormModal({
       setStartDate(task.startDate ? isoDate(task.startDate) : undefined);
       setTags((task.tags ?? []).join(', '));
       setAssigneeId(task.assigneeId ?? null);
+      setLocation(task.location ?? null);
     } else {
       setTitle('');
       setBody('');
@@ -1271,6 +1319,7 @@ function TaskFormModal({
       setStartDate(undefined);
       setTags('');
       setAssigneeId(null);
+      setLocation(null);
     }
     setErr(null);
   }, [visible, mode, task, projects]);
@@ -1319,6 +1368,7 @@ function TaskFormModal({
           body: body.trim() || undefined,
           priority: priority ?? undefined,
           assigneeId: assigneeId ?? undefined,
+          location: location ?? undefined,
         });
         // dueDate/tags via follow-up patch (createTask supports limited fields here)
         if (normalizedDue || normalizedStart || parsedTags.length) {
@@ -1348,6 +1398,7 @@ function TaskFormModal({
           startDate: normalizedStart,
           tags: parsedTags,
           assigneeId: assigneeId ?? '',
+          location: location ?? null,
         });
       }
       onClose();
@@ -1512,6 +1563,8 @@ function TaskFormModal({
             </View>
 
             <SubtaskList body={body} onChange={setBody} />
+
+            <LocationField value={location} onChange={setLocation} />
 
             <Field label="Repeat">
               <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
