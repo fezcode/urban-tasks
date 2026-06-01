@@ -71,6 +71,7 @@ func main() {
 	savedFilterSvc := service.NewSavedFilterService(savedFilterRepo)
 	commentSvc := service.NewCommentService(commentRepo, taskRepo, projectRepo, userRepo, notificationSvc)
 	searchSvc := service.NewSearchService(pool)
+	geocodeSvc := service.NewGeocodeService(cfg.NominatimURL, "urban-tasks/1.0 (https://github.com/fezcode/urban-tasks)", nil)
 
 	// Handlers
 	authH := handler.NewAuthHandler(authSvc)
@@ -83,6 +84,7 @@ func main() {
 	savedFilterH := handler.NewSavedFilterHandler(savedFilterSvc)
 	commentH := handler.NewCommentHandler(commentSvc)
 	searchH := handler.NewSearchHandler(searchSvc)
+	geocodeH := handler.NewGeocodeHandler(geocodeSvc)
 
 	// Router
 	r := chi.NewRouter()
@@ -172,6 +174,10 @@ func main() {
 
 			// Global search
 			protected.Get("/search", searchH.Search)
+
+			// Geocoding (OpenStreetMap / Nominatim proxy)
+			protected.Get("/geocode/search", geocodeH.Search)
+			protected.Get("/geocode/reverse", geocodeH.Reverse)
 
 			// Task comments
 			protected.Get("/tasks/{id}/comments", commentH.List)
