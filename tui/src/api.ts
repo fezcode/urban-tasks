@@ -38,6 +38,12 @@ export interface TaskLink {
   url: string;
 }
 
+export interface Location {
+  name: string;
+  lat: number;
+  lon: number;
+}
+
 export interface Task {
   id: string;
   projectId: string;
@@ -56,6 +62,7 @@ export interface Task {
   updatedAt: string;
   completedAt?: string | null;
   assigneeId?: string | null;
+  location?: Location | null;
 }
 
 export class ApiError extends Error {
@@ -178,6 +185,7 @@ export function createClient(
         dueDate?: string;
         startDate?: string;
         recurrence?: string;
+        location?: Location | null;
       },
     ) =>
       request<Task>('/api/v1/tasks', {
@@ -198,6 +206,7 @@ export function createClient(
         recurrence: string;
         body: string;
         assigneeId: string;
+        location: Location | null;
       }>,
     ) =>
       request<Task>(`/api/v1/tasks/${id}`, {
@@ -206,6 +215,11 @@ export function createClient(
       }),
     deleteTask: (id: string) =>
       request<void>(`/api/v1/tasks/${id}`, { method: 'DELETE' }),
+
+    geocodeSearch: (q: string) =>
+      request<Location[]>(`/api/v1/geocode/search?q=${encodeURIComponent(q)}`),
+    geocodeReverse: (lat: number, lon: number) =>
+      request<Location | null>(`/api/v1/geocode/reverse?lat=${lat}&lon=${lon}`),
 
     listMembers: (projectId: string) =>
       request<ProjectMember[]>(`/api/v1/projects/${projectId}/members`),
