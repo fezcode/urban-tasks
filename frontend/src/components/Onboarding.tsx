@@ -10,7 +10,7 @@ interface Props {
 const Onboarding: React.FC<Props> = ({ onClose, onEnableNotifications, notificationsSupported }) => {
   return (
     <div
-      className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+      className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4 animate-fade-in"
       onClick={onClose}
     >
       <div

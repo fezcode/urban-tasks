@@ -108,17 +108,10 @@ export default function LocationField({ value, onChange }: Props) {
 
       {value && (
         <div className="mt-2">
-          {/* relative z-0: isolates Leaflet's internal z-indexes (panes/controls
+          {/* relative z-0 isolates Leaflet's internal z-indexes (panes/controls
               go up to ~1000) into their own stacking context, so they can't
-              paint over sibling popovers like the date-picker calendar (z-50).
-              translateZ(0): promotes the rounded/overflow-clipped map onto its
-              own GPU layer so Chrome composites the rounded clip instead of
-              re-rasterizing the masked region every paint (Firefox/WebRender
-              already does this cheaply — this closes the Chrome perf gap). */}
-          <div
-            className="relative z-0 h-40 w-full overflow-hidden rounded-lg border border-border"
-            style={{ transform: 'translateZ(0)' }}
-          >
+              paint over sibling popovers like the date-picker calendar (z-50). */}
+          <div className="relative z-0 h-40 w-full overflow-hidden rounded-lg border border-border">
             <MapContainer
               center={[value.lat, value.lon]}
               zoom={15}

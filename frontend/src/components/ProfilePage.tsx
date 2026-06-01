@@ -130,7 +130,7 @@ const ProfilePage: React.FC<Props> = ({ onClose }) => {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm overflow-y-auto animate-fade-in"
+      className="fixed inset-0 z-[70] bg-black/60 overflow-y-auto animate-fade-in"
       role="dialog"
       aria-modal="true"
       aria-labelledby="profile-title"

@@ -57,7 +57,7 @@ const SavedFiltersModal: React.FC<Props> = ({ items, onClose, onChanged }) => {
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-start justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto animate-fade-in"
+      className="fixed inset-0 z-[60] flex items-start justify-center bg-black/50 p-4 overflow-y-auto animate-fade-in"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

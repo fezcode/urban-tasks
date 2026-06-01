@@ -269,7 +269,7 @@ const AuthenticatedApp: React.FC<{ userId: string }> = ({ userId }) => {
         {inboxOpen && (
           <Suspense fallback={null}>
             <div
-              className="absolute inset-0 z-[40] flex items-start justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto animate-fade-in"
+              className="absolute inset-0 z-[40] flex items-start justify-center bg-black/50 p-4 overflow-y-auto animate-fade-in"
               onClick={(e) => {
                 if (e.target === e.currentTarget) setInboxOpen(false);
               }}
@@ -282,7 +282,7 @@ const AuthenticatedApp: React.FC<{ userId: string }> = ({ userId }) => {
         {membersProjectId && (
           <Suspense fallback={null}>
             <div
-              className="absolute inset-0 z-[40] flex items-start justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto animate-fade-in"
+              className="absolute inset-0 z-[40] flex items-start justify-center bg-black/50 p-4 overflow-y-auto animate-fade-in"
               onClick={(e) => {
                 if (e.target === e.currentTarget) setMembersProjectId(null);
               }}
@@ -295,7 +295,7 @@ const AuthenticatedApp: React.FC<{ userId: string }> = ({ userId }) => {
         {selectedTaskId && (currentView === 'tasks' || currentView === 'calendar') && (
           <Suspense fallback={null}>
             <div
-              className="absolute inset-0 z-[45] flex items-start justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto animate-fade-in"
+              className="absolute inset-0 z-[45] flex items-start justify-center bg-black/50 p-4 overflow-y-auto animate-fade-in"
               onClick={(e) => {
                 if (e.target === e.currentTarget) setSelectedTaskId(null);
               }}
