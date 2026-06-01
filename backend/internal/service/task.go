@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -187,6 +189,7 @@ func (s *TaskService) Create(ctx context.Context, userID string, req model.Creat
 		CreatedBy:  &userID,
 		UpdatedBy:  &userID,
 		AssigneeID: assignee,
+		Location:   model.SanitizeLocation(req.Location),
 	}
 
 	if err := s.tasks.Create(ctx, t); err != nil {
@@ -285,6 +288,17 @@ func (s *TaskService) Update(ctx context.Context, id, userID string, req model.U
 			t.Recurrence = nil
 		} else if isValidRecurrence(*req.Recurrence) {
 			t.Recurrence = req.Recurrence
+		}
+	}
+	if req.Location != nil {
+		// RawMessage distinguishes absent (nil), explicit null (clear), and an object (set).
+		if trimmed := strings.TrimSpace(string(req.Location)); trimmed == "null" {
+			t.Location = nil
+		} else {
+			var loc model.Location
+			if err := json.Unmarshal(req.Location, &loc); err == nil {
+				t.Location = model.SanitizeLocation(&loc)
+			}
 		}
 	}
 	if req.ProjectID != nil {
