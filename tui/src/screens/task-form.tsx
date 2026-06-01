@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import TextInput from 'ink-text-input';
 import Spinner from 'ink-spinner';
-import type { Client, Task } from '../api.js';
+import type { Client, Task, Location } from '../api.js';
 
 interface Props {
   client: Client;
@@ -19,6 +19,7 @@ type Field =
   | 'dueDate'
   | 'startDate'
   | 'tags'
+  | 'location'
   | 'recurrence';
 
 const PRIORITIES = ['low', 'medium', 'high'] as const;
@@ -50,9 +51,17 @@ export default function TaskForm({ client, projectId, initial, onDone }: Props) 
   const [tagsText, setTagsText] = useState((initial?.tags ?? []).join(', '));
   const [recurrence, setRecurrence] = useState<string>(initial?.recurrence ?? '');
 
+  // Location: a search box that, on submit, fetches candidates to pick from.
+  const [location, setLocation] = useState<Location | null>(initial?.location ?? null);
+  const [locQuery, setLocQuery] = useState('');
+  const [locResults, setLocResults] = useState<Location[]>([]);
+  const [locCursor, setLocCursor] = useState(0);
+  const [locSearching, setLocSearching] = useState(false);
+  const [locPicking, setLocPicking] = useState(false);
+
   const fieldOrder: Field[] = editing
-    ? ['title', 'body', 'priority', 'status', 'dueDate', 'startDate', 'tags', 'recurrence']
-    : ['title', 'body', 'priority', 'dueDate', 'startDate', 'tags', 'recurrence'];
+    ? ['title', 'body', 'priority', 'status', 'dueDate', 'startDate', 'tags', 'location', 'recurrence']
+    : ['title', 'body', 'priority', 'dueDate', 'startDate', 'tags', 'location', 'recurrence'];
 
   const [focus, setFocus] = useState<Field>('title');
   const [busy, setBusy] = useState(false);
@@ -65,8 +74,53 @@ export default function TaskForm({ client, projectId, initial, onDone }: Props) 
     setFocus(fieldOrder[(i + delta + fieldOrder.length) % fieldOrder.length]!);
   };
 
+  const runLocSearch = async () => {
+    const q = locQuery.trim();
+    if (!q) {
+      // Empty submit clears an existing location, otherwise just advances.
+      if (location) setLocation(null);
+      else moveFocus(1);
+      return;
+    }
+    setLocSearching(true);
+    try {
+      const res = await client.geocodeSearch(q);
+      setLocResults(res);
+      setLocCursor(0);
+      if (res.length) setLocPicking(true);
+    } catch {
+      setLocResults([]);
+    } finally {
+      setLocSearching(false);
+    }
+  };
+
   useInput((input, key) => {
     if (busy) return;
+    // Location result picker grabs navigation keys before anything else.
+    if (focus === 'location' && locPicking) {
+      if (key.escape) {
+        setLocPicking(false);
+        return;
+      }
+      if (key.upArrow || input === 'k') {
+        setLocCursor((c) => Math.max(0, c - 1));
+        return;
+      }
+      if (key.downArrow || input === 'j') {
+        setLocCursor((c) => Math.min(locResults.length - 1, c + 1));
+        return;
+      }
+      if (key.return) {
+        const chosen = locResults[locCursor];
+        if (chosen) setLocation(chosen);
+        setLocPicking(false);
+        setLocResults([]);
+        setLocQuery('');
+        return;
+      }
+      return;
+    }
     if (key.escape) {
       onDone(null);
       return;
@@ -154,6 +208,7 @@ export default function TaskForm({ client, projectId, initial, onDone }: Props) 
           dueDate,
           startDate,
           recurrence,
+          location,
         });
         onDone(updated);
       } else {
@@ -166,6 +221,7 @@ export default function TaskForm({ client, projectId, initial, onDone }: Props) 
           dueDate: dueDate || undefined,
           startDate: startDate || undefined,
           recurrence: recurrence || undefined,
+          location: location ?? undefined,
         });
         onDone(created);
       }
@@ -243,6 +299,40 @@ export default function TaskForm({ client, projectId, initial, onDone }: Props) 
         {textField('dueDate', dueDate, setDueDate, 'YYYY-MM-DD')}
         {textField('startDate', startDate, setStartDate, 'YYYY-MM-DD')}
         {textField('tags', tagsText, setTagsText, 'comma, separated')}
+        <Box flexDirection="column">
+          <Box>
+            {label('location', 'location')}
+            <TextInput
+              value={locQuery}
+              onChange={setLocQuery}
+              focus={focus === 'location' && !locPicking && !busy}
+              placeholder={
+                location ? `${location.name} (Enter to change, empty Enter clears)` : 'search address; Enter to search'
+              }
+              onSubmit={runLocSearch}
+            />
+          </Box>
+          {location && !locPicking && <Text dimColor>{'   '}📍 {location.name}</Text>}
+          {locSearching && (
+            <Text color="yellow">
+              {'   '}
+              <Spinner type="dots" /> searching…
+            </Text>
+          )}
+          {locPicking && (
+            <Box flexDirection="column">
+              <Text dimColor>{'   '}j/k: move · Enter: select · Esc: dismiss</Text>
+              {locResults.map((r, i) => (
+                <Box key={`${r.lat},${r.lon},${i}`}>
+                  <Text color={i === locCursor ? 'green' : undefined}>
+                    {i === locCursor ? '   ▶ ' : '     '}
+                  </Text>
+                  <Text>{r.name}</Text>
+                </Box>
+              ))}
+            </Box>
+          )}
+        </Box>
         {enumValue('recurrence', recurrence, RECURRENCES)}
       </Box>
       {error && (

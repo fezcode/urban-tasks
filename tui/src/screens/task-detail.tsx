@@ -285,6 +285,15 @@ export default function TaskDetail({ client, taskId, onBack, onEdit }: Props) {
             <Text dimColor>assignee: {task.assigneeId}</Text>
           </Box>
         )}
+        {task.location && (
+          <Box flexDirection="column" marginTop={1}>
+            <Text>📍 {task.location.name}</Text>
+            <Text dimColor>
+              https://www.openstreetmap.org/?mlat={task.location.lat}&mlon={task.location.lon}#map=16/
+              {task.location.lat}/{task.location.lon}
+            </Text>
+          </Box>
+        )}
       </Box>
 
       {task.body && (

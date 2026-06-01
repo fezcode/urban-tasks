@@ -301,6 +301,7 @@ export default function Tasks({
                 {t.title}
               </Text>
               {t.dueDate && <Text dimColor> · due {t.dueDate}</Text>}
+              {t.location && <Text dimColor> · 📍 {t.location.name}</Text>}
               {t.tags.length > 0 && (
                 <Text dimColor> · {t.tags.map((x) => `#${x}`).join(' ')}</Text>
               )}
