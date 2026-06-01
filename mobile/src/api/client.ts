@@ -152,6 +152,12 @@ export interface AuthResponse {
   user: User;
 }
 
+export interface Location {
+  name: string;
+  lat: number;
+  lon: number;
+}
+
 export interface Task {
   id: string;
   projectId: string;
@@ -164,6 +170,7 @@ export interface Task {
   dueDate?: string;
   createdAt: string;
   assigneeId?: string | null;
+  location?: Location | null;
 }
 
 export interface Project {
@@ -313,6 +320,7 @@ export const api = {
     body?: string;
     priority?: Task['priority'];
     assigneeId?: string | null;
+    location?: Location | null;
   }) => request<Task>('/tasks', { method: 'POST', body: JSON.stringify(input) }),
   updateTask: (id: string, patch: Partial<Task>) =>
     queueOnNetwork(
@@ -328,6 +336,11 @@ export const api = {
       { kind: 'deleteTask', targetId: id },
       () => request<void>(`/tasks/${id}`, { method: 'DELETE' }),
     ),
+
+  geocodeSearch: (q: string) =>
+    request<Location[]>(`/geocode/search?q=${encodeURIComponent(q)}`),
+  geocodeReverse: (lat: number, lon: number) =>
+    request<Location | null>(`/geocode/reverse?lat=${lat}&lon=${lon}`),
 
   listMembers: (projectId: string) =>
     request<Member[]>(`/projects/${projectId}/members`),
