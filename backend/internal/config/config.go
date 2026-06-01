@@ -18,6 +18,7 @@ type Config struct {
 	Environment     string
 	RateLimitRPS    int
 	ShutdownTimeout time.Duration
+	NominatimURL    string
 }
 
 func Load() (*Config, error) {
@@ -51,6 +52,7 @@ func Load() (*Config, error) {
 		Environment:     getEnv("ENVIRONMENT", "development"),
 		RateLimitRPS:    rateLimit,
 		ShutdownTimeout: shutdownTimeout,
+		NominatimURL:    getEnv("NOMINATIM_URL", "https://nominatim.openstreetmap.org"),
 	}, nil
 }
 
