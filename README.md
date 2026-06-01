@@ -89,7 +89,16 @@ cd backend && go test ./...
 
 ## Deploy
 
-Push to `main` and the included GitHub Actions workflow builds and deploys the frontend.
+Self‑host the full stack (Caddy + Go backend + Postgres + daily backups) on a
+single server with Docker Compose — see **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
+
+Quick version:
+
+```bash
+git clone https://github.com/fezcode/urban-tasks ~/urban-tasks && cd ~/urban-tasks
+# create .env (DOMAIN + secrets — see the guide)
+docker compose -f docker-compose.prod.yml up -d --build
+```
 
 ## License
 
