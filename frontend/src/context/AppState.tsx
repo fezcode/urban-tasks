@@ -129,9 +129,15 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const reload = useCallback(async () => {
     try {
       const [tasks, projects] = await Promise.all([api.tasks.list(), api.projects.list()]);
+      const list = projects || [];
+      // Preserve the user's active project across reloads (e.g. the reload that
+      // follows adding a task) — only drop it if that project no longer exists.
+      const prevActive = stateRef.current.activeProjectId;
+      const activeProjectId =
+        prevActive && list.some((p) => p.id === prevActive) ? prevActive : null;
       dispatch({
         type: 'SET_STATE',
-        state: { tasks: tasks || [], projects: projects || [], activeProjectId: null },
+        state: { tasks: tasks || [], projects: list, activeProjectId },
       });
     } catch (e) {
       console.error('Failed to load data from API', e);
