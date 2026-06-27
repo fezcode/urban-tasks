@@ -292,7 +292,7 @@ const AuthenticatedApp: React.FC<{ userId: string }> = ({ userId }) => {
           </Suspense>
         )}
 
-        {selectedTaskId && (currentView === 'tasks' || currentView === 'calendar') && (
+        {selectedTaskId && (currentView === 'tasks' || currentView === 'calendar' || currentView === 'pinboard') && (
           <Suspense fallback={null}>
             <div
               className="absolute inset-0 z-[45] flex items-start justify-center bg-black/50 p-4 overflow-y-auto animate-fade-in"

@@ -61,6 +61,7 @@ func main() {
 	notificationRepo := repository.NewNotificationRepo(pool)
 	savedFilterRepo := repository.NewSavedFilterRepo(pool)
 	commentRepo := repository.NewCommentRepo(pool)
+	pinboardRepo := repository.NewPinboardRepo(pool)
 
 	// Services
 	authSvc := service.NewAuthService(userRepo, invitationRepo, cfg.JWTSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL)
@@ -72,6 +73,7 @@ func main() {
 	commentSvc := service.NewCommentService(commentRepo, taskRepo, projectRepo, userRepo, notificationSvc)
 	searchSvc := service.NewSearchService(pool)
 	geocodeSvc := service.NewGeocodeService(cfg.NominatimURL, "urban-tasks/1.0 (https://github.com/fezcode/urban-tasks)", nil)
+	pinboardSvc := service.NewPinboardService(pinboardRepo, taskRepo, projectRepo)
 
 	// Handlers
 	authH := handler.NewAuthHandler(authSvc)
@@ -85,6 +87,7 @@ func main() {
 	commentH := handler.NewCommentHandler(commentSvc)
 	searchH := handler.NewSearchHandler(searchSvc)
 	geocodeH := handler.NewGeocodeHandler(geocodeSvc)
+	pinboardH := handler.NewPinboardHandler(pinboardSvc)
 
 	// Router
 	r := chi.NewRouter()
@@ -178,6 +181,15 @@ func main() {
 			// Geocoding (OpenStreetMap / Nominatim proxy)
 			protected.Get("/geocode/search", geocodeH.Search)
 			protected.Get("/geocode/reverse", geocodeH.Reverse)
+
+			// Pinboard (per-project corkboard of pinned tasks + string)
+			protected.Get("/projects/{id}/pinboard", pinboardH.Get)
+			protected.Post("/projects/{id}/pinboard/cards", pinboardH.PinCard)
+			protected.Patch("/pinboard/cards/{cardId}", pinboardH.MoveCard)
+			protected.Delete("/pinboard/cards/{cardId}", pinboardH.UnpinCard)
+			protected.Post("/projects/{id}/pinboard/connections", pinboardH.Connect)
+			protected.Patch("/pinboard/connections/{connId}", pinboardH.Relabel)
+			protected.Delete("/pinboard/connections/{connId}", pinboardH.Disconnect)
 
 			// Task comments
 			protected.Get("/tasks/{id}/comments", commentH.List)

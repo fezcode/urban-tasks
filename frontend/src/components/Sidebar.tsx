@@ -30,6 +30,7 @@ import {
   Users,
   Filter as FilterIcon,
   Settings,
+  Pin,
 } from 'lucide-react';
 import { format, differenceInDays, startOfDay } from 'date-fns';
 import ProjectIcon from './ProjectIcon';
@@ -43,7 +44,7 @@ import SavedFiltersModal from './SavedFiltersModal';
 
 const ProfilePage = lazy(() => import('./ProfilePage'));
 
-export type View = 'tasks' | 'dashboard' | 'calendar';
+export type View = 'tasks' | 'dashboard' | 'calendar' | 'pinboard';
 
 interface Props {
   currentView: View;
@@ -328,6 +329,20 @@ const Sidebar: React.FC<Props> = ({
         >
           <CalendarRange size={18} className={currentView === 'calendar' ? 'text-accent' : ''} />
           <span>Calendar</span>
+        </button>
+        <button
+          onClick={() => {
+            onViewChange('pinboard');
+            onNavigate?.();
+          }}
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] transition-base ${
+            currentView === 'pinboard'
+              ? 'bg-surface text-text-primary shadow-sm font-medium'
+              : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
+          }`}
+        >
+          <Pin size={18} className={currentView === 'pinboard' ? 'text-accent' : ''} />
+          <span>Pinboard</span>
         </button>
         {showToday && (
           <button

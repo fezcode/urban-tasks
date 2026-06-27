@@ -9,6 +9,7 @@ import { parseQuickAdd } from '../lib/parseQuickAdd';
 
 const Dashboard = lazy(() => import('./Dashboard'));
 const Calendar = lazy(() => import('./Calendar'));
+const Pinboard = lazy(() => import('./Pinboard'));
 import {
   Plus,
   CheckCircle2,
@@ -324,6 +325,16 @@ const MainContent: React.FC<Props> = ({
       <main id="main-content" className="flex-1 flex flex-col min-w-0 bg-bg overflow-hidden" tabIndex={-1}>
         <Suspense fallback={<div className="p-6 text-text-tertiary">Loading calendar…</div>}>
           <Calendar onMenuClick={onMenuClick} onSelectTask={onSelectTask} />
+        </Suspense>
+      </main>
+    );
+  }
+
+  if (currentView === 'pinboard') {
+    return (
+      <main id="main-content" className="flex-1 flex flex-col min-w-0 bg-bg overflow-hidden" tabIndex={-1}>
+        <Suspense fallback={<div className="p-6 text-text-tertiary">Loading pinboard…</div>}>
+          <Pinboard onMenuClick={onMenuClick} onSelectTask={onSelectTask} />
         </Suspense>
       </main>
     );

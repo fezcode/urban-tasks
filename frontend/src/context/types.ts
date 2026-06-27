@@ -51,6 +51,31 @@ export interface Project {
   position?: number;
 }
 
+// --- Pinboard (per-project corkboard) ---
+
+export interface PinboardCard {
+  id: string;
+  projectId: string;
+  taskId: string;
+  x: number;
+  y: number;
+  createdAt: string;
+}
+
+export interface PinboardConnection {
+  id: string;
+  projectId: string;
+  aTaskId: string;
+  bTaskId: string;
+  label: string;
+  createdAt: string;
+}
+
+export interface PinboardBoard {
+  cards: PinboardCard[];
+  connections: PinboardConnection[];
+}
+
 export interface AppState {
   tasks: Task[];
   projects: Project[];

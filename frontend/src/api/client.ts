@@ -165,7 +165,14 @@ export async function login(email: string, password: string): Promise<AuthRespon
 
 // --- Projects ---
 
-import type { Project, Task, Location } from '../context/types';
+import type {
+  Project,
+  Task,
+  Location,
+  PinboardBoard,
+  PinboardCard,
+  PinboardConnection,
+} from '../context/types';
 
 export const projects = {
   list: () => request<Project[]>('/projects'),
@@ -377,6 +384,36 @@ export const savedFilters = {
       body: JSON.stringify(data),
     }),
   delete: (id: string) => request<void>(`/saved-filters/${id}`, { method: 'DELETE' }),
+};
+
+// --- Pinboard (per-project corkboard) ---
+
+export const pinboard = {
+  get: (projectId: string) => request<PinboardBoard>(`/projects/${projectId}/pinboard`),
+  pinCard: (projectId: string, taskId: string, x: number, y: number) =>
+    request<PinboardCard>(`/projects/${projectId}/pinboard/cards`, {
+      method: 'POST',
+      body: JSON.stringify({ taskId, x, y }),
+    }),
+  moveCard: (cardId: string, x: number, y: number) =>
+    request<PinboardCard>(`/pinboard/cards/${cardId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ x, y }),
+    }),
+  unpinCard: (cardId: string) =>
+    request<void>(`/pinboard/cards/${cardId}`, { method: 'DELETE' }),
+  connect: (projectId: string, fromTaskId: string, toTaskId: string, label = '') =>
+    request<PinboardConnection>(`/projects/${projectId}/pinboard/connections`, {
+      method: 'POST',
+      body: JSON.stringify({ fromTaskId, toTaskId, label }),
+    }),
+  relabel: (connId: string, label: string) =>
+    request<PinboardConnection>(`/pinboard/connections/${connId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ label }),
+    }),
+  disconnect: (connId: string) =>
+    request<void>(`/pinboard/connections/${connId}`, { method: 'DELETE' }),
 };
 
 export const tasks = {
