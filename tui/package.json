@@ -1,6 +1,6 @@
 {
   "name": "urban-tasks-tui",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Urban Tasks terminal UI (React + Ink)",
   "type": "module",
   "bin": {

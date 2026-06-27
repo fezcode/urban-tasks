@@ -179,6 +179,29 @@ export interface Project {
   color?: string;
 }
 
+export interface PinboardCard {
+  id: string;
+  projectId: string;
+  taskId: string;
+  x: number;
+  y: number;
+  createdAt: string;
+}
+
+export interface PinboardConnection {
+  id: string;
+  projectId: string;
+  aTaskId: string;
+  bTaskId: string;
+  label: string;
+  createdAt: string;
+}
+
+export interface PinboardBoard {
+  cards: PinboardCard[];
+  connections: PinboardConnection[];
+}
+
 export interface Member {
   projectId: string;
   userId: string;
@@ -365,4 +388,32 @@ export const api = {
     request<void>(`/notifications/${id}/read`, { method: 'POST' }),
   markAllNotificationsRead: () =>
     request<void>('/notifications/read-all', { method: 'POST' }),
+
+  // Pinboard (per-project corkboard)
+  getPinboard: (projectId: string) =>
+    request<PinboardBoard>(`/projects/${projectId}/pinboard`),
+  pinCard: (projectId: string, taskId: string, x: number, y: number) =>
+    request<PinboardCard>(`/projects/${projectId}/pinboard/cards`, {
+      method: 'POST',
+      body: JSON.stringify({ taskId, x, y }),
+    }),
+  movePinCard: (cardId: string, x: number, y: number) =>
+    request<PinboardCard>(`/pinboard/cards/${cardId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ x, y }),
+    }),
+  unpinCard: (cardId: string) =>
+    request<void>(`/pinboard/cards/${cardId}`, { method: 'DELETE' }),
+  connectPins: (projectId: string, fromTaskId: string, toTaskId: string, label = '') =>
+    request<PinboardConnection>(`/projects/${projectId}/pinboard/connections`, {
+      method: 'POST',
+      body: JSON.stringify({ fromTaskId, toTaskId, label }),
+    }),
+  relabelPin: (connId: string, label: string) =>
+    request<PinboardConnection>(`/pinboard/connections/${connId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ label }),
+    }),
+  disconnectPin: (connId: string) =>
+    request<void>(`/pinboard/connections/${connId}`, { method: 'DELETE' }),
 };

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AppState, Platform, Text, View } from 'react-native';
 import { Tabs } from 'expo-router';
-import { CalendarDays, CheckSquare, CloudOff, FolderKanban, LayoutDashboard, Mail, User } from 'lucide-react-native';
+import { CalendarDays, CheckSquare, CloudOff, FolderKanban, LayoutDashboard, Mail, Pin, User } from 'lucide-react-native';
 import { useTheme } from '@/theme/ThemeContext';
 import { api, flushQueue, onQueueChange } from '@/api/client';
 import { queueSize } from '@/api/offlineQueue';
@@ -159,6 +159,15 @@ function InnerTabs() {
           title: 'Calendar',
           tabBarIcon: ({ color, focused }) => (
             <CalendarDays color={color} size={22} strokeWidth={focused ? 2.2 : 1.8} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="pinboard"
+        options={{
+          title: 'Board',
+          tabBarIcon: ({ color, focused }) => (
+            <Pin color={color} size={22} strokeWidth={focused ? 2.2 : 1.8} />
           ),
         }}
       />

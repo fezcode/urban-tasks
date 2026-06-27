@@ -12,6 +12,7 @@ interface Props {
   onCreate: () => void;
   onEdit: (task: Task) => void;
   onSwitchProject: (dir: 1 | -1) => void;
+  onOpenBoard: () => void;
 }
 
 const STATUS_ORDER = ['todo', 'in-progress', 'done'] as const;
@@ -47,6 +48,7 @@ export default function Tasks({
   onCreate,
   onEdit,
   onSwitchProject,
+  onOpenBoard,
 }: Props) {
   const [tasks, setTasks] = useState<Task[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -119,6 +121,10 @@ export default function Tasks({
     }
     if (input === 'n') {
       onCreate();
+      return;
+    }
+    if (input === 'B') {
+      onOpenBoard();
       return;
     }
     if (input === 'r') {
@@ -250,7 +256,7 @@ export default function Tasks({
           )}
         </Box>
         <Text dimColor>
-          j/k: move · enter: open · e: edit · space: done · n: new · d: del · /: search · f/p: filter · {'<'}/{'>'}: switch proj · r: reload · q: quit · ?: help · esc: clear/back
+          j/k: move · enter: open · e: edit · space: done · n: new · d: del · B: board · /: search · f/p: filter · {'<'}/{'>'}: switch proj · r: reload · q: quit · ?: help · esc: clear/back
         </Text>
       </Box>
 

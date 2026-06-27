@@ -5,6 +5,7 @@ import Projects from './screens/projects.js';
 import Tasks from './screens/tasks.js';
 import TaskDetail from './screens/task-detail.js';
 import TaskForm from './screens/task-form.js';
+import Pinboard from './screens/pinboard.js';
 import Inbox from './screens/inbox.js';
 import Help from './screens/help.js';
 import { clearSession, loadSession, type Session } from './storage.js';
@@ -28,6 +29,7 @@ export default function App({ apiUrl }: Props) {
   const [form, setForm] = useState<FormState | null>(null);
   const [listKey, setListKey] = useState(0);
   const [inboxOpen, setInboxOpen] = useState(false);
+  const [boardOpen, setBoardOpen] = useState(false);
   const [projectCache, setProjectCache] = useState<Project[]>([]);
   const [helpOpen, setHelpOpen] = useState(false);
 
@@ -43,6 +45,7 @@ export default function App({ apiUrl }: Props) {
           setOpenTaskId(null);
           setForm(null);
           setInboxOpen(false);
+          setBoardOpen(false);
           setSession(null);
         },
       })
@@ -123,6 +126,17 @@ export default function App({ apiUrl }: Props) {
     );
   }
 
+  if (boardOpen) {
+    return (
+      <Pinboard
+        client={client}
+        project={project}
+        onBack={() => setBoardOpen(false)}
+        onOpenTask={(t: Task) => setOpenTaskId(t.id)}
+      />
+    );
+  }
+
   return (
     <Tasks
       key={listKey}
@@ -132,6 +146,7 @@ export default function App({ apiUrl }: Props) {
       onOpenTask={(t: Task) => setOpenTaskId(t.id)}
       onCreate={() => setForm({ kind: 'create' })}
       onEdit={(t: Task) => setForm({ kind: 'edit', task: t })}
+      onOpenBoard={() => setBoardOpen(true)}
       onSwitchProject={(dir) => {
         if (projectCache.length === 0) return;
         const idx = projectCache.findIndex((p) => p.id === project.id);

@@ -65,6 +65,29 @@ export interface Task {
   location?: Location | null;
 }
 
+export interface PinboardCard {
+  id: string;
+  projectId: string;
+  taskId: string;
+  x: number;
+  y: number;
+  createdAt: string;
+}
+
+export interface PinboardConnection {
+  id: string;
+  projectId: string;
+  aTaskId: string;
+  bTaskId: string;
+  label: string;
+  createdAt: string;
+}
+
+export interface PinboardBoard {
+  cards: PinboardCard[];
+  connections: PinboardConnection[];
+}
+
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);
@@ -220,6 +243,29 @@ export function createClient(
       request<Location[]>(`/api/v1/geocode/search?q=${encodeURIComponent(q)}`),
     geocodeReverse: (lat: number, lon: number) =>
       request<Location | null>(`/api/v1/geocode/reverse?lat=${lat}&lon=${lon}`),
+
+    // Pinboard (per-project corkboard)
+    getPinboard: (projectId: string) =>
+      request<PinboardBoard>(`/api/v1/projects/${projectId}/pinboard`),
+    pinCard: (projectId: string, taskId: string, x = 0, y = 0) =>
+      request<PinboardCard>(`/api/v1/projects/${projectId}/pinboard/cards`, {
+        method: 'POST',
+        body: JSON.stringify({ taskId, x, y }),
+      }),
+    unpinCard: (cardId: string) =>
+      request<void>(`/api/v1/pinboard/cards/${cardId}`, { method: 'DELETE' }),
+    connectPins: (projectId: string, fromTaskId: string, toTaskId: string, label = '') =>
+      request<PinboardConnection>(`/api/v1/projects/${projectId}/pinboard/connections`, {
+        method: 'POST',
+        body: JSON.stringify({ fromTaskId, toTaskId, label }),
+      }),
+    relabelPin: (connId: string, label: string) =>
+      request<PinboardConnection>(`/api/v1/pinboard/connections/${connId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ label }),
+      }),
+    disconnectPin: (connId: string) =>
+      request<void>(`/api/v1/pinboard/connections/${connId}`, { method: 'DELETE' }),
 
     listMembers: (projectId: string) =>
       request<ProjectMember[]>(`/api/v1/projects/${projectId}/members`),
