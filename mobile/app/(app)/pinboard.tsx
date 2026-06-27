@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Pin, Plus, Search, X, ZoomIn, ZoomOut, Locate } from 'lucide-react-native';
 import { useTheme } from '@/theme/ThemeContext';
-import { api, friendlyErrorMessage, Task, Project, PinboardBoard } from '@/api/client';
+import { api, friendlyErrorMessage, Task, Project, Member, PinboardBoard } from '@/api/client';
 import PinboardWebView, { BoardData, PinboardWebViewHandle } from '@/components/PinboardWebView';
 import { haptic } from '@/haptics';
 
@@ -27,6 +27,7 @@ export default function PinboardScreen() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectId, setProjectId] = useState<string | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [board, setBoard] = useState<PinboardBoard>({ cards: [], connections: [] });
   const [loading, setLoading] = useState(true);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -45,9 +46,14 @@ export default function PinboardScreen() {
   const loadBoard = useCallback(async (pid: string) => {
     setLoading(true);
     try {
-      const [b, ts] = await Promise.all([api.getPinboard(pid), api.listTasks(pid)]);
+      const [b, ts, ms] = await Promise.all([
+        api.getPinboard(pid),
+        api.listTasks(pid),
+        api.listMembers(pid).catch(() => [] as Member[]),
+      ]);
       setBoard(b);
       setTasks(ts);
+      setMembers(ms);
     } catch (e) {
       // Board fails silently to an empty state; tasks may still load.
       setBoard({ cards: [], connections: [] });
@@ -73,6 +79,11 @@ export default function PinboardScreen() {
   }, [tasks]);
 
   const pinnedIds = useMemo(() => new Set(board.cards.map((c) => c.taskId)), [board.cards]);
+  const memberById = useMemo(() => {
+    const m = new Map<string, Member>();
+    members.forEach((x) => m.set(x.userId, x));
+    return m;
+  }, [members]);
 
   const data: BoardData = useMemo(() => {
     const tmap: BoardData['tasks'] = {};
@@ -86,6 +97,7 @@ export default function PinboardScreen() {
           startDate: t.startDate,
           dueDate: t.dueDate,
           body: t.body,
+          assignee: t.assigneeId ? memberById.get(t.assigneeId)?.name : undefined,
         };
     });
     return {
@@ -96,7 +108,7 @@ export default function PinboardScreen() {
       tasks: tmap,
       bgColor: board.bgColor ?? null,
     };
-  }, [board, taskById]);
+  }, [board, taskById, memberById]);
 
   const onRecolor = useCallback((cardId: string, color: string) => {
     setBoard((b) => ({ ...b, cards: b.cards.map((c) => (c.id === cardId ? { ...c, color: color || null } : c)) }));

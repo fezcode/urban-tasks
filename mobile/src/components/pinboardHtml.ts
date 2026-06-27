@@ -60,6 +60,9 @@ export const PINBOARD_HTML = `<!doctype html>
   .card .chips { display: flex; flex-wrap: wrap; gap: 4px; }
   .chip { font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 2px; color: #57534e; background: rgba(0,0,0,0.06); }
   .chip.pri { color: #fff; }
+  .who { display: flex; align-items: center; gap: 5px; margin-top: 7px; }
+  .ava { width: 16px; height: 16px; border-radius: 50%; color: #fff; font-size: 8px; font-weight: 700; display: inline-grid; place-items: center; }
+  .wname { font-size: 10px; color: #57534e; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .card.done .title { text-decoration: line-through; opacity: 0.65; }
   .card.armed { outline: 2px solid #e74c3c; outline-offset: 2px; }
   .colordot { position: absolute; top: 5px; left: 5px; width: 15px; height: 15px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.25); }
@@ -191,6 +194,10 @@ export const PINBOARD_HTML = `<!doctype html>
     return t.length > 80 ? t.slice(0, 80) + '…' : t;
   }
   function fmtDate(d) { return d ? String(d).slice(5) : ''; }
+  function randomHex() { return '#' + ('00000' + Math.floor(Math.random() * 0xffffff).toString(16)).slice(-6); }
+  var AVA = ['#C96442', '#7B3F2E', '#2F4F3B', '#344054', '#6B2E1E', '#4A2B3E', '#1F3A2E', '#8B4513'];
+  function avatarColor(s) { var h = 0; for (var i = 0; i < (s || '').length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return AVA[Math.abs(h) % AVA.length]; }
+  function initials(name) { var p = (name || '').trim().split(/\\s+/); var a = p[0] ? p[0][0] : ''; var b = p.length > 1 ? p[p.length - 1][0] : ''; return ((a + b).toUpperCase()) || '?'; }
 
   function applyView() {
     layer.style.transform = 'translate(' + view.panX + 'px,' + view.panY + 'px) scale(' + view.zoom + ')';
@@ -286,11 +293,13 @@ export const PINBOARD_HTML = `<!doctype html>
       if (t.dueDate) chips += '<span class="chip">⚑ ' + esc(fmtDate(t.dueDate)) + '</span>';
       var snip = bodySnippet(t.body);
       var bodyHtml = snip ? '<div class="body">' + esc(snip) + '</div>' : '';
+      var who = '';
+      if (t.assignee) who = '<div class="who"><span class="ava" style="background:' + avatarColor(t.assignee) + '">' + esc(initials(t.assignee)) + '</span><span class="wname">' + esc(String(t.assignee).split(' ')[0]) + '</span></div>';
       node.innerHTML =
         '<button class="colordot" data-colordot="' + cd.id + '" style="background:' + accent + '"></button>' +
         '<button class="unpin" data-unpin="' + cd.id + '">✕</button>' +
         '<div class="title">' + esc(t.title) + '</div><div class="rule"></div>' + bodyHtml +
-        '<div class="chips">' + chips + '</div>' +
+        '<div class="chips">' + chips + '</div>' + who +
         '<div class="dogear"></div><div class="punch"></div>' +
         '<div class="pin" data-pin="' + cd.taskId + '"><div class="needle"></div><div class="collar"></div>' +
         '<div class="head" style="background:radial-gradient(circle at 32% 26%, #fff 0%, ' + accent + ' 40%, ' + accent + ' 66%, rgba(0,0,0,0.5) 100%)"></div><div class="gloss"></div></div>';
@@ -436,6 +445,7 @@ export const PINBOARD_HTML = `<!doctype html>
     var sws = kind === 'board' ? BOARD_SWATCHES : NOTE_SWATCHES;
     var html = '';
     if (kind === 'card') html += '<button class="sw auto" data-auto>Auto</button>';
+    html += '<button class="sw auto" data-random>🎲</button>';
     for (var i = 0; i < sws.length; i++) html += '<button class="sw" data-sw="' + sws[i] + '" style="background:' + sws[i] + '"></button>';
     cpopSw.innerHTML = html;
     var px = Math.max(8, Math.min(ax - 20, window.innerWidth - 196));
@@ -461,6 +471,7 @@ export const PINBOARD_HTML = `<!doctype html>
   cpopSw.addEventListener('click', function (e) {
     var t = e.target;
     if (!t || !t.getAttribute) return;
+    if (t.hasAttribute('data-random')) { applyColor(randomHex()); return; }
     if (t.hasAttribute('data-auto')) { applyColor(''); return; }
     var sw = t.getAttribute('data-sw');
     if (sw) applyColor(sw);

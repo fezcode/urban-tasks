@@ -7,7 +7,7 @@ export interface BoardData {
   connections: { id: string; aTaskId: string; bTaskId: string; label: string }[];
   tasks: Record<
     string,
-    { title: string; status: string; priority?: string; startDate?: string; dueDate?: string; body?: string }
+    { title: string; status: string; priority?: string; startDate?: string; dueDate?: string; body?: string; assignee?: string }
   >;
   bgColor?: string | null;
 }

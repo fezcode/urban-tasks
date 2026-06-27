@@ -2,6 +2,9 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Menu, Pin as PinIcon, Plus, Search, X, ZoomIn, ZoomOut, Locate, Trash2, Palette } from 'lucide-react';
 import { useAppState } from '../context/AppState';
 import { usePinboard } from '../hooks/usePinboard';
+import * as api from '../api/client';
+import type { Member } from '../api/client';
+import Avatar from './Avatar';
 import type { Task } from '../context/types';
 import {
   CARD_WIDTH,
@@ -38,6 +41,10 @@ const BOARD_SWATCHES = ['#c39a5c', '#7a5230', '#3f6f50', '#2f3f5c', '#7d3b3b', '
 const DEFAULT_CORK = '#c39a5c';
 
 const HEX_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+
+function randomHex(): string {
+  return '#' + Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0');
+}
 
 // First short line of the task body, lightly stripped of markdown noise, for the
 // note snippet. (Task "notes" == the task's body/description.)
@@ -106,6 +113,32 @@ const Pinboard: React.FC<Props> = ({ onMenuClick, onSelectTask }) => {
 
   const pinnedTaskIds = useMemo(() => new Set(cards.map((c) => c.taskId)), [cards]);
 
+  // Members of the active project, to render assignee badges on the notes.
+  const [members, setMembers] = useState<Member[]>([]);
+  useEffect(() => {
+    if (!projectId) {
+      setMembers([]);
+      return;
+    }
+    let cancelled = false;
+    api.members
+      .list(projectId)
+      .then((m) => {
+        if (!cancelled) setMembers(m);
+      })
+      .catch(() => {
+        if (!cancelled) setMembers([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId]);
+  const memberById = useMemo(() => {
+    const m = new Map<string, Member>();
+    members.forEach((x) => m.set(x.userId, x));
+    return m;
+  }, [members]);
+
   // Cards whose underlying task still exists (a task deleted elsewhere drops out).
   const liveCards = useMemo(() => cards.filter((c) => taskMap.has(c.taskId)), [cards, taskMap]);
 
@@ -116,6 +149,7 @@ const Pinboard: React.FC<Props> = ({ onMenuClick, onSelectTask }) => {
   cardsRef.current = cards;
 
   const boardRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<Drag | null>(null);
 
   // Live-connect state (drag from a pushpin, or "armed" tap-to-connect on touch).
@@ -131,12 +165,17 @@ const Pinboard: React.FC<Props> = ({ onMenuClick, onSelectTask }) => {
   const [colorTarget, setColorTarget] = useState<
     { kind: 'card'; cardId: string; current: string | null } | { kind: 'board' } | null
   >(null);
-  const [colorAnchor, setColorAnchor] = useState<{ x: number; y: number } | null>(null);
+  const [colorAnchor, setColorAnchor] = useState<{ x: number; y: number; maxX: number } | null>(null);
 
   const openColorPicker = useCallback(
     (target: NonNullable<typeof colorTarget>, clientX: number, clientY: number) => {
-      const rect = boardRef.current?.getBoundingClientRect();
-      setColorAnchor({ x: clientX - (rect?.left ?? 0), y: clientY - (rect?.top ?? 0) });
+      // Anchor relative to the Pinboard root (which is positioned), so the popover
+      // lands correctly whether opened from the toolbar or a card on the board.
+      const rect = rootRef.current?.getBoundingClientRect();
+      const left = rect?.left ?? 0;
+      const top = rect?.top ?? 0;
+      const width = rect?.width ?? 320;
+      setColorAnchor({ x: clientX - left, y: clientY - top, maxX: Math.max(8, width - 232) });
       setColorTarget(target);
     },
     []
@@ -439,7 +478,7 @@ const Pinboard: React.FC<Props> = ({ onMenuClick, onSelectTask }) => {
   }
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
+    <div ref={rootRef} className="relative flex-1 flex flex-col min-h-0">
       <Toolbar
         title={project ? project.name : 'Pinboard'}
         subtitle={`${liveCards.length} pinned · ${connections.length} string`}
@@ -591,6 +630,7 @@ const Pinboard: React.FC<Props> = ({ onMenuClick, onSelectTask }) => {
                 x={card.x}
                 y={card.y}
                 color={card.color ?? null}
+                assignee={task.assigneeId ? memberById.get(task.assigneeId) ?? null : null}
                 armed={connectFrom === task.id}
                 onUnpin={() => void unpin(card.id)}
                 onColorClick={(e) =>
@@ -651,7 +691,7 @@ const Pinboard: React.FC<Props> = ({ onMenuClick, onSelectTask }) => {
 // --- Color picker popover (swatches + custom hex) ---
 
 const ColorPicker: React.FC<{
-  anchor: { x: number; y: number };
+  anchor: { x: number; y: number; maxX: number };
   swatches: string[];
   allowAuto: boolean;
   current: string | null;
@@ -666,19 +706,28 @@ const ColorPicker: React.FC<{
       <div
         data-stop
         className="absolute z-[59] w-56 rounded-xl border border-border bg-surface shadow-xl p-3 animate-fade-in"
-        style={{ left: Math.max(8, anchor.x - 112), top: anchor.y + 14 }}
+        style={{ left: Math.max(8, Math.min(anchor.x - 112, anchor.maxX)), top: anchor.y + 14 }}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <div className="grid grid-cols-8 gap-1.5 mb-2.5">
+        <div className="flex gap-1.5 mb-2">
           {allowAuto && (
             <button
               onClick={() => onPick('')}
               title="Auto (by priority)"
-              className="col-span-2 h-6 rounded-md border border-border text-[10px] text-text-secondary hover:border-accent"
+              className="flex-1 h-6 rounded-md border border-border text-[10px] text-text-secondary hover:border-accent"
             >
               Auto
             </button>
           )}
+          <button
+            onClick={() => onPick(randomHex())}
+            title="Random color"
+            className="flex-1 h-6 rounded-md border border-border text-[10px] text-text-secondary hover:border-accent"
+          >
+            🎲 Random
+          </button>
+        </div>
+        <div className="grid grid-cols-8 gap-1.5 mb-2.5">
           {swatches.map((c) => (
             <button
               key={c}
@@ -799,12 +848,13 @@ interface NoteCardProps {
   x: number;
   y: number;
   color: string | null;
+  assignee: Member | null;
   armed: boolean;
   onUnpin: () => void;
   onColorClick: (e: React.MouseEvent) => void;
 }
 
-const NoteCard: React.FC<NoteCardProps> = React.memo(({ cardId, task, x, y, color, armed, onUnpin, onColorClick }) => {
+const NoteCard: React.FC<NoteCardProps> = React.memo(({ cardId, task, x, y, color, assignee, armed, onUnpin, onColorClick }) => {
   const tilt = tiltFor(cardId);
   // Hand-picked color wins; otherwise fall back to the priority color.
   const accent = color ?? PIN_COLORS[task.priority ?? 'none'] ?? PIN_COLORS.none;
@@ -907,6 +957,16 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ cardId, task, x, y, colo
             </span>
           )}
         </div>
+
+        {/* Assignee badge */}
+        {task.assigneeId && (
+          <div className="flex items-center gap-1.5 mt-2">
+            <Avatar seed={assignee?.avatarSeed || task.assigneeId} name={assignee?.name ?? ''} size={16} className="rounded-full" />
+            <span className="text-[10px] text-stone-600 truncate" style={{ maxWidth: 120 }}>
+              {assignee ? assignee.name.split(' ')[0] : 'Assigned'}
+            </span>
+          </div>
+        )}
 
         {/* Dog-eared folded corner */}
         <span
