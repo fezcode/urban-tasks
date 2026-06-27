@@ -274,6 +274,7 @@ export default function Pinboard({ client, project, onBack, onOpenTask }: Props)
             const selected = i === cursor;
             const conns = connsOf(card.taskId);
             const done = t?.status === 'done';
+            const snip = bodyLine(t?.body);
             return (
               <Box key={card.id} flexDirection="column">
                 <Box>
@@ -281,8 +282,15 @@ export default function Pinboard({ client, project, onBack, onOpenTask }: Props)
                   <Text color={done ? 'gray' : undefined}>{statusIcon(t?.status ?? 'todo')} </Text>
                   {priorityMark(t?.priority ?? '') ? <Text color="red">{priorityMark(t?.priority ?? '')} </Text> : null}
                   <Text color={done ? 'gray' : undefined} strikethrough={done}>{t?.title ?? '(deleted task)'}</Text>
+                  {t?.startDate ? <Text dimColor> · ▶ {t.startDate}</Text> : null}
+                  {t?.dueDate ? <Text color="yellow"> · ⚑ {t.dueDate}</Text> : null}
                   {conns.length > 0 && <Text dimColor> · {conns.length} string{conns.length === 1 ? '' : 's'}</Text>}
                 </Box>
+                {selected && snip ? (
+                  <Box marginLeft={4}>
+                    <Text dimColor>{snip}</Text>
+                  </Box>
+                ) : null}
                 {selected &&
                   conns.map((c) => (
                     <Box key={c.id} marginLeft={4}>
@@ -307,4 +315,11 @@ export default function Pinboard({ client, project, onBack, onOpenTask }: Props)
 
 function truncate(s: string, n: number): string {
   return s.length > n ? s.slice(0, n - 1) + '…' : s;
+}
+
+// First line of a task's body (its notes), lightly de-marked, for the board card.
+function bodyLine(body?: string | null): string {
+  if (!body) return '';
+  const t = body.replace(/[#*_>`]/g, '').replace(/\s+/g, ' ').trim();
+  return t.length > 64 ? t.slice(0, 64) + '…' : t;
 }

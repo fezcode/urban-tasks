@@ -3,9 +3,13 @@ import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import { PINBOARD_HTML } from './pinboardHtml';
 
 export interface BoardData {
-  cards: { id: string; taskId: string; x: number; y: number }[];
+  cards: { id: string; taskId: string; x: number; y: number; color?: string | null }[];
   connections: { id: string; aTaskId: string; bTaskId: string; label: string }[];
-  tasks: Record<string, { title: string; status: string; priority?: string; dueDate?: string }>;
+  tasks: Record<
+    string,
+    { title: string; status: string; priority?: string; startDate?: string; dueDate?: string; body?: string }
+  >;
+  bgColor?: string | null;
 }
 
 export interface PinboardWebViewHandle {
@@ -22,6 +26,8 @@ interface Props {
   onDisconnect: (connId: string) => void;
   onUnpin: (cardId: string) => void;
   onOpen: (taskId: string) => void;
+  onRecolor: (cardId: string, color: string) => void;
+  onBoardColor: (color: string) => void;
 }
 
 const PinboardWebView = forwardRef<PinboardWebViewHandle, Props>((props, ref) => {
@@ -78,6 +84,12 @@ const PinboardWebView = forwardRef<PinboardWebViewHandle, Props>((props, ref) =>
         break;
       case 'open':
         props.onOpen(msg.taskId);
+        break;
+      case 'recolor':
+        props.onRecolor(msg.cardId, msg.color ?? '');
+        break;
+      case 'boardColor':
+        props.onBoardColor(msg.color ?? '');
         break;
     }
   };

@@ -185,7 +185,17 @@ export interface PinboardCard {
   taskId: string;
   x: number;
   y: number;
+  color?: string | null;
   createdAt: string;
+}
+
+export interface PinboardLinkedTask {
+  connectionId: string;
+  label: string;
+  taskId: string;
+  title: string;
+  status: string;
+  priority: string;
 }
 
 export interface PinboardConnection {
@@ -200,6 +210,7 @@ export interface PinboardConnection {
 export interface PinboardBoard {
   cards: PinboardCard[];
   connections: PinboardConnection[];
+  bgColor?: string | null;
 }
 
 export interface Member {
@@ -402,6 +413,18 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify({ x, y }),
     }),
+  recolorPinCard: (cardId: string, color: string) =>
+    request<PinboardCard>(`/pinboard/cards/${cardId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ color }),
+    }),
+  setBoardColor: (projectId: string, bgColor: string) =>
+    request<{ bgColor: string | null }>(`/projects/${projectId}/pinboard`, {
+      method: 'PATCH',
+      body: JSON.stringify({ bgColor }),
+    }),
+  linkedTasks: (taskId: string) =>
+    request<PinboardLinkedTask[]>(`/tasks/${taskId}/pinboard`),
   unpinCard: (cardId: string) =>
     request<void>(`/pinboard/cards/${cardId}`, { method: 'DELETE' }),
   connectPins: (projectId: string, fromTaskId: string, toTaskId: string, label = '') =>

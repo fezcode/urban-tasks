@@ -78,14 +78,39 @@ export default function PinboardScreen() {
     const tmap: BoardData['tasks'] = {};
     board.cards.forEach((c) => {
       const t = taskById.get(c.taskId);
-      if (t) tmap[c.taskId] = { title: t.title, status: t.status, priority: t.priority, dueDate: t.dueDate };
+      if (t)
+        tmap[c.taskId] = {
+          title: t.title,
+          status: t.status,
+          priority: t.priority,
+          startDate: t.startDate,
+          dueDate: t.dueDate,
+          body: t.body,
+        };
     });
     return {
-      cards: board.cards.filter((c) => taskById.has(c.taskId)).map((c) => ({ id: c.id, taskId: c.taskId, x: c.x, y: c.y })),
+      cards: board.cards
+        .filter((c) => taskById.has(c.taskId))
+        .map((c) => ({ id: c.id, taskId: c.taskId, x: c.x, y: c.y, color: c.color ?? null })),
       connections: board.connections.map((c) => ({ id: c.id, aTaskId: c.aTaskId, bTaskId: c.bTaskId, label: c.label })),
       tasks: tmap,
+      bgColor: board.bgColor ?? null,
     };
   }, [board, taskById]);
+
+  const onRecolor = useCallback((cardId: string, color: string) => {
+    setBoard((b) => ({ ...b, cards: b.cards.map((c) => (c.id === cardId ? { ...c, color: color || null } : c)) }));
+    api.recolorPinCard(cardId, color).catch(() => {});
+  }, []);
+
+  const onBoardColor = useCallback(
+    (color: string) => {
+      if (!projectId) return;
+      setBoard((b) => ({ ...b, bgColor: color || null }));
+      api.setBoardColor(projectId, color || '#c39a5c').catch(() => {});
+    },
+    [projectId]
+  );
 
   // --- mutations ---
   const onMove = useCallback((cardId: string, x: number, y: number) => {
@@ -249,6 +274,8 @@ export default function PinboardScreen() {
               onDisconnect={onDisconnect}
               onUnpin={onUnpin}
               onOpen={onOpen}
+              onRecolor={onRecolor}
+              onBoardColor={onBoardColor}
             />
             {loading && (
               <View style={{ position: 'absolute', top: 12, alignSelf: 'center', backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6, flexDirection: 'row', gap: 8, alignItems: 'center' }}>

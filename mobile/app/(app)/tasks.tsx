@@ -21,7 +21,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CalendarClock, Check, Flag, Inbox, MapPin, Pencil, Plus, Search, SearchX, Share2, X } from 'lucide-react-native';
 import { useTheme } from '@/theme/ThemeContext';
-import { api, friendlyErrorMessage, Task, Project, Member, Location } from '@/api/client';
+import { api, friendlyErrorMessage, Task, Project, Member, Location, PinboardLinkedTask } from '@/api/client';
 import { DateField, EmptyState, Markdown } from '@/components/ui';
 import LocationField from '@/components/LocationField';
 import { haptic } from '@/haptics';
@@ -638,6 +638,10 @@ export default function TasksScreen() {
           const current = tasks.find((t) => t.id === viewing.id) ?? viewing;
           cycleStatus(current);
         }}
+        onOpenTask={(id) => {
+          const t = tasks.find((x) => x.id === id);
+          if (t) setViewing(t);
+        }}
       />
       <TouchableOpacity
         onPress={() => setCreating(true)}
@@ -986,9 +990,10 @@ interface TaskViewProps {
   onClose: () => void;
   onEdit: () => void;
   onStatusCycle: () => void;
+  onOpenTask?: (taskId: string) => void;
 }
 
-function TaskViewModal({ visible, task, project, assignee, onClose, onEdit, onStatusCycle }: TaskViewProps) {
+function TaskViewModal({ visible, task, project, assignee, onClose, onEdit, onStatusCycle, onOpenTask }: TaskViewProps) {
   const { palette, radii, spacing, fontSize } = useTheme();
 
   const share = async () => {
@@ -1252,10 +1257,79 @@ function TaskViewModal({ visible, task, project, assignee, onClose, onEdit, onSt
             </Text>
           )}
 
+          <BoardLinks taskId={task.id} onOpenTask={onOpenTask} />
+
           <View style={{ height: spacing.xl }} />
         </ScrollView>
       </SafeAreaView>
     </Modal>
+  );
+}
+
+const PRI_DOT: Record<string, string> = { high: '#d63a2f', medium: '#e0902a', low: '#3a7bd5', none: '#9ca39d' };
+
+// "On the board" — the pinboard string connections for a task, shown in its detail.
+function BoardLinks({ taskId, onOpenTask }: { taskId: string; onOpenTask?: (id: string) => void }) {
+  const { palette, radii, spacing, fontSize } = useTheme();
+  const [links, setLinks] = useState<PinboardLinkedTask[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .linkedTasks(taskId)
+      .then((l) => {
+        if (!cancelled) setLinks(l);
+      })
+      .catch(() => {
+        if (!cancelled) setLinks([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [taskId]);
+
+  if (links.length === 0) return null;
+  return (
+    <View style={{ gap: spacing.sm }}>
+      <Text style={{ color: palette.textTertiary, fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase', fontFamily: 'Inter_500Medium' }}>
+        On the board
+      </Text>
+      <View style={{ gap: 6 }}>
+        {links.map((l) => (
+          <TouchableOpacity
+            key={l.connectionId}
+            disabled={!onOpenTask}
+            onPress={() => onOpenTask?.(l.taskId)}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+              backgroundColor: palette.surface,
+              borderColor: palette.border,
+              borderWidth: 1,
+              borderRadius: radii.md,
+              paddingHorizontal: spacing.md,
+              paddingVertical: spacing.sm,
+            }}
+          >
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: PRI_DOT[l.priority] ?? PRI_DOT.none }} />
+            <Text
+              numberOfLines={1}
+              style={{
+                flex: 1,
+                color: l.status === 'done' ? palette.textTertiary : palette.textPrimary,
+                fontSize: fontSize.base,
+                textDecorationLine: l.status === 'done' ? 'line-through' : 'none',
+              }}
+            >
+              {l.title}
+            </Text>
+            {l.label ? (
+              <Text style={{ color: palette.accent, fontSize: fontSize['2xs'], fontFamily: 'Inter_500Medium' }}>{l.label}</Text>
+            ) : null}
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
   );
 }
 

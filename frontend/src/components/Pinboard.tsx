@@ -896,9 +896,14 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ cardId, task, x, y, colo
               {task.priority}
             </span>
           )}
+          {task.startDate && (
+            <span className="px-1.5 py-0.5 rounded-[2px] text-[10px] font-medium text-stone-600 bg-black/[0.06]" title={`Starts ${task.startDate}`}>
+              ▶ {task.startDate.slice(5)}
+            </span>
+          )}
           {task.dueDate && (
-            <span className="px-1.5 py-0.5 rounded-[2px] text-[10px] font-medium text-stone-600 bg-black/[0.06]">
-              {task.dueDate.slice(5)}
+            <span className="px-1.5 py-0.5 rounded-[2px] text-[10px] font-medium text-stone-700 bg-status-warning/15" title={`Due ${task.dueDate}`}>
+              ⚑ {task.dueDate.slice(5)}
             </span>
           )}
         </div>

@@ -21,12 +21,12 @@ export const PINBOARD_HTML = `<!doctype html>
     position: absolute; inset: 0; overflow: hidden; touch-action: none;
     background-color: #c39a5c;
     background-image:
-      radial-gradient(circle at 18% 22%, rgba(80,50,20,0.16) 0 1.5px, transparent 2.5px),
-      radial-gradient(circle at 62% 44%, rgba(70,45,18,0.13) 0 1.5px, transparent 2.5px),
-      radial-gradient(circle at 38% 78%, rgba(255,240,210,0.10) 0 1.5px, transparent 2.5px),
-      radial-gradient(circle at 82% 64%, rgba(60,38,14,0.12) 0 1px, transparent 2px),
-      radial-gradient(circle at 8% 88%, rgba(255,240,210,0.08) 0 1px, transparent 2px),
-      radial-gradient(circle at 50% 50%, rgba(150,110,60,0.22), rgba(120,84,40,0.34));
+      radial-gradient(circle at 18% 22%, rgba(0,0,0,0.10) 0 1.5px, transparent 2.5px),
+      radial-gradient(circle at 62% 44%, rgba(0,0,0,0.08) 0 1.5px, transparent 2.5px),
+      radial-gradient(circle at 38% 78%, rgba(255,255,255,0.10) 0 1.5px, transparent 2.5px),
+      radial-gradient(circle at 82% 64%, rgba(0,0,0,0.07) 0 1px, transparent 2px),
+      radial-gradient(circle at 8% 88%, rgba(255,255,255,0.07) 0 1px, transparent 2px),
+      radial-gradient(circle at 50% 50%, rgba(0,0,0,0.04), rgba(0,0,0,0.20));
     background-size: 46px 46px, 58px 58px, 52px 52px, 38px 38px, 64px 64px, 100% 100%;
   }
   #frame {
@@ -38,24 +38,45 @@ export const PINBOARD_HTML = `<!doctype html>
   #layer { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
   #strings { position: absolute; left: 0; top: 0; overflow: visible; }
   .card {
-    position: absolute; width: 196px; padding: 14px 12px 10px; border-radius: 3px;
-    background: linear-gradient(150deg, #fffdf4 0%, #f7f0dd 100%);
-    border: 1px solid rgba(120,100,60,0.25);
-    box-shadow: 0 6px 12px rgba(0,0,0,0.32), 0 1px 2px rgba(0,0,0,0.25);
+    position: absolute; width: 196px; padding: 16px 12px 11px; border-radius: 3px;
+    background-color: #fbf6e7;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(120,90,40,0.035) 0 1px, transparent 1px 22px),
+      radial-gradient(circle at 78% 12%, rgba(150,120,70,0.10), transparent 40%),
+      radial-gradient(circle at 12% 86%, rgba(150,120,70,0.08), transparent 38%),
+      linear-gradient(150deg, #fffdf4 0%, #f6efda 100%);
+    border: 1px solid rgba(120,100,60,0.28);
+    box-shadow: 0 7px 14px rgba(0,0,0,0.30), 0 2px 3px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.6);
   }
   .card .title {
     font-family: 'Courier New', ui-monospace, monospace; font-weight: 700;
-    font-size: 13px; line-height: 1.3; color: #1c1c1c; word-break: break-word;
+    font-size: 13px; line-height: 1.3; color: #1c1c1c; word-break: break-word; padding-right: 12px;
   }
-  .card .rule { height: 1px; margin: 6px 0; background: rgba(192,57,43,0.45); }
+  .card .rule { height: 1px; margin: 6px 0; background: rgba(192,57,43,0.42); }
+  .card .body {
+    font-family: 'Courier New', ui-monospace, monospace; font-size: 11px; line-height: 1.35; color: #57534e;
+    margin-bottom: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
   .card .chips { display: flex; flex-wrap: wrap; gap: 4px; }
   .chip { font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 2px; color: #57534e; background: rgba(0,0,0,0.06); }
   .chip.pri { color: #fff; }
   .card.done .title { text-decoration: line-through; opacity: 0.65; }
   .card.armed { outline: 2px solid #e74c3c; outline-offset: 2px; }
-  .pin { position: absolute; left: 50%; top: -9px; transform: translateX(-50%); width: 18px; height: 18px; filter: drop-shadow(0 2px 1.5px rgba(0,0,0,0.4)); }
-  .pin .head { position: absolute; inset: 0; border-radius: 50%; }
-  .pin .gloss { position: absolute; width: 5px; height: 5px; left: 4px; top: 3px; border-radius: 50%; background: rgba(255,255,255,0.7); }
+  .colordot { position: absolute; top: 5px; left: 5px; width: 15px; height: 15px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.25); }
+  .dogear { position: absolute; right: 0; bottom: 0; width: 0; height: 0; border-style: solid; border-width: 0 0 14px 14px; border-color: transparent transparent #ece2c6 transparent; filter: drop-shadow(-1px -1px 1px rgba(0,0,0,0.12)); }
+  .punch { position: absolute; left: 50%; top: 3px; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: radial-gradient(circle, rgba(0,0,0,0.5), rgba(0,0,0,0.15) 60%, transparent); }
+  .pin { position: absolute; left: 50%; top: -11px; transform: translateX(-50%); width: 20px; height: 22px; filter: drop-shadow(0 3px 2px rgba(0,0,0,0.45)); }
+  .pin .needle { position: absolute; left: 50%; top: 12px; width: 2px; height: 10px; transform: translateX(-50%) rotate(7deg); transform-origin: top; background: linear-gradient(to bottom, #c2c5cc, #6a6d75); border-radius: 0 0 1px 1px; }
+  .pin .collar { position: absolute; left: 50%; top: 10.5px; width: 7px; height: 3.5px; transform: translateX(-50%); background: linear-gradient(#e2e4e9, #888c95); border-radius: 2px; }
+  .pin .head { position: absolute; left: 1px; top: 0; width: 18px; height: 18px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.18); }
+  .pin .gloss { position: absolute; width: 5px; height: 5px; left: 5px; top: 3px; border-radius: 50%; background: rgba(255,255,255,0.8); }
+  #cfab { position: absolute; left: 14px; bottom: 14px; z-index: 40; width: 40px; height: 40px; border-radius: 50%; border: none; background: rgba(0,0,0,0.55); color: #fff; font-size: 18px; display: grid; place-items: center; }
+  #cpop { position: absolute; z-index: 50; display: none; width: 188px; padding: 10px; border-radius: 12px; background: #2a2a2a; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+  #cpop .row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .sw { width: 22px; height: 22px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.25); }
+  .sw.auto { width: auto; padding: 0 8px; color: #ddd; font-size: 11px; background: #3a3a3a; }
+  #cpop .custom { margin-top: 8px; display: flex; align-items: center; gap: 6px; color: #ccc; font-size: 11px; }
+  #cpop .custom input[type=color] { width: 28px; height: 24px; border: none; background: none; padding: 0; }
   .unpin {
     position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; border: none; border-radius: 50%;
     background: rgba(0,0,0,0.08); color: #57534e; font-size: 13px; line-height: 1; display: grid; place-items: center;
@@ -98,6 +119,11 @@ export const PINBOARD_HTML = `<!doctype html>
   <div id="frame"></div>
   <div id="hint">Tap another note to connect</div>
   <div id="empty"><div class="box"><div class="t">Nothing pinned yet</div><div class="s">Use “Pin tasks” to add notes, then drag string between them.</div></div></div>
+  <button id="cfab" data-boardcolor title="Board color">🎨</button>
+  <div id="cpop" data-stop>
+    <div class="row" id="cpop-sw"></div>
+    <div class="custom">Custom <input type="color" id="cpop-custom" value="#cc5555" /></div>
+  </div>
 </div>
 <script>
 (function () {
@@ -105,6 +131,8 @@ export const PINBOARD_HTML = `<!doctype html>
   var PRI = { high: '#d63a2f', medium: '#e0902a', low: '#3a7bd5', none: '#c0392b' };
   var STATUS = { todo: 'To do', 'in-progress': 'Active', done: 'Done' };
   var SVGNS = 'http://www.w3.org/2000/svg';
+  var NOTE_SWATCHES = ['#d63a2f', '#e0902a', '#e7c12b', '#3a9b54', '#3a7bd5', '#8a5cd6', '#d6539e', '#5b6470'];
+  var BOARD_SWATCHES = ['#c39a5c', '#7a5230', '#3f6f50', '#2f3f5c', '#7d3b3b', '#4a4a52'];
 
   var cards = [], connections = [], tasks = {};
   var view = { panX: 0, panY: 0, zoom: 1 };
@@ -113,6 +141,9 @@ export const PINBOARD_HTML = `<!doctype html>
   var pointers = {};
   var pinch = null;
   var centered = false;
+  var bgColor = null;
+  var colorMode = null;
+  var cpopOpen = false;
 
   var board = document.getElementById('board');
   var layer = document.getElementById('layer');
@@ -121,6 +152,9 @@ export const PINBOARD_HTML = `<!doctype html>
   var labelsEl = document.getElementById('labels');
   var hint = document.getElementById('hint');
   var emptyEl = document.getElementById('empty');
+  var cpop = document.getElementById('cpop');
+  var cpopSw = document.getElementById('cpop-sw');
+  var cpopCustom = document.getElementById('cpop-custom');
 
   function post(m) {
     if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify(m));
@@ -145,6 +179,18 @@ export const PINBOARD_HTML = `<!doctype html>
     return { path: path, mid: mid };
   }
   function tiltFor(id) { var h = 0; for (var i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0; return ((Math.abs(h) % 61) - 30) / 10; }
+  function hexA(hex, a) {
+    var h = (hex || '').replace('#', '');
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    if (h.length < 6) return hex;
+    return 'rgba(' + parseInt(h.slice(0, 2), 16) + ',' + parseInt(h.slice(2, 4), 16) + ',' + parseInt(h.slice(4, 6), 16) + ',' + a + ')';
+  }
+  function bodySnippet(body) {
+    if (!body) return '';
+    var t = body.replace(/[#*_>]/g, ' ').replace(/\\s+/g, ' ').trim();
+    return t.length > 80 ? t.slice(0, 80) + '…' : t;
+  }
+  function fmtDate(d) { return d ? String(d).slice(5) : ''; }
 
   function applyView() {
     layer.style.transform = 'translate(' + view.panX + 'px,' + view.panY + 'px) scale(' + view.zoom + ')';
@@ -223,18 +269,31 @@ export const PINBOARD_HTML = `<!doctype html>
       var cd = cards[k];
       var t = tasks[cd.taskId];
       if (!t) continue;
-      var color = PRI[t.priority || 'none'] || PRI.none;
+      var accent = cd.color || PRI[t.priority || 'none'] || PRI.none;
       var done = t.status === 'done';
       var node = el('div', 'card' + (done ? ' done' : '') + (connectFrom === cd.taskId ? ' armed' : ''));
       node.style.left = cd.x + 'px'; node.style.top = cd.y + 'px'; node.style.transform = 'rotate(' + tiltFor(cd.id) + 'deg)';
+      if (cd.color) {
+        node.style.backgroundImage =
+          'linear-gradient(0deg, ' + hexA(cd.color, 0.22) + ', ' + hexA(cd.color, 0.22) + '),' +
+          'repeating-linear-gradient(0deg, rgba(120,90,40,0.035) 0 1px, transparent 1px 22px),' +
+          'linear-gradient(150deg, #fffdf4 0%, #f6efda 100%)';
+      }
       node.setAttribute('data-card-id', cd.id); node.setAttribute('data-card-task', cd.taskId);
       var chips = '<span class="chip">' + (STATUS[t.status] || t.status) + '</span>';
-      if (t.priority && t.priority !== 'none') chips += '<span class="chip pri" style="background:' + color + '">' + t.priority + '</span>';
-      if (t.dueDate) chips += '<span class="chip">' + esc(String(t.dueDate).slice(5)) + '</span>';
+      if (t.priority && t.priority !== 'none') chips += '<span class="chip pri" style="background:' + accent + '">' + t.priority + '</span>';
+      if (t.startDate) chips += '<span class="chip">▶ ' + esc(fmtDate(t.startDate)) + '</span>';
+      if (t.dueDate) chips += '<span class="chip">⚑ ' + esc(fmtDate(t.dueDate)) + '</span>';
+      var snip = bodySnippet(t.body);
+      var bodyHtml = snip ? '<div class="body">' + esc(snip) + '</div>' : '';
       node.innerHTML =
-        '<div class="pin" data-pin="' + cd.taskId + '"><div class="head" style="background:radial-gradient(circle at 32% 28%, #fff 0%, ' + color + ' 42%, ' + color + ' 70%, rgba(0,0,0,0.45) 100%)"></div><div class="gloss"></div></div>' +
+        '<button class="colordot" data-colordot="' + cd.id + '" style="background:' + accent + '"></button>' +
         '<button class="unpin" data-unpin="' + cd.id + '">✕</button>' +
-        '<div class="title">' + esc(t.title) + '</div><div class="rule"></div><div class="chips">' + chips + '</div>';
+        '<div class="title">' + esc(t.title) + '</div><div class="rule"></div>' + bodyHtml +
+        '<div class="chips">' + chips + '</div>' +
+        '<div class="dogear"></div><div class="punch"></div>' +
+        '<div class="pin" data-pin="' + cd.taskId + '"><div class="needle"></div><div class="collar"></div>' +
+        '<div class="head" style="background:radial-gradient(circle at 32% 26%, #fff 0%, ' + accent + ' 40%, ' + accent + ' 66%, rgba(0,0,0,0.5) 100%)"></div><div class="gloss"></div></div>';
       cardsEl.appendChild(node);
     }
 
@@ -257,6 +316,7 @@ export const PINBOARD_HTML = `<!doctype html>
   function onDown(e) {
     var target = e.target;
     if (target.closest && target.closest('[data-stop]')) return;
+    if (cpopOpen) closePopover();
     pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
     var ids = Object.keys(pointers);
 
@@ -268,6 +328,11 @@ export const PINBOARD_HTML = `<!doctype html>
       return;
     }
     if (ids.length > 2) return;
+
+    var bcEl = target.closest && target.closest('[data-boardcolor]');
+    if (bcEl) { var br = bcEl.getBoundingClientRect(); openPopover('board', null, br.left, br.bottom); return; }
+    var cdotEl = target.closest && target.closest('[data-colordot]');
+    if (cdotEl) { var cr = cdotEl.getBoundingClientRect(); openPopover('card', cdotEl.getAttribute('data-colordot'), cr.left, cr.bottom); return; }
 
     // Discrete taps handled on up; record element.
     var delEl = target.closest && target.closest('[data-del]');
@@ -365,6 +430,43 @@ export const PINBOARD_HTML = `<!doctype html>
     connections.push({ id: 'tmp-' + key, aTaskId: a, bTaskId: b, label: '' });
   }
 
+  // --- color picker popover ---
+  function openPopover(kind, cardId, ax, ay) {
+    colorMode = { kind: kind, cardId: cardId };
+    var sws = kind === 'board' ? BOARD_SWATCHES : NOTE_SWATCHES;
+    var html = '';
+    if (kind === 'card') html += '<button class="sw auto" data-auto>Auto</button>';
+    for (var i = 0; i < sws.length; i++) html += '<button class="sw" data-sw="' + sws[i] + '" style="background:' + sws[i] + '"></button>';
+    cpopSw.innerHTML = html;
+    var px = Math.max(8, Math.min(ax - 20, window.innerWidth - 196));
+    var py = ay + 8;
+    if (py + 130 > window.innerHeight) py = Math.max(8, ay - 140);
+    cpop.style.left = px + 'px'; cpop.style.top = py + 'px'; cpop.style.display = 'block';
+    cpopOpen = true;
+  }
+  function closePopover() { cpop.style.display = 'none'; cpopOpen = false; colorMode = null; }
+  function applyColor(hex) {
+    if (!colorMode) return;
+    if (colorMode.kind === 'board') {
+      bgColor = hex || null; board.style.backgroundColor = hex || '#c39a5c';
+      post({ type: 'boardColor', color: hex });
+    } else {
+      var c = cardById(colorMode.cardId);
+      if (c) c.color = hex || null;
+      post({ type: 'recolor', cardId: colorMode.cardId, color: hex });
+    }
+    closePopover();
+    render();
+  }
+  cpopSw.addEventListener('click', function (e) {
+    var t = e.target;
+    if (!t || !t.getAttribute) return;
+    if (t.hasAttribute('data-auto')) { applyColor(''); return; }
+    var sw = t.getAttribute('data-sw');
+    if (sw) applyColor(sw);
+  });
+  cpopCustom.addEventListener('change', function () { applyColor(cpopCustom.value); });
+
   board.addEventListener('pointerdown', onDown);
   board.addEventListener('pointermove', onMove);
   board.addEventListener('pointerup', onUp);
@@ -375,6 +477,9 @@ export const PINBOARD_HTML = `<!doctype html>
     cards = data.cards || [];
     connections = data.connections || [];
     tasks = data.tasks || {};
+    bgColor = data.bgColor || null;
+    board.style.backgroundColor = bgColor || '#c39a5c';
+    if (cpopOpen) closePopover();
     autoCenter();
     render();
   };
