@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAppState } from '../context/AppState';
-import type { TaskStatus, TaskPriority, TaskRecurrence, Location } from '../context/types';
+import type { TaskStatus, TaskPriority, TaskRecurrence, Location, PinboardLinkedTask } from '../context/types';
 import ReactMarkdown from 'react-markdown';
 import {
   X,
@@ -22,6 +22,7 @@ import {
   RefreshCw,
   Share2,
   UserCircle2,
+  Pin,
 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { format, differenceInDays, startOfDay } from 'date-fns';
@@ -37,7 +38,15 @@ interface Props {
   taskId: string;
   onClose: () => void;
   onTagClick?: (tag: string) => void;
+  onOpenTask?: (id: string) => void;
 }
+
+const PRIORITY_DOT: Record<string, string> = {
+  high: '#d63a2f',
+  medium: '#e0902a',
+  low: '#3a7bd5',
+  none: '#9ca39d',
+};
 
 function getDueDateLabel(dueDate: string): { label: string; className: string } {
   const today = startOfDay(new Date());
@@ -55,11 +64,27 @@ function getDueDateLabel(dueDate: string): { label: string; className: string } 
   return { label: `Due ${format(due, 'MMM d, yyyy')}`, className: 'text-text-tertiary' };
 }
 
-const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
+const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick, onOpenTask }) => {
   const { state, syncDispatch } = useAppState();
   const { success: toastSuccess, error: toastError } = useToast();
   const task = state.tasks.find((t) => t.id === taskId);
   const project = task ? state.projects.find((p) => p.id === task.projectId) : null;
+  const [linked, setLinked] = useState<PinboardLinkedTask[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.pinboard
+      .linkedTasks(taskId)
+      .then((l) => {
+        if (!cancelled) setLinked(l);
+      })
+      .catch(() => {
+        if (!cancelled) setLinked([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [taskId]);
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
@@ -808,6 +833,44 @@ const TaskDetail: React.FC<Props> = ({ taskId, onClose, onTagClick }) => {
             )}
           </div>
         </div>
+
+        {/* On the board — pinboard string connections */}
+        {linked.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Pin size={14} className="text-text-tertiary" />
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
+                On the board
+              </span>
+              <span className="text-2xs text-text-tertiary tabular-nums">{linked.length}</span>
+            </div>
+            <div className="space-y-1.5">
+              {linked.map((l) => (
+                <button
+                  key={l.connectionId}
+                  onClick={() => onOpenTask?.(l.taskId)}
+                  disabled={!onOpenTask}
+                  className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-surface-hover border border-transparent hover:border-border transition-base text-left disabled:cursor-default"
+                >
+                  <span
+                    className="w-2 h-2 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: PRIORITY_DOT[l.priority] ?? PRIORITY_DOT.none }}
+                  />
+                  <span
+                    className={`text-[13px] truncate flex-1 ${l.status === 'done' ? 'text-text-tertiary line-through' : 'text-text-primary'}`}
+                  >
+                    {l.title}
+                  </span>
+                  {l.label && (
+                    <span className="text-2xs px-1.5 py-0.5 rounded-full bg-accent-light text-accent flex-shrink-0">
+                      {l.label}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Body / Notes */}
         <div>

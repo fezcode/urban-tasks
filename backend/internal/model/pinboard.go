@@ -2,20 +2,36 @@ package model
 
 import (
 	"math"
+	"regexp"
 	"strings"
 	"time"
 )
 
 const maxConnectionLabelLen = 80
 
+var hexColorRe = regexp.MustCompile(`^#([0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$`)
+
 // PinboardCard is a task pinned onto a project's board at a logical (x,y).
+// Color is an optional hand-picked accent (#hex); nil means "auto" (priority).
 type PinboardCard struct {
 	ID        string    `json:"id"`
 	ProjectID string    `json:"projectId"`
 	TaskID    string    `json:"taskId"`
 	X         float64   `json:"x"`
 	Y         float64   `json:"y"`
+	Color     *string   `json:"color,omitempty"`
 	CreatedAt time.Time `json:"createdAt"`
+}
+
+// PinboardLinkedTask is a task strung to another on the board — surfaced in the
+// task detail view so connections are visible without opening the board.
+type PinboardLinkedTask struct {
+	ConnectionID string `json:"connectionId"`
+	Label        string `json:"label"`
+	TaskID       string `json:"taskId"`
+	Title        string `json:"title"`
+	Status       string `json:"status"`
+	Priority     string `json:"priority"`
 }
 
 // PinboardConnection is an undirected labeled string between two pinned tasks.
@@ -33,6 +49,7 @@ type PinboardConnection struct {
 type PinboardBoard struct {
 	Cards       []PinboardCard       `json:"cards"`
 	Connections []PinboardConnection `json:"connections"`
+	BgColor     *string              `json:"bgColor,omitempty"`
 }
 
 type CreatePinboardCardRequest struct {
@@ -41,9 +58,16 @@ type CreatePinboardCardRequest struct {
 	Y      float64 `json:"y"`
 }
 
+// UpdatePinboardCardRequest — all fields optional. A present Color of "" clears
+// it (back to auto); a present hex sets it; absent leaves it unchanged.
 type UpdatePinboardCardRequest struct {
-	X *float64 `json:"x,omitempty"`
-	Y *float64 `json:"y,omitempty"`
+	X     *float64 `json:"x,omitempty"`
+	Y     *float64 `json:"y,omitempty"`
+	Color *string  `json:"color,omitempty"`
+}
+
+type UpdatePinboardBoardRequest struct {
+	BgColor *string `json:"bgColor,omitempty"`
 }
 
 type CreatePinboardConnectionRequest struct {
@@ -78,6 +102,19 @@ func SanitizeConnectionLabel(s string) string {
 		s = string(r[:maxConnectionLabelLen])
 	}
 	return s
+}
+
+// SanitizeColor normalizes a #hex color (3/4/6/8 digits), or returns nil for
+// empty/invalid input (treated as "no color / auto").
+func SanitizeColor(s *string) *string {
+	if s == nil {
+		return nil
+	}
+	v := strings.ToLower(strings.TrimSpace(*s))
+	if v == "" || !hexColorRe.MatchString(v) {
+		return nil
+	}
+	return &v
 }
 
 // NormalizePair orders a task-id pair so the smaller id comes first (undirected).

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Menu, Pin as PinIcon, Plus, Search, X, ZoomIn, ZoomOut, Locate, Trash2 } from 'lucide-react';
+import { Menu, Pin as PinIcon, Plus, Search, X, ZoomIn, ZoomOut, Locate, Trash2, Palette } from 'lucide-react';
 import { useAppState } from '../context/AppState';
 import { usePinboard } from '../hooks/usePinboard';
 import type { Task } from '../context/types';
@@ -32,6 +32,41 @@ const STATUS_LABEL: Record<string, string> = {
   done: 'Done',
 };
 
+// Hand-coloring palettes (a tasteful preset row; a custom hex picker extends them).
+const NOTE_SWATCHES = ['#d63a2f', '#e0902a', '#e7c12b', '#3a9b54', '#3a7bd5', '#8a5cd6', '#d6539e', '#5b6470'];
+const BOARD_SWATCHES = ['#c39a5c', '#7a5230', '#3f6f50', '#2f3f5c', '#7d3b3b', '#4a4a52'];
+const DEFAULT_CORK = '#c39a5c';
+
+const HEX_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+
+// First short line of the task body, lightly stripped of markdown noise, for the
+// note snippet. (Task "notes" == the task's body/description.)
+function bodySnippet(body?: string): string {
+  if (!body) return '';
+  const text = body
+    .replace(/^#+\s+/gm, '')
+    .replace(/[*_`>#]/g, '')
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return text.length > 90 ? text.slice(0, 90) + '…' : text;
+}
+
+// Neutral speckle + vignette so any board base color still reads as a physical surface.
+function corkStyle(base?: string | null): React.CSSProperties {
+  return {
+    backgroundColor: base || DEFAULT_CORK,
+    backgroundImage:
+      'radial-gradient(circle at 18% 22%, rgba(0,0,0,0.10) 0 1.5px, transparent 2.5px),' +
+      'radial-gradient(circle at 62% 44%, rgba(0,0,0,0.08) 0 1.5px, transparent 2.5px),' +
+      'radial-gradient(circle at 38% 78%, rgba(255,255,255,0.10) 0 1.5px, transparent 2.5px),' +
+      'radial-gradient(circle at 82% 64%, rgba(0,0,0,0.07) 0 1px, transparent 2px),' +
+      'radial-gradient(circle at 8% 88%, rgba(255,255,255,0.07) 0 1px, transparent 2px),' +
+      'radial-gradient(circle at 50% 50%, rgba(0,0,0,0.04), rgba(0,0,0,0.20))',
+    backgroundSize: '46px 46px, 58px 58px, 52px 52px, 38px 38px, 64px 64px, 100% 100%',
+  };
+}
+
 // Deterministic small tilt (−3°..3°) per card so pinned notes look hand-placed.
 function tiltFor(id: string): number {
   let h = 0;
@@ -55,7 +90,7 @@ const Pinboard: React.FC<Props> = ({ onMenuClick, onSelectTask }) => {
   );
 
   const board = usePinboard(projectId);
-  const { cards, connections, pin, moveLocal, commitMove, unpin, connect, relabel, disconnect } = board;
+  const { cards, connections, bgColor, pin, moveLocal, commitMove, recolorCard, setBoardBgColor, unpin, connect, relabel, disconnect } = board;
 
   const taskMap = useMemo(() => {
     const m = new Map<string, Task>();
@@ -92,6 +127,20 @@ const Pinboard: React.FC<Props> = ({ onMenuClick, onSelectTask }) => {
   const [selectedConnId, setSelectedConnId] = useState<string | null>(null);
   const [editingConnId, setEditingConnId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  // Color picker: either a card's accent or the board surface, anchored at a screen point.
+  const [colorTarget, setColorTarget] = useState<
+    { kind: 'card'; cardId: string; current: string | null } | { kind: 'board' } | null
+  >(null);
+  const [colorAnchor, setColorAnchor] = useState<{ x: number; y: number } | null>(null);
+
+  const openColorPicker = useCallback(
+    (target: NonNullable<typeof colorTarget>, clientX: number, clientY: number) => {
+      const rect = boardRef.current?.getBoundingClientRect();
+      setColorAnchor({ x: clientX - (rect?.left ?? 0), y: clientY - (rect?.top ?? 0) });
+      setColorTarget(target);
+    },
+    []
+  );
 
   // Multi-touch pinch tracking.
   const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
@@ -376,7 +425,7 @@ const Pinboard: React.FC<Props> = ({ onMenuClick, onSelectTask }) => {
           onReset={() => {}}
           disabled
         />
-        <div className="flex-1 grid place-items-center p-8" style={corkStyle}>
+        <div className="flex-1 grid place-items-center p-8" style={corkStyle()}>
           <div className="text-center max-w-xs rounded-2xl bg-black/30 px-6 py-5 backdrop-blur-[1px]">
             <PinIcon size={28} className="mx-auto mb-3 text-white/80" />
             <p className="text-[15px] font-semibold text-white">Pick a project</p>
@@ -400,12 +449,14 @@ const Pinboard: React.FC<Props> = ({ onMenuClick, onSelectTask }) => {
         onZoomOut={() => zoomButton(1 / 1.2)}
         onReset={resetView}
         accent={project?.color}
+        boardColor={bgColor ?? DEFAULT_CORK}
+        onBoardColor={(e) => openColorPicker({ kind: 'board' }, e.clientX, e.clientY)}
       />
 
       <div
         ref={boardRef}
         className="relative flex-1 overflow-hidden touch-none select-none"
-        style={{ ...corkStyle, cursor: dragRef.current?.kind === 'pan' ? 'grabbing' : 'default' }}
+        style={{ ...corkStyle(bgColor), cursor: dragRef.current?.kind === 'pan' ? 'grabbing' : 'default' }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -539,8 +590,12 @@ const Pinboard: React.FC<Props> = ({ onMenuClick, onSelectTask }) => {
                 task={task}
                 x={card.x}
                 y={card.y}
+                color={card.color ?? null}
                 armed={connectFrom === task.id}
                 onUnpin={() => void unpin(card.id)}
+                onColorClick={(e) =>
+                  openColorPicker({ kind: 'card', cardId: card.id, current: card.color ?? null }, e.clientX, e.clientY)
+                }
               />
             );
           })}
@@ -574,7 +629,87 @@ const Pinboard: React.FC<Props> = ({ onMenuClick, onSelectTask }) => {
           onClose={() => setPickerOpen(false)}
         />
       )}
+
+      {colorTarget && colorAnchor && (
+        <ColorPicker
+          anchor={colorAnchor}
+          swatches={colorTarget.kind === 'board' ? BOARD_SWATCHES : NOTE_SWATCHES}
+          allowAuto={colorTarget.kind === 'card'}
+          current={colorTarget.kind === 'card' ? colorTarget.current : bgColor ?? null}
+          onPick={(hex) => {
+            if (colorTarget.kind === 'card') void recolorCard(colorTarget.cardId, hex);
+            else void setBoardBgColor(hex || DEFAULT_CORK);
+            setColorTarget(null);
+          }}
+          onClose={() => setColorTarget(null)}
+        />
+      )}
     </div>
+  );
+};
+
+// --- Color picker popover (swatches + custom hex) ---
+
+const ColorPicker: React.FC<{
+  anchor: { x: number; y: number };
+  swatches: string[];
+  allowAuto: boolean;
+  current: string | null;
+  onPick: (hex: string) => void;
+  onClose: () => void;
+}> = ({ anchor, swatches, allowAuto, current, onPick, onClose }) => {
+  const [hex, setHex] = useState(current ?? '');
+  const valid = HEX_RE.test(hex);
+  return (
+    <>
+      <div className="fixed inset-0 z-[58]" onPointerDown={onClose} />
+      <div
+        data-stop
+        className="absolute z-[59] w-56 rounded-xl border border-border bg-surface shadow-xl p-3 animate-fade-in"
+        style={{ left: Math.max(8, anchor.x - 112), top: anchor.y + 14 }}
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <div className="grid grid-cols-8 gap-1.5 mb-2.5">
+          {allowAuto && (
+            <button
+              onClick={() => onPick('')}
+              title="Auto (by priority)"
+              className="col-span-2 h-6 rounded-md border border-border text-[10px] text-text-secondary hover:border-accent"
+            >
+              Auto
+            </button>
+          )}
+          {swatches.map((c) => (
+            <button
+              key={c}
+              onClick={() => onPick(c)}
+              title={c}
+              className="h-6 rounded-md border border-black/10 hover:scale-110 transition-transform"
+              style={{ backgroundColor: c, outline: current?.toLowerCase() === c.toLowerCase() ? '2px solid var(--accent, #C96442)' : 'none', outlineOffset: 1 }}
+            />
+          ))}
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-5 h-5 rounded border border-border flex-shrink-0" style={{ backgroundColor: valid ? hex : 'transparent' }} />
+          <input
+            value={hex}
+            onChange={(e) => setHex(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && valid) onPick(hex);
+            }}
+            placeholder="#hex"
+            className="flex-1 min-w-0 px-2 py-1 rounded-md bg-bg-secondary border border-border text-[12px] text-text-primary outline-none focus:border-accent"
+          />
+          <button
+            onClick={() => valid && onPick(hex)}
+            disabled={!valid}
+            className="px-2 py-1 rounded-md bg-accent text-text-inverse text-[12px] font-medium disabled:opacity-40"
+          >
+            Set
+          </button>
+        </div>
+      </div>
+    </>
   );
 };
 
@@ -590,6 +725,8 @@ interface ToolbarProps {
   onReset: () => void;
   accent?: string;
   disabled?: boolean;
+  boardColor?: string;
+  onBoardColor?: (e: React.MouseEvent) => void;
 }
 
 const Toolbar: React.FC<ToolbarProps> = ({
@@ -602,6 +739,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onReset,
   accent,
   disabled,
+  boardColor,
+  onBoardColor,
 }) => (
   <header className="flex-shrink-0 flex items-center gap-2 px-3 sm:px-5 py-3 border-b border-border bg-surface">
     <button
@@ -618,6 +757,17 @@ const Toolbar: React.FC<ToolbarProps> = ({
     </div>
 
     <div className="ml-auto flex items-center gap-1.5">
+      {onBoardColor && (
+        <button
+          onClick={onBoardColor}
+          disabled={disabled}
+          className="flex items-center gap-1.5 p-1.5 rounded-lg bg-bg-secondary text-text-secondary hover:text-text-primary hover:bg-bg-tertiary transition-base disabled:opacity-40"
+          title="Board color"
+        >
+          <Palette size={16} />
+          <span className="w-3.5 h-3.5 rounded-full border border-black/20" style={{ backgroundColor: boardColor }} />
+        </button>
+      )}
       <div className="flex items-center rounded-lg bg-bg-secondary">
         <button onClick={onZoomOut} disabled={disabled} className="p-1.5 rounded-l-lg text-text-secondary hover:text-text-primary hover:bg-bg-tertiary transition-base disabled:opacity-40" title="Zoom out">
           <ZoomOut size={16} />
@@ -648,14 +798,18 @@ interface NoteCardProps {
   task: Task;
   x: number;
   y: number;
+  color: string | null;
   armed: boolean;
   onUnpin: () => void;
+  onColorClick: (e: React.MouseEvent) => void;
 }
 
-const NoteCard: React.FC<NoteCardProps> = React.memo(({ cardId, task, x, y, armed, onUnpin }) => {
+const NoteCard: React.FC<NoteCardProps> = React.memo(({ cardId, task, x, y, color, armed, onUnpin, onColorClick }) => {
   const tilt = tiltFor(cardId);
-  const pinColor = PIN_COLORS[task.priority ?? 'none'] ?? PIN_COLORS.none;
+  // Hand-picked color wins; otherwise fall back to the priority color.
+  const accent = color ?? PIN_COLORS[task.priority ?? 'none'] ?? PIN_COLORS.none;
   const done = task.status === 'done';
+  const snippet = bodySnippet(task.body);
 
   return (
     <div
@@ -670,54 +824,75 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ cardId, task, x, y, arme
         cursor: 'grab',
       }}
     >
-      {/* String/connect handle: the pushpin (top-center) */}
-      <div
-        data-pin
-        className="absolute left-1/2 -top-2 -translate-x-1/2 z-10"
-        style={{ cursor: 'crosshair' }}
-        title="Drag to another note to connect"
-      >
-        <Pushpin color={pinColor} active={armed} />
-      </div>
-
       {/* Paper */}
       <div
-        className="rounded-[3px] px-3 pt-4 pb-2.5"
+        className="rounded-[3px] px-3 pt-4 pb-2.5 overflow-hidden"
         style={{
-          ...paperStyle,
+          ...paperStyle(color),
           outline: armed ? '2px solid #e74c3c' : 'none',
           outlineOffset: 2,
-          opacity: done ? 0.82 : 1,
+          opacity: done ? 0.85 : 1,
         }}
       >
+        {/* Old puncture marks (wear from being re-pinned) */}
+        <span className="absolute rounded-full" style={{ left: '40%', top: 3, width: 3, height: 3, background: 'radial-gradient(circle, rgba(0,0,0,0.32), rgba(0,0,0,0.05) 70%, transparent)' }} />
+        <span className="absolute rounded-full" style={{ left: '58%', top: 6, width: 2.5, height: 2.5, background: 'radial-gradient(circle, rgba(0,0,0,0.26), transparent 70%)' }} />
+
+        {/* Note color (opens picker) */}
+        <button
+          data-stop
+          onClick={(e) => {
+            e.stopPropagation();
+            onColorClick(e);
+          }}
+          className="absolute top-1 left-1 w-3.5 h-3.5 rounded-full border border-black/25 opacity-0 group-hover:opacity-100 transition-base"
+          style={{ backgroundColor: accent }}
+          title="Note color"
+        />
+
         <button
           data-stop
           onClick={(e) => {
             e.stopPropagation();
             onUnpin();
           }}
-          className="absolute top-1 right-1 grid place-items-center w-5 h-5 rounded-full text-stone-500 opacity-0 group-hover:opacity-100 hover:bg-black/10 hover:text-stone-800 transition-base"
+          className="absolute top-0.5 right-0.5 grid place-items-center w-5 h-5 rounded-full text-stone-500 opacity-0 group-hover:opacity-100 hover:bg-black/10 hover:text-stone-800 transition-base"
           title="Unpin"
         >
           <X size={13} />
         </button>
 
         <div
-          className="text-[13px] font-semibold leading-snug text-stone-900 break-words"
+          className="text-[13px] font-semibold leading-snug text-stone-900 break-words pr-3"
           style={{ fontFamily: "'Courier New', ui-monospace, monospace", textDecoration: done ? 'line-through' : 'none' }}
         >
           {task.title}
         </div>
 
         {/* Red index-card rule */}
-        <div className="my-1.5 h-px" style={{ background: 'rgba(192,57,43,0.45)' }} />
+        <div className="my-1.5 h-px" style={{ background: 'rgba(192,57,43,0.4)' }} />
+
+        {snippet && (
+          <div
+            className="text-[11px] leading-snug text-stone-600 mb-1.5"
+            style={{
+              fontFamily: "'Courier New', ui-monospace, monospace",
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            }}
+          >
+            {snippet}
+          </div>
+        )}
 
         <div className="flex items-center gap-1 flex-wrap">
           <span className="px-1.5 py-0.5 rounded-[2px] text-[10px] font-medium text-stone-600 bg-black/[0.06]">
             {STATUS_LABEL[task.status] ?? task.status}
           </span>
           {task.priority && task.priority !== 'none' && (
-            <span className="px-1.5 py-0.5 rounded-[2px] text-[10px] font-medium text-white capitalize" style={{ backgroundColor: pinColor }}>
+            <span className="px-1.5 py-0.5 rounded-[2px] text-[10px] font-medium text-white capitalize" style={{ backgroundColor: accent }}>
               {task.priority}
             </span>
           )}
@@ -727,23 +902,79 @@ const NoteCard: React.FC<NoteCardProps> = React.memo(({ cardId, task, x, y, arme
             </span>
           )}
         </div>
+
+        {/* Dog-eared folded corner */}
+        <span
+          className="absolute bottom-0 right-0"
+          style={{
+            width: 0,
+            height: 0,
+            borderStyle: 'solid',
+            borderWidth: '0 0 15px 15px',
+            borderColor: 'transparent transparent rgba(0,0,0,0.12) transparent',
+          }}
+        />
+        <span
+          className="absolute bottom-0 right-0"
+          style={{
+            width: 0,
+            height: 0,
+            borderStyle: 'solid',
+            borderWidth: '0 0 13px 13px',
+            borderColor: 'transparent transparent #ece2c6 transparent',
+            filter: 'drop-shadow(-1px -1px 1px rgba(0,0,0,0.12))',
+          }}
+        />
+      </div>
+
+      {/* Puncture where the pin pierces the paper */}
+      <span
+        className="absolute left-1/2 -translate-x-1/2 rounded-full"
+        style={{ top: 2, width: 4, height: 4, background: 'radial-gradient(circle, rgba(0,0,0,0.5), rgba(0,0,0,0.15) 60%, transparent)' }}
+      />
+
+      {/* Pushpin (also the connect handle) sits above everything */}
+      <div
+        data-pin
+        className="absolute left-1/2 -top-2.5 -translate-x-1/2 z-10"
+        style={{ cursor: 'crosshair' }}
+        title="Drag to another note to connect"
+      >
+        <Pushpin color={accent} active={armed} />
       </div>
     </div>
   );
 });
 NoteCard.displayName = 'NoteCard';
 
+// A thumbtack: glossy domed head, metal collar, and a needle hinted poking
+// down into the board.
 const Pushpin: React.FC<{ color: string; active: boolean }> = ({ color, active }) => (
-  <div className="relative" style={{ width: 18, height: 18, filter: 'drop-shadow(0 2px 1.5px rgba(0,0,0,0.4))' }}>
+  <div className="relative" style={{ width: 20, height: 22, filter: 'drop-shadow(0 3px 2px rgba(0,0,0,0.45))' }}>
+    {/* needle into the board */}
     <div
-      className="absolute inset-0 rounded-full"
+      className="absolute"
+      style={{ left: '50%', top: 12, width: 2, height: 10, transform: 'translateX(-50%) rotate(7deg)', transformOrigin: 'top', background: 'linear-gradient(to bottom, #c2c5cc, #6a6d75)', borderRadius: '0 0 1px 1px' }}
+    />
+    {/* metal collar */}
+    <div
+      className="absolute"
+      style={{ left: '50%', top: 10.5, width: 7, height: 3.5, transform: 'translateX(-50%)', background: 'linear-gradient(#e2e4e9, #888c95)', borderRadius: 2 }}
+    />
+    {/* domed head */}
+    <div
+      className="absolute rounded-full"
       style={{
-        background: `radial-gradient(circle at 32% 28%, #ffffff 0%, ${color} 42%, ${color} 70%, rgba(0,0,0,0.45) 100%)`,
-        border: active ? '2px solid #fff' : 'none',
+        left: 1,
+        top: 0,
+        width: 18,
+        height: 18,
+        background: `radial-gradient(circle at 32% 26%, #ffffff 0%, ${color} 40%, ${color} 66%, rgba(0,0,0,0.5) 100%)`,
+        border: active ? '2px solid #fff' : '1px solid rgba(0,0,0,0.18)',
       }}
     />
     {/* glossy highlight */}
-    <div className="absolute rounded-full bg-white/70" style={{ width: 5, height: 5, left: 4, top: 3 }} />
+    <div className="absolute rounded-full bg-white/80" style={{ width: 5, height: 5, left: 5, top: 3 }} />
   </div>
 );
 
@@ -858,30 +1089,40 @@ const PinPicker: React.FC<{
 
 // --- Skeuomorphic surfaces ---
 
-const corkStyle: React.CSSProperties = {
-  backgroundColor: '#c39a5c',
-  backgroundImage:
-    'radial-gradient(circle at 18% 22%, rgba(80,50,20,0.16) 0 1.5px, transparent 2.5px),' +
-    'radial-gradient(circle at 62% 44%, rgba(70,45,18,0.13) 0 1.5px, transparent 2.5px),' +
-    'radial-gradient(circle at 38% 78%, rgba(255,240,210,0.10) 0 1.5px, transparent 2.5px),' +
-    'radial-gradient(circle at 82% 64%, rgba(60,38,14,0.12) 0 1px, transparent 2px),' +
-    'radial-gradient(circle at 8% 88%, rgba(255,240,210,0.08) 0 1px, transparent 2px),' +
-    'radial-gradient(circle at 50% 50%, rgba(150,110,60,0.25), rgba(120,84,40,0.35))',
-  backgroundSize: '46px 46px, 58px 58px, 52px 52px, 38px 38px, 64px 64px, 100% 100%',
-};
-
 const frameStyle: React.CSSProperties = {
   border: '14px solid #5c3d22',
   borderImage: 'linear-gradient(135deg, #8a5e36, #5c3d22 45%, #7a5230 55%, #4f3219) 1',
   boxShadow: 'inset 0 0 40px rgba(40,22,8,0.55), inset 0 0 4px rgba(0,0,0,0.6)',
 };
 
-const paperStyle: React.CSSProperties = {
-  position: 'relative',
-  background: 'linear-gradient(150deg, #fffdf4 0%, #f7f0dd 100%)',
-  boxShadow: '0 6px 12px rgba(0,0,0,0.32), 0 1px 2px rgba(0,0,0,0.25)',
-  border: '1px solid rgba(120,100,60,0.25)',
-};
+// Aged paper: warm gradient + faint horizontal grain + soft fibers, with a
+// double shadow so notes lift off the cork. An optional tint blends a chosen
+// color into the paper so a recolored note reads as colored stock.
+function paperStyle(tint?: string | null): React.CSSProperties {
+  const base =
+    'repeating-linear-gradient(0deg, rgba(120,90,40,0.035) 0 1px, transparent 1px 22px),' +
+    'radial-gradient(circle at 78% 12%, rgba(150,120,70,0.10), transparent 40%),' +
+    'radial-gradient(circle at 12% 86%, rgba(150,120,70,0.08), transparent 38%),' +
+    'linear-gradient(150deg, #fffdf4 0%, #f6efda 100%)';
+  return {
+    position: 'relative',
+    backgroundColor: '#fbf6e7',
+    backgroundImage: tint ? `linear-gradient(0deg, ${hexToRgba(tint, 0.22)}, ${hexToRgba(tint, 0.22)}),` + base : base,
+    boxShadow: '0 7px 14px rgba(0,0,0,0.30), 0 2px 3px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.6)',
+    border: '1px solid rgba(120,100,60,0.28)',
+  };
+}
+
+// #rgb/#rrggbb → rgba() string at the given alpha (other formats fall back opaque).
+function hexToRgba(hex: string, alpha: number): string {
+  let h = hex.replace('#', '');
+  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+  if (h.length !== 6) return hex;
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 const tapeStyle: React.CSSProperties = {
   background: 'linear-gradient(180deg, #fff8e6, #f3e6c4)',

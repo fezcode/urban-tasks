@@ -69,7 +69,7 @@ func (h *PinboardHandler) PinCard(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusCreated, card)
 }
 
-func (h *PinboardHandler) MoveCard(w http.ResponseWriter, r *http.Request) {
+func (h *PinboardHandler) UpdateCard(w http.ResponseWriter, r *http.Request) {
 	userID := middleware.UserIDFromContext(r.Context())
 	cardID := chi.URLParam(r, "cardId")
 
@@ -79,17 +79,53 @@ func (h *PinboardHandler) MoveCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	card, err := h.pinboard.MoveCard(r.Context(), cardID, userID, req)
+	card, err := h.pinboard.UpdateCard(r.Context(), cardID, userID, req)
 	if err != nil {
 		if errors.Is(err, service.ErrCardNotFound) {
 			respondError(w, http.StatusNotFound, "card not found")
 			return
 		}
-		slog.Error("move card", "error", err, "cardID", cardID)
-		respondError(w, http.StatusInternalServerError, "failed to move card")
+		slog.Error("update card", "error", err, "cardID", cardID)
+		respondError(w, http.StatusInternalServerError, "failed to update card")
 		return
 	}
 	respondJSON(w, http.StatusOK, card)
+}
+
+func (h *PinboardHandler) SetBoardColor(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.UserIDFromContext(r.Context())
+	projectID := chi.URLParam(r, "id")
+
+	var req model.UpdatePinboardBoardRequest
+	if err := decodeJSON(r, &req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	color, err := h.pinboard.SetBoardColor(r.Context(), projectID, userID, req)
+	if err != nil {
+		if errors.Is(err, service.ErrProjectNotFound) {
+			respondError(w, http.StatusNotFound, "project not found")
+			return
+		}
+		slog.Error("set board color", "error", err, "projectID", projectID)
+		respondError(w, http.StatusInternalServerError, "failed to set board color")
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"bgColor": color})
+}
+
+func (h *PinboardHandler) LinkedTasks(w http.ResponseWriter, r *http.Request) {
+	userID := middleware.UserIDFromContext(r.Context())
+	taskID := chi.URLParam(r, "id")
+
+	links, err := h.pinboard.LinkedTasks(r.Context(), taskID, userID)
+	if err != nil {
+		slog.Error("linked tasks", "error", err, "taskID", taskID)
+		respondError(w, http.StatusInternalServerError, "failed to load connections")
+		return
+	}
+	respondJSON(w, http.StatusOK, links)
 }
 
 func (h *PinboardHandler) UnpinCard(w http.ResponseWriter, r *http.Request) {

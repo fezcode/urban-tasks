@@ -172,6 +172,7 @@ import type {
   PinboardBoard,
   PinboardCard,
   PinboardConnection,
+  PinboardLinkedTask,
 } from '../context/types';
 
 export const projects = {
@@ -400,6 +401,18 @@ export const pinboard = {
       method: 'PATCH',
       body: JSON.stringify({ x, y }),
     }),
+  recolorCard: (cardId: string, color: string) =>
+    request<PinboardCard>(`/pinboard/cards/${cardId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ color }),
+    }),
+  setBoardColor: (projectId: string, bgColor: string) =>
+    request<{ bgColor: string | null }>(`/projects/${projectId}/pinboard`, {
+      method: 'PATCH',
+      body: JSON.stringify({ bgColor }),
+    }),
+  linkedTasks: (taskId: string) =>
+    request<PinboardLinkedTask[]>(`/tasks/${taskId}/pinboard`),
   unpinCard: (cardId: string) =>
     request<void>(`/pinboard/cards/${cardId}`, { method: 'DELETE' }),
   connect: (projectId: string, fromTaskId: string, toTaskId: string, label = '') =>

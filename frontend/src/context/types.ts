@@ -59,7 +59,17 @@ export interface PinboardCard {
   taskId: string;
   x: number;
   y: number;
+  color?: string | null;
   createdAt: string;
+}
+
+export interface PinboardLinkedTask {
+  connectionId: string;
+  label: string;
+  taskId: string;
+  title: string;
+  status: TaskStatus;
+  priority: TaskPriority;
 }
 
 export interface PinboardConnection {
@@ -74,6 +84,7 @@ export interface PinboardConnection {
 export interface PinboardBoard {
   cards: PinboardCard[];
   connections: PinboardConnection[];
+  bgColor?: string | null;
 }
 
 export interface AppState {

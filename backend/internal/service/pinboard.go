@@ -50,13 +50,41 @@ func (s *PinboardService) GetBoard(ctx context.Context, projectID, userID string
 	if err != nil {
 		return nil, err
 	}
+	bgColor, err := s.pinboard.GetBoardColor(ctx, projectID)
+	if err != nil {
+		return nil, err
+	}
 	if cards == nil {
 		cards = []model.PinboardCard{}
 	}
 	if conns == nil {
 		conns = []model.PinboardConnection{}
 	}
-	return &model.PinboardBoard{Cards: cards, Connections: conns}, nil
+	return &model.PinboardBoard{Cards: cards, Connections: conns, BgColor: bgColor}, nil
+}
+
+// SetBoardColor sets (or clears, via empty/invalid input) the cork background color.
+func (s *PinboardService) SetBoardColor(ctx context.Context, projectID, userID string, req model.UpdatePinboardBoardRequest) (*string, error) {
+	if err := s.requireMember(ctx, projectID, userID); err != nil {
+		return nil, err
+	}
+	color := model.SanitizeColor(req.BgColor)
+	if err := s.pinboard.SetBoardColor(ctx, projectID, color); err != nil {
+		return nil, err
+	}
+	return color, nil
+}
+
+// LinkedTasks returns the tasks strung to a given task on its project's board.
+func (s *PinboardService) LinkedTasks(ctx context.Context, taskID, userID string) ([]model.PinboardLinkedTask, error) {
+	out, err := s.pinboard.ListLinkedTasks(ctx, taskID, userID)
+	if err != nil {
+		return nil, err
+	}
+	if out == nil {
+		out = []model.PinboardLinkedTask{}
+	}
+	return out, nil
 }
 
 func (s *PinboardService) PinCard(ctx context.Context, projectID, userID string, req model.CreatePinboardCardRequest) (*model.PinboardCard, error) {
@@ -90,7 +118,8 @@ func (s *PinboardService) PinCard(ctx context.Context, projectID, userID string,
 	return c, nil
 }
 
-func (s *PinboardService) MoveCard(ctx context.Context, cardID, userID string, req model.UpdatePinboardCardRequest) (*model.PinboardCard, error) {
+// UpdateCard applies any provided position and/or color change to a card.
+func (s *PinboardService) UpdateCard(ctx context.Context, cardID, userID string, req model.UpdatePinboardCardRequest) (*model.PinboardCard, error) {
 	c, err := s.pinboard.CardByID(ctx, cardID, userID)
 	if err != nil {
 		return nil, err
@@ -104,7 +133,11 @@ func (s *PinboardService) MoveCard(ctx context.Context, cardID, userID string, r
 	if req.Y != nil {
 		c.Y = model.SanitizeBoardCoord(*req.Y)
 	}
-	if err := s.pinboard.UpdateCardPos(ctx, c.ID, c.X, c.Y); err != nil {
+	if req.Color != nil {
+		// Present color: a valid hex sets it, anything else clears (auto).
+		c.Color = model.SanitizeColor(req.Color)
+	}
+	if err := s.pinboard.UpdateCard(ctx, c.ID, c.X, c.Y, c.Color); err != nil {
 		return nil, err
 	}
 	return c, nil

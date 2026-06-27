@@ -184,12 +184,14 @@ func main() {
 
 			// Pinboard (per-project corkboard of pinned tasks + string)
 			protected.Get("/projects/{id}/pinboard", pinboardH.Get)
+			protected.Patch("/projects/{id}/pinboard", pinboardH.SetBoardColor)
 			protected.Post("/projects/{id}/pinboard/cards", pinboardH.PinCard)
-			protected.Patch("/pinboard/cards/{cardId}", pinboardH.MoveCard)
+			protected.Patch("/pinboard/cards/{cardId}", pinboardH.UpdateCard)
 			protected.Delete("/pinboard/cards/{cardId}", pinboardH.UnpinCard)
 			protected.Post("/projects/{id}/pinboard/connections", pinboardH.Connect)
 			protected.Patch("/pinboard/connections/{connId}", pinboardH.Relabel)
 			protected.Delete("/pinboard/connections/{connId}", pinboardH.Disconnect)
+			protected.Get("/tasks/{id}/pinboard", pinboardH.LinkedTasks)
 
 			// Task comments
 			protected.Get("/tasks/{id}/comments", commentH.List)

@@ -20,7 +20,7 @@ func NewPinboardRepo(pool *pgxpool.Pool) *PinboardRepo {
 
 func (r *PinboardRepo) ListCards(ctx context.Context, projectID string) ([]model.PinboardCard, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT id, project_id, task_id, x, y, created_at
+		`SELECT id, project_id, task_id, x, y, color, created_at
 		 FROM pinboard_cards WHERE project_id = $1 ORDER BY created_at`, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("listing cards: %w", err)
@@ -30,7 +30,7 @@ func (r *PinboardRepo) ListCards(ctx context.Context, projectID string) ([]model
 	var out []model.PinboardCard
 	for rows.Next() {
 		var c model.PinboardCard
-		if err := rows.Scan(&c.ID, &c.ProjectID, &c.TaskID, &c.X, &c.Y, &c.CreatedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.ProjectID, &c.TaskID, &c.X, &c.Y, &c.Color, &c.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scanning card: %w", err)
 		}
 		out = append(out, c)
@@ -62,11 +62,11 @@ func (r *PinboardRepo) ListConnections(ctx context.Context, projectID string) ([
 func (r *PinboardRepo) CardByID(ctx context.Context, id, userID string) (*model.PinboardCard, error) {
 	c := &model.PinboardCard{}
 	err := r.pool.QueryRow(ctx,
-		`SELECT pc.id, pc.project_id, pc.task_id, pc.x, pc.y, pc.created_at
+		`SELECT pc.id, pc.project_id, pc.task_id, pc.x, pc.y, pc.color, pc.created_at
 		 FROM pinboard_cards pc
 		 JOIN project_members m ON m.project_id = pc.project_id
 		 WHERE pc.id = $1 AND m.user_id = $2`, id, userID).
-		Scan(&c.ID, &c.ProjectID, &c.TaskID, &c.X, &c.Y, &c.CreatedAt)
+		Scan(&c.ID, &c.ProjectID, &c.TaskID, &c.X, &c.Y, &c.Color, &c.CreatedAt)
 	if err == pgx.ErrNoRows {
 		return nil, nil
 	}
@@ -87,13 +87,66 @@ func (r *PinboardRepo) CreateCard(ctx context.Context, c *model.PinboardCard) er
 	return nil
 }
 
-func (r *PinboardRepo) UpdateCardPos(ctx context.Context, id string, x, y float64) error {
+func (r *PinboardRepo) UpdateCard(ctx context.Context, id string, x, y float64, color *string) error {
 	_, err := r.pool.Exec(ctx,
-		`UPDATE pinboard_cards SET x = $1, y = $2 WHERE id = $3`, x, y, id)
+		`UPDATE pinboard_cards SET x = $1, y = $2, color = $3 WHERE id = $4`, x, y, color, id)
 	if err != nil {
-		return fmt.Errorf("updating card position: %w", err)
+		return fmt.Errorf("updating card: %w", err)
 	}
 	return nil
+}
+
+// --- board-level settings (background color) ---
+
+func (r *PinboardRepo) GetBoardColor(ctx context.Context, projectID string) (*string, error) {
+	var color *string
+	err := r.pool.QueryRow(ctx,
+		`SELECT bg_color FROM pinboard_boards WHERE project_id = $1`, projectID).Scan(&color)
+	if err == pgx.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("getting board color: %w", err)
+	}
+	return color, nil
+}
+
+func (r *PinboardRepo) SetBoardColor(ctx context.Context, projectID string, color *string) error {
+	_, err := r.pool.Exec(ctx,
+		`INSERT INTO pinboard_boards (project_id, bg_color, updated_at)
+		 VALUES ($1, $2, NOW())
+		 ON CONFLICT (project_id) DO UPDATE SET bg_color = EXCLUDED.bg_color, updated_at = NOW()`,
+		projectID, color)
+	if err != nil {
+		return fmt.Errorf("setting board color: %w", err)
+	}
+	return nil
+}
+
+// ListLinkedTasks returns the tasks strung to a given task (the partner of each
+// connection), authorized by project membership. One indexed query, no N+1.
+func (r *PinboardRepo) ListLinkedTasks(ctx context.Context, taskID, userID string) ([]model.PinboardLinkedTask, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT c.id, c.label, t.id, t.title, t.status, t.priority
+		 FROM pinboard_connections c
+		 JOIN project_members m ON m.project_id = c.project_id AND m.user_id = $2
+		 JOIN tasks t ON t.id = CASE WHEN c.a_task_id = $1 THEN c.b_task_id ELSE c.a_task_id END
+		 WHERE c.a_task_id = $1 OR c.b_task_id = $1
+		 ORDER BY c.created_at`, taskID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("listing linked tasks: %w", err)
+	}
+	defer rows.Close()
+
+	var out []model.PinboardLinkedTask
+	for rows.Next() {
+		var l model.PinboardLinkedTask
+		if err := rows.Scan(&l.ConnectionID, &l.Label, &l.TaskID, &l.Title, &l.Status, &l.Priority); err != nil {
+			return nil, fmt.Errorf("scanning linked task: %w", err)
+		}
+		out = append(out, l)
+	}
+	return out, rows.Err()
 }
 
 func (r *PinboardRepo) DeleteCard(ctx context.Context, id string) error {

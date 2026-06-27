@@ -10,6 +10,7 @@ export function usePinboard(projectId: string | null) {
   const { error: toastError } = useToast();
   const [cards, setCards] = useState<PinboardCard[]>([]);
   const [connections, setConnections] = useState<PinboardConnection[]>([]);
+  const [bgColor, setBgColor] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Refs mirror state so callbacks can read current values without re-binding.
@@ -22,6 +23,7 @@ export function usePinboard(projectId: string | null) {
     if (!projectId) {
       setCards([]);
       setConnections([]);
+      setBgColor(null);
       return;
     }
     setLoading(true);
@@ -29,6 +31,7 @@ export function usePinboard(projectId: string | null) {
       const board = await api.pinboard.get(projectId);
       setCards(board.cards || []);
       setConnections(board.connections || []);
+      setBgColor(board.bgColor ?? null);
     } catch (e) {
       toastError(api.friendlyErrorMessage(e, 'Failed to load board'));
     } finally {
@@ -70,6 +73,35 @@ export function usePinboard(projectId: string | null) {
       }
     },
     [moveLocal, toastError, load]
+  );
+
+  const recolorCard = useCallback(
+    async (cardId: string, color: string) => {
+      // Empty string clears back to auto (priority color).
+      setCards((cs) => cs.map((c) => (c.id === cardId ? { ...c, color: color || null } : c)));
+      try {
+        await api.pinboard.recolorCard(cardId, color);
+      } catch (e) {
+        toastError(api.friendlyErrorMessage(e, 'Could not recolor note'));
+        void load();
+      }
+    },
+    [toastError, load]
+  );
+
+  const setBoardBgColor = useCallback(
+    async (color: string) => {
+      if (!projectId) return;
+      const prev = bgColor;
+      setBgColor(color || null);
+      try {
+        await api.pinboard.setBoardColor(projectId, color);
+      } catch (e) {
+        toastError(api.friendlyErrorMessage(e, 'Could not set board color'));
+        setBgColor(prev);
+      }
+    },
+    [projectId, bgColor, toastError]
   );
 
   const unpin = useCallback(
@@ -136,11 +168,14 @@ export function usePinboard(projectId: string | null) {
   return {
     cards,
     connections,
+    bgColor,
     loading,
     reload: load,
     pin,
     moveLocal,
     commitMove,
+    recolorCard,
+    setBoardBgColor,
     unpin,
     connect,
     relabel,

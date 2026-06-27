@@ -305,6 +305,7 @@ const AuthenticatedApp: React.FC<{ userId: string }> = ({ userId }) => {
                 taskId={selectedTaskId}
                 onClose={() => setSelectedTaskId(null)}
                 onTagClick={handleTagClick}
+                onOpenTask={(id) => setSelectedTaskId(id)}
               />
             </div>
           </Suspense>
